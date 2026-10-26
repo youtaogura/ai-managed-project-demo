@@ -1,5 +1,6 @@
 import { Directory, File, Paths } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
+import { Platform } from 'react-native';
 
 import type { PhotoService, PhotoSource, PickResult } from './PhotoService';
 
@@ -21,6 +22,8 @@ function extensionOf(uri: string): string {
 }
 
 async function pick(source: PhotoSource): Promise<PickResult> {
+  // Web にはカメラ起動がないため、何もせず終える
+  if (Platform.OS === 'web' && source === 'camera') return { status: 'canceled' };
   if (source === 'camera') {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) return { status: 'denied', canAskAgain: permission.canAskAgain };
@@ -35,6 +38,8 @@ async function pick(source: PhotoSource): Promise<PickResult> {
 }
 
 async function save(sourceUri: string): Promise<string> {
+  // Web ではファイルシステムを使えないため、選択された URI をそのまま使う
+  if (Platform.OS === 'web') return sourceUri;
   const directory = photosDirectory();
   directory.create({ idempotent: true, intermediates: true });
   const name = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.${extensionOf(sourceUri)}`;
@@ -44,6 +49,7 @@ async function save(sourceUri: string): Promise<string> {
 }
 
 async function remove(uri: string): Promise<void> {
+  if (Platform.OS === 'web') return;
   try {
     if (!uri.startsWith(photosDirectory().uri)) return;
     const file = new File(uri);

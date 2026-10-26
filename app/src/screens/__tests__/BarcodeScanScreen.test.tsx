@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { router } from 'expo-router';
-import { Linking, StyleSheet } from 'react-native';
+import { Linking, Platform, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { BookLookupContextProvider } from '../../hooks/useBookLookup';
@@ -201,5 +201,23 @@ describe('BarcodeScanScreen', () => {
       expect(StyleSheet.flatten(node.props.style)?.paddingTop ?? 0).toBeLessThan(47);
       node = node.parent;
     }
+  });
+});
+
+describe('BarcodeScanScreen（Web）', () => {
+  const originalOS = Platform.OS;
+  beforeEach(() => {
+    Platform.OS = 'web';
+  });
+  afterEach(() => {
+    Platform.OS = originalOS;
+  });
+
+  it('スマートフォン限定の案内と手入力への導線を出し、カメラは描画しない', async () => {
+    await setup();
+    expect(screen.getByText('この機能はスマートフォンでのみ使えます')).toBeTruthy();
+    expect(screen.queryByTestId('camera')).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: '手入力で追加' }));
+    expect(router.replace).toHaveBeenCalledWith('/record/new');
   });
 });
