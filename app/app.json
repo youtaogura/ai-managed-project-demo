@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "AI Managed Demo",
+    "scheme": "ai-managed-demo",
     "slug": "ai-managed-project-demo",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -20,6 +21,9 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-router"
+    ]
   }
 }

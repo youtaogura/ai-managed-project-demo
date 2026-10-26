@@ -118,7 +118,7 @@ export type NewRecordInput = Omit<MediaRecord, 'id' | 'createdAt' | 'updatedAt'>
 | CRUD・ID/日時付与・不正入力拒否・再生成した Repository から読める | `src/lib/__tests__/recordRepository.test.ts`（インメモリ storage、固定 `now` / `generateId`） |
 | 壊れたデータ・未知フィールド・読み出し失敗 | `src/lib/__tests__/recordGuard.test.ts` と `recordRepository.test.ts`（壊れた JSON、非配列、不正要素混在、`getItem` が reject） |
 | AsyncStorage 実装 | `src/lib/__tests__/storage.test.ts`（jest mock） |
-| タブ表示・切替・空状態 | `src/app/__tests__/tabs.test.tsx`（`expo-router/testing-library` の `renderRouter`、タブをタップして画面切替を確認）。`RecordsScreen` / `AnalyticsScreen` / `EmptyState` は単体テストも追加 |
+| タブ表示・切替・空状態 | `src/__tests__/tabs.test.tsx`（`src/app/` 配下はルートになるため `src/__tests__/` に配置。`expo-router/testing-library` の `renderRouter` にルートコンポーネントのファイルマップを渡し、タブをタップして画面切替を確認）。`RecordsScreen` / `AnalyticsScreen` / `EmptyState` は単体テストも追加 |
 
 カバレッジ（全体 行・関数・文 80% / 分岐 70%、差分 80%）を満たすため、検証関数・ガードは分岐を網羅する。
 `expo-router/testing-library` が使えない場合に備え、jest 設定（人間のみ変更可）は触らずに済む範囲で書く。どうしても jest 設定変更が必要になったら、判断ログに提案として書いて `needs_clarification` ではなく実装側で回避策（画面コンポーネントの単体テスト + Layout の描画テスト）を取る。
