@@ -5,7 +5,7 @@ import { BarcodeScanScreen } from '../../screens/BarcodeScanScreen';
 export default function BarcodeScanRoute() {
   return (
     <>
-      <Stack.Screen options={{ title: 'バーコードを読み取る' }} />
+      <Stack.Screen options={{ headerShown: false }} />
       <BarcodeScanScreen />
     </>
   );

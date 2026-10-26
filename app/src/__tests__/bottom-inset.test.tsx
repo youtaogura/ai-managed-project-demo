@@ -100,11 +100,11 @@ describe.each([
         </BookLookupContextProvider>,
       ),
     );
-    await screen.findByText('キャンセル');
-    expect(overlayPaddingBottom('キャンセル')).toBe(spacing.lg + extra);
+    await screen.findByText('ISBN を手入力する');
+    expect(overlayPaddingBottom('ISBN を手入力する')).toBe(space[4] + extra);
   });
 
-  it('タイトル検索の候補リスト末尾にインセットが加わる', async () => {
+  it('タイトル検索の固定フッター下端にインセットが加わる', async () => {
     const search = jest.fn(async () => ({
       status: 'ok' as const,
       candidates: [{ title: '本A', author: null, publisher: null, publishedYear: null, isbn: null }],
@@ -122,7 +122,7 @@ describe.each([
     fireEvent.changeText(await screen.findByLabelText('タイトルのキーワード'), '本');
     const button = await screen.findByRole('button', { name: /検索/ });
     await act(async () => fireEvent.press(button));
-    await screen.findByText('本A');
-    expect(scrollPaddingBottom('本A')).toBe(extra);
+    await screen.findByRole('button', { name: '本A' });
+    expect(overlayPaddingBottom('見つからないので手で入力する')).toBe(space[3] + extra);
   });
 });

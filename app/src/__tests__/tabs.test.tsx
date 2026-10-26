@@ -120,7 +120,7 @@ describe('ISBN で探して追加', () => {
     );
     await renderRouter(routes);
     await fireEvent.press(await screen.findByRole('button', { name: 'ISBN で探して追加' }));
-    await fireEvent.changeText(await screen.findByLabelText('ISBN'), '978-4-06-519981-7');
+    await fireEvent.changeText(await screen.findByLabelText('ISBN（10 桁または 13 桁）'), '978-4-06-519981-7');
     await fireEvent.press(screen.getByRole('button', { name: '探す' }));
     expect(await screen.findByDisplayValue('取得した本')).toBeTruthy();
     expect(screen.getByDisplayValue('著者A')).toBeTruthy();

@@ -1,11 +1,18 @@
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { AppText } from '../components/AppText';
+import { Button } from '../components/Button';
+import { LookupSkeletonCard } from '../components/LookupSkeletonCard';
+import { NotFoundCard } from '../components/NotFoundCard';
+import { ScreenHeaderBar } from '../components/ScreenHeaderBar';
+import { TextField } from '../components/TextField';
+import { colors, size, space } from '../design/tokens';
 import { useBookLookup } from '../hooks/useBookLookup';
+import { useBottomInset } from '../hooks/useBottomInset';
 import { toIsbn13 } from '../lib/isbn';
 import { bookInfoToParams, isbnOnlyParams } from '../lib/isbnLookupParams';
-import { colors, formColors, spacing } from '../theme';
 
 export const ERROR_ISBN_INVALID = 'ISBN を正しく入力してください（10 桁または 13 桁）';
 export const MESSAGE_NOT_FOUND = '見つかりませんでした';
@@ -13,10 +20,16 @@ export const MESSAGE_LOOKUP_ERROR = '書誌情報を取得できませんでし�
 
 type Status = 'idle' | 'loading' | 'invalid' | 'not_found' | 'error';
 
-export function IsbnLookupScreen() {
+type IsbnLookupScreenProps = {
+  initialIsbn?: string;
+  initialNotFound?: boolean;
+};
+
+export function IsbnLookupScreen({ initialIsbn = '', initialNotFound = false }: IsbnLookupScreenProps) {
   const provider = useBookLookup();
-  const [text, setText] = useState('');
-  const [status, setStatus] = useState<Status>('idle');
+  const bottomInset = useBottomInset();
+  const [text, setText] = useState(initialIsbn);
+  const [status, setStatus] = useState<Status>(initialNotFound ? 'not_found' : 'idle');
   const running = useRef(false);
   const active = useRef(true);
 
@@ -68,83 +81,62 @@ export function IsbnLookupScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.description}>ISBN（10 桁または 13 桁）を入力してください</Text>
-      <TextInput
-        accessibilityLabel="ISBN"
-        keyboardType="number-pad"
-        value={text}
-        onChangeText={onChangeText}
-        editable={!loading}
-        style={styles.input}
-      />
-      {status === 'invalid' ? <Text style={styles.error}>{ERROR_ISBN_INVALID}</Text> : null}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityState={{ disabled: loading }}
-        disabled={loading}
-        onPress={() => void search()}
-        style={[styles.primary, loading && styles.disabled]}
+      <ScreenHeaderBar title="ISBN を入力する" onClose={() => router.back()} />
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={[styles.content, { paddingBottom: space[6] + bottomInset }]}
       >
-        {loading ? (
-          <ActivityIndicator color={colors.onTint} />
-        ) : (
-          <Text style={styles.primaryText}>探す</Text>
-        )}
-      </Pressable>
-      {status === 'not_found' ? <Text style={styles.message}>{MESSAGE_NOT_FOUND}</Text> : null}
-      {status === 'error' ? (
-        <View style={styles.block}>
-          <Text style={styles.error}>{MESSAGE_LOOKUP_ERROR}</Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => void search()}
-            style={styles.secondary}
-          >
-            <Text style={styles.secondaryText}>再試行</Text>
-          </Pressable>
+        <View style={styles.field}>
+          <TextField
+            variant="isbn"
+            label="ISBN（10 桁または 13 桁）"
+            value={text}
+            onChangeText={onChangeText}
+            editable={!loading}
+            error={status === 'invalid' ? ERROR_ISBN_INVALID : undefined}
+          />
+          <AppText variant="label" style={styles.hint}>
+            ハイフンはあってもなくても大丈夫です。裏表紙やカバー袖に書かれています。
+          </AppText>
         </View>
-      ) : null}
-      <Pressable
-        accessibilityRole="button"
-        onPress={continueManually}
-        style={status === 'not_found' ? styles.primary : styles.secondary}
-      >
-        <Text style={status === 'not_found' ? styles.primaryText : styles.secondaryText}>
-          手入力で続ける
-        </Text>
-      </Pressable>
+        {status === 'not_found' ? (
+          <NotFoundCard
+            onManual={continueManually}
+            onRetry={() => void search()}
+            onTitleSearch={() => router.replace('/record/search')}
+          />
+        ) : (
+          <>
+            <Button label="探す" disabled={loading} onPress={() => void search()} />
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="バーコードで読み取る"
+              onPress={() => router.replace('/record/scan')}
+              style={styles.link}
+            >
+              <AppText variant="button" style={{ color: colors.textSecondary }}>
+                バーコードで読み取る
+              </AppText>
+            </Pressable>
+          </>
+        )}
+        {loading ? <LookupSkeletonCard state="loading" /> : null}
+        {status === 'error' ? (
+          <LookupSkeletonCard
+            state="error"
+            message={MESSAGE_LOOKUP_ERROR}
+            onRetry={() => void search()}
+          />
+        ) : null}
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: spacing.md,
-    gap: spacing.md,
-    backgroundColor: colors.background,
-  },
-  description: { fontSize: 14, color: colors.textMuted },
-  input: {
-    padding: spacing.md,
-    borderRadius: 8,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: formColors.border,
-    backgroundColor: formColors.inputBackground,
-    fontSize: 16,
-    color: colors.text,
-  },
-  block: { gap: spacing.sm },
-  error: { color: formColors.danger, fontSize: 14 },
-  message: { color: colors.text, fontSize: 16 },
-  primary: {
-    padding: spacing.md,
-    borderRadius: 8,
-    alignItems: 'center',
-    backgroundColor: colors.tint,
-  },
-  primaryText: { color: colors.onTint, fontSize: 16, fontWeight: '600' },
-  disabled: { backgroundColor: formColors.disabled },
-  secondary: { padding: spacing.md, alignItems: 'center' },
-  secondaryText: { color: colors.tint, fontSize: 16 },
+  container: { flex: 1, backgroundColor: colors.bg },
+  content: { padding: space[4], gap: space[4] },
+  field: { gap: space[2] },
+  hint: { color: colors.textTertiary },
+  link: { minHeight: size.touchMin, alignItems: 'center', justifyContent: 'center' },
 });

@@ -10,7 +10,7 @@ import type { BookCandidate, BookSearchResult } from '../../types/bookSearch';
 import { TitleSearchScreen } from '../TitleSearchScreen';
 
 jest.mock('expo-router', () => ({
-  router: { replace: jest.fn(), push: jest.fn() },
+  router: { replace: jest.fn(), push: jest.fn(), back: jest.fn() },
 }));
 
 const withIsbn: BookCandidate = {
@@ -83,7 +83,7 @@ describe('TitleSearchScreen', () => {
     const { searchFn } = await setup(async () => ok(withIsbn));
     await enter(' ワン ');
     await press('検索');
-    expect(await screen.findByText('本A')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: '本A' })).toBeTruthy();
     expect(searchFn).toHaveBeenCalledTimes(1);
     expect(searchFn).toHaveBeenCalledWith('ワン');
   });
@@ -92,7 +92,7 @@ describe('TitleSearchScreen', () => {
     const { searchFn } = await setup(async () => ok(withIsbn));
     await enter('ワン');
     await fireEvent(screen.getByLabelText('タイトルのキーワード'), 'submitEditing');
-    expect(await screen.findByText('本A')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: '本A' })).toBeTruthy();
     expect(searchFn).toHaveBeenCalledTimes(1);
   });
 
@@ -113,15 +113,16 @@ describe('TitleSearchScreen', () => {
     expect(screen.getByRole('button', { name: '検索' })).toBeDisabled();
     expect(searchFn).toHaveBeenCalledTimes(1);
     await act(async () => d.resolve(ok(withIsbn)));
-    expect(await screen.findByText('本A')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: '本A' })).toBeTruthy();
   });
 
   it('候補をタイトル・著者・出版社・出版年付きで表示し、null は表示しない', async () => {
     await setup(async () => ok(withIsbn, noIsbn));
     await enter('x');
     await press('検索');
-    expect(await screen.findByText('著者A / 出版A / 2020')).toBeTruthy();
-    expect(screen.getByText('本B')).toBeTruthy();
+    expect(await screen.findByText('出版A · 2020')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '本B' })).toBeTruthy();
+    expect(screen.getByText('著者A')).toBeTruthy();
   });
 
   it('0 件のとき見つかりませんでしたと手入力を表示する', async () => {
@@ -129,7 +130,7 @@ describe('TitleSearchScreen', () => {
     await enter('x');
     await press('検索');
     expect(await screen.findByText('見つかりませんでした')).toBeTruthy();
-    expect(screen.getByRole('button', { name: '手入力で続ける' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '見つからないので手で入力する' })).toBeTruthy();
   });
 
   it.each(['network', 'invalid_response'] as const)(
@@ -144,7 +145,7 @@ describe('TitleSearchScreen', () => {
       await press('再試行');
       expect(searchFn).toHaveBeenCalledTimes(2);
       expect(searchFn).toHaveBeenLastCalledWith('x');
-      await press('手入力で続ける');
+      await press('見つからないので手で入力する');
       expect(router.replace).toHaveBeenCalledWith({
         pathname: '/record/new',
         params: { kind: 'book', title: 'x' },
@@ -156,9 +157,9 @@ describe('TitleSearchScreen', () => {
     await setup(async () => ok(withIsbn));
     await enter('x');
     await press('検索');
-    expect(await screen.findByText('本A')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: '本A' })).toBeTruthy();
     await enter('xy');
-    expect(screen.queryByText('本A')).toBeNull();
+    expect(screen.queryByRole('button', { name: '本A' })).toBeNull();
   });
 
   it('ISBN あり候補は openBD の情報でフォームへ遷移する', async () => {
@@ -230,13 +231,13 @@ describe('TitleSearchScreen', () => {
 
   it('手入力で続けるはキーワードをタイトルとして引き継ぐ（空なら kind のみ）', async () => {
     await setup(async () => ok());
-    await press('手入力で続ける');
+    await press('見つからないので手で入力する');
     expect(router.replace).toHaveBeenLastCalledWith({
       pathname: '/record/new',
       params: { kind: 'book' },
     });
     await enter('ワン');
-    await press('手入力で続ける');
+    await press('見つからないので手で入力する');
     expect(router.replace).toHaveBeenLastCalledWith({
       pathname: '/record/new',
       params: { kind: 'book', title: 'ワン' },
@@ -265,5 +266,38 @@ describe('TitleSearchScreen', () => {
     await view.unmount();
     await act(async () => d.resolve({ status: 'found', book }));
     expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it('結果の件数見出しと、右端の › ・小さな書影つきの行を表示する', async () => {
+    await setup(async () => ok(withIsbn, noIsbn));
+    await enter(' ワン ');
+    await press('検索');
+    expect(await screen.findByText('「ワン」の検索結果 2 件')).toBeTruthy();
+    expect(screen.getAllByText('›')).toHaveLength(2);
+    // 見出しは検索したキーワード。入力を編集すると件数見出しも消える
+    await enter('ワンピ');
+    expect(screen.queryByText('「ワン」の検索結果 2 件')).toBeNull();
+  });
+
+  it('検索中は検索欄が編集不可になり、進行表示を出す', async () => {
+    const d = deferred<BookSearchResult>();
+    await setup(() => d.promise);
+    await enter('ワン');
+    await press('検索');
+    expect(screen.getByLabelText('タイトルのキーワード').props.editable).toBe(false);
+    await act(async () => d.resolve(ok()));
+    expect(await screen.findByText('見つかりませんでした')).toBeTruthy();
+  });
+
+  it('閉じるで戻る', async () => {
+    await setup(async () => ok());
+    await press('閉じる');
+    expect(router.back).toHaveBeenCalled();
+  });
+
+  it('固定フッターに手入力ボタンと利用表記を出す', async () => {
+    await setup(async () => ok());
+    expect(screen.getByRole('button', { name: '見つからないので手で入力する' })).toBeTruthy();
+    expect(screen.getByText('テスト利用表記')).toBeTruthy();
   });
 });

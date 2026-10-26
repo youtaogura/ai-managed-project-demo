@@ -1,4 +1,4 @@
-import { bookInfoToParams, isbnOnlyParams } from '../isbnLookupParams';
+import { bookInfoToParams, isbnOnlyParams, notFoundParams } from '../isbnLookupParams';
 
 describe('isbnLookupParams', () => {
   it('BookInfo を params に変換し、null は省略する', () => {
@@ -26,5 +26,9 @@ describe('isbnLookupParams', () => {
   it('ISBN のみの params を作る', () => {
     expect(isbnOnlyParams('9784065199817')).toEqual({ kind: 'book', isbn: '9784065199817' });
     expect(isbnOnlyParams(null)).toEqual({ kind: 'book' });
+  });
+
+  it('見つからなかったときの ISBN 画面向け params を作る', () => {
+    expect(notFoundParams('9784065199817')).toEqual({ isbn: '9784065199817', notFound: '1' });
   });
 });
