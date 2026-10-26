@@ -3,7 +3,9 @@ import {
   createFormValues,
   paramsToInitialValues,
   parseRating,
+  ratingFromPosition,
   recordToFormValues,
+  starFills,
   stepRating,
   todayString,
   toNewRecordInput,
@@ -23,16 +25,30 @@ describe('validateForm', () => {
   });
 
   it('実在しない日付・形式違いはエラー', () => {
-    const errors = validateForm({ ...base(), startDate: '2024-02-30', endDate: '2024/03/01' });
+    const errors = validateForm({
+      ...base(),
+      startDate: '2024-02-30',
+      endDate: '2024/03/01',
+    });
     expect(errors.startDate).toBe('日付は YYYY-MM-DD の形式で入力してください');
     expect(errors.endDate).toBe('日付は YYYY-MM-DD の形式で入力してください');
   });
 
   it('終了日が開始日より前ならエラー、同日は可', () => {
     expect(
-      validateForm({ ...base(), startDate: '2024-03-02', endDate: '2024-03-01' }).endDate,
+      validateForm({
+        ...base(),
+        startDate: '2024-03-02',
+        endDate: '2024-03-01',
+      }).endDate,
     ).toBe('終了日は開始日以降にしてください');
-    expect(validateForm({ ...base(), startDate: '2024-03-01', endDate: '2024-03-01' })).toEqual({});
+    expect(
+      validateForm({
+        ...base(),
+        startDate: '2024-03-01',
+        endDate: '2024-03-01',
+      }),
+    ).toEqual({});
   });
 
   it.each(['0.9', '5.1', '3.25', 'abc', '1e1'])('レーティング %s はエラー', (rating) => {
@@ -152,7 +168,11 @@ describe('toNewRecordInput', () => {
 
 describe('createFormValues / recordToFormValues', () => {
   it('既定値と初期値の反映', () => {
-    expect(createFormValues()).toMatchObject({ kind: 'book', status: 'planned', rating: '' });
+    expect(createFormValues()).toMatchObject({
+      kind: 'book',
+      status: 'planned',
+      rating: '',
+    });
     expect(createFormValues({ kind: 'anime', rating: 4 })).toMatchObject({
       kind: 'anime',
       rating: '4.0',
@@ -208,5 +228,28 @@ describe('paramsToInitialValues', () => {
       coverUrl: 'U',
     });
     expect(paramsToInitialValues({ kind: 'x', title: ['a', 'b'], isbn: '' })).toEqual({});
+  });
+});
+
+describe('ratingFromPosition', () => {
+  it('位置を 0.1 刻みの評価に変換し 1.0〜5.0 にクランプする', () => {
+    expect(ratingFromPosition(148, 200)).toBe(3.7);
+    expect(ratingFromPosition(0, 200)).toBe(1);
+    expect(ratingFromPosition(200, 200)).toBe(5);
+    expect(ratingFromPosition(-10, 200)).toBe(1);
+    expect(ratingFromPosition(260, 200)).toBe(5);
+  });
+  it('幅が 0 以下なら null', () => {
+    expect(ratingFromPosition(10, 0)).toBeNull();
+    expect(ratingFromPosition(10, -5)).toBeNull();
+  });
+});
+
+describe('starFills', () => {
+  it('評価を各星の塗り割合に変換する', () => {
+    expect(starFills(3.7)).toEqual([1, 1, 1, 0.7, 0]);
+    expect(starFills(null)).toEqual([0, 0, 0, 0, 0]);
+    expect(starFills(5)).toEqual([1, 1, 1, 1, 1]);
+    expect(starFills(1)).toEqual([1, 0, 0, 0, 0]);
   });
 });

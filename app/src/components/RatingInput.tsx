@@ -1,7 +1,22 @@
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useRef, useState } from 'react';
+import {
+  type GestureResponderEvent,
+  type LayoutChangeEvent,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 
-import { parseRating, stepRating } from '../lib/recordForm';
-import { colors, formColors, spacing } from '../theme';
+import {
+  formatRating,
+  parseRating,
+  ratingFromPosition,
+  starFills,
+  stepRating,
+} from '../lib/recordForm';
+import { STAR_SIZE, colors, formColors, spacing } from '../theme';
+import { StarRating } from './StarRating';
 
 type RatingInputProps = {
   value: string;
@@ -11,42 +26,58 @@ type RatingInputProps = {
 
 export function RatingInput({ value, error, onChange }: RatingInputProps) {
   const parsed = parseRating(value);
-  const valid = parsed !== null && !Number.isNaN(parsed);
-  const canDecrease = valid && parsed > 1;
-  const canIncrease = !valid || parsed < 5;
+  const rating = parsed === null || Number.isNaN(parsed) ? null : parsed;
+  const text = rating === null ? '未評価' : formatRating(rating);
+  const [width, setWidth] = useState(STAR_SIZE * 5);
+  const drag = useRef({ startX: 0, startPageX: 0 });
+
+  const update = (x: number) => {
+    const next = ratingFromPosition(x, width);
+    if (next === null) return;
+    const formatted = formatRating(next);
+    if (formatted === value) return;
+    onChange(formatted);
+  };
+
+  const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
+  const onGrant = (e: GestureResponderEvent) => {
+    drag.current = {
+      startX: e.nativeEvent.locationX,
+      startPageX: e.nativeEvent.pageX,
+    };
+    update(e.nativeEvent.locationX);
+  };
+  const onMove = (e: GestureResponderEvent) => {
+    update(drag.current.startX + e.nativeEvent.pageX - drag.current.startPageX);
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.label}>レーティング（1.0〜5.0）</Text>
       <View style={styles.row}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="レーティングを下げる"
-          accessibilityState={{ disabled: !canDecrease }}
-          disabled={!canDecrease}
-          onPress={() => onChange(stepRating(value, -1))}
-          style={[styles.step, !canDecrease && styles.stepDisabled]}
-        >
-          <Text style={styles.stepText}>−</Text>
-        </Pressable>
-        <TextInput
+        <View
+          accessible
+          accessibilityRole="adjustable"
           accessibilityLabel="レーティング"
-          style={styles.input}
-          value={value}
-          onChangeText={onChange}
-          keyboardType="decimal-pad"
-          placeholder="未入力"
-        />
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="レーティングを上げる"
-          accessibilityState={{ disabled: !canIncrease }}
-          disabled={!canIncrease}
-          onPress={() => onChange(stepRating(value, 1))}
-          style={[styles.step, !canIncrease && styles.stepDisabled]}
+          accessibilityValue={{ text }}
+          accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+          onAccessibilityAction={(e) => {
+            const name = e.nativeEvent.actionName;
+            if (name === 'increment') onChange(stepRating(value, 1));
+            if (name === 'decrement') onChange(stepRating(value, -1));
+          }}
+          onLayout={onLayout}
+          onStartShouldSetResponder={() => true}
+          onMoveShouldSetResponder={() => true}
+          onResponderTerminationRequest={() => false}
+          onResponderGrant={onGrant}
+          onResponderMove={onMove}
+          onResponderRelease={onMove}
+          style={{ width: STAR_SIZE * 5 }}
         >
-          <Text style={styles.stepText}>＋</Text>
-        </Pressable>
+          <StarRating fills={starFills(rating)} size={STAR_SIZE} />
+        </View>
+        <Text style={styles.value}>{text}</Text>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="レーティングをクリア"
@@ -65,27 +96,12 @@ const styles = StyleSheet.create({
   container: { gap: spacing.sm },
   label: { fontSize: 14, fontWeight: '600', color: colors.text },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  input: {
-    width: 90,
-    borderWidth: 1,
-    borderColor: formColors.border,
-    backgroundColor: formColors.inputBackground,
-    borderRadius: 8,
-    padding: spacing.md,
+  value: {
     fontSize: 16,
-    textAlign: 'center',
     color: colors.text,
+    minWidth: 56,
+    textAlign: 'center',
   },
-  step: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.tint,
-  },
-  stepDisabled: { backgroundColor: formColors.disabled },
-  stepText: { color: '#fff', fontSize: 20 },
   clear: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
   clearText: { color: colors.tint, fontSize: 14 },
   error: { color: formColors.danger, fontSize: 13 },
