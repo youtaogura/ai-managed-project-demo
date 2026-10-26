@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 // テスト用の偽 gh。状態は $FAKE_STATE（JSON）に保存する。
+// 1回の呼び出しの間ずっと状態ファイルのロックを持つ（並列ジョブからの同時呼び出しで更新が失われないように）
 const fs = require('fs');
 const { execFileSync } = require('child_process');
-const file = process.env.FAKE_STATE;
-const st = JSON.parse(fs.readFileSync(file, 'utf8'));
-const save = () => fs.writeFileSync(file, JSON.stringify(st, null, 2));
+const state = require('./fake-state');
+state.lock();
+const st = state.read();
+const save = () => state.write(st);
 const a = process.argv.slice(2);
 const out = (o) => process.stdout.write(typeof o === 'string' ? o : JSON.stringify(o));
 const stdin = () => { try { return fs.readFileSync(0, 'utf8'); } catch { return ''; } };
