@@ -63,7 +63,8 @@ if (c1 === 'pr') {
   const n = Number(a[2]);
   const [branch] = Object.entries(st.prs).find(([, p]) => p.number === n) || [];
   if (c2 === 'view') {
-    const files = execFileSync('git', ['diff', '--name-only', 'origin/main', `origin/${branch}`], { cwd: process.env.REPO_DIR }).toString().trim().split('\n');
+    // GitHub と同じく、merge base からの差分
+    const files = execFileSync('git', ['diff', '--name-only', `origin/main...origin/${branch}`], { cwd: process.env.REPO_DIR }).toString().trim().split('\n');
     return out({ files: files.filter(Boolean).map((path) => ({ path })) });
   }
   if (c2 === 'checks') {
@@ -80,7 +81,31 @@ if (c1 === 'pr') {
     checks.push({ name: 'optional-check', bucket: 'fail' }); // 必須でないチェックの失敗は無視されること
     return out(checks);
   }
-  if (c2 === 'merge') { st.prs[branch].open = false; record(`pr merge #${n}`); process.exit(0); }
+  if (c2 === 'merge') {
+    // origin の main に実際に squash マージする（後続の PR が behind / コンフリクトになるように）
+    const origin = execFileSync('git', ['remote', 'get-url', 'origin'], { cwd: process.env.REPO_DIR }).toString().trim();
+    const tmp = fs.mkdtempSync(require('path').join(require('os').tmpdir(), 'fake-merge-'));
+    const g = (...args) => execFileSync('git', args, { cwd: tmp, stdio: ['ignore', 'pipe', 'pipe'] });
+    let mergeable = true;
+    try {
+      g('clone', '-q', origin, '.');
+      try {
+        g('merge', '--squash', `origin/${branch}`);
+        g('commit', '-qm', `t (#${n})`);
+        g('push', '-q', 'origin', 'HEAD:main');
+      } catch {
+        mergeable = false;
+      }
+    } finally {
+      fs.rmSync(tmp, { recursive: true, force: true });
+    }
+    if (!mergeable) {
+      record(`pr merge #${n} failed`);
+      console.error(`Pull request #${n} is not mergeable: the merge commit cannot be cleanly created.`);
+      process.exit(1);
+    }
+    st.prs[branch].open = false; record(`pr merge #${n}`); process.exit(0);
+  }
   if (c2 === 'comment' || c2 === 'review') { record(`pr ${c2} #${n}: ${(stdin() || '').split('\n')[0]}`); process.exit(0); }
 }
 console.error('fake gh: unsupported', a.join(' '));
