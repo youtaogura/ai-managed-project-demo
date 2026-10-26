@@ -329,6 +329,20 @@ describe('RecordForm', () => {
     expect(screen.getByLabelText('タイトル（必須）').props.value).toBe('keep');
   });
 
+  it('作者・著者を入力して保存すると creator として渡る', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    await render(<RecordForm onSubmit={onSubmit} />);
+    await type('タイトル（必須）', 'あ');
+    await type('作者・著者', '夏目漱石');
+    await press('棚に並べる');
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ title: 'あ', creator: '夏目漱石' }));
+  });
+
+  it('onDelete があれば「この本を削除」ボタンを出す', async () => {
+    await render(<RecordForm onSubmit={jest.fn()} onDelete={jest.fn()} />);
+    expect(screen.getByRole('button', { name: 'この本を削除' })).toBeTruthy();
+  });
+
   it('onDelete がなければ削除ボタンを出さない', async () => {
     await render(<RecordForm onSubmit={jest.fn()} />);
     expect(screen.queryByRole('button', { name: 'この本を削除' })).toBeNull();
