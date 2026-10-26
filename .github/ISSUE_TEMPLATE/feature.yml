@@ -35,4 +35,4 @@ body:
     id: notes
     attributes:
       label: 補足
-      description: 参考資料、デザイン、制約など（任意）
+      description: 参考資料、デザイン、制約など（任意）。前提の Issue は、作成後に Relationships の「blocked by」で登録する（オーケストレーターはそれを見て着手を待つ）

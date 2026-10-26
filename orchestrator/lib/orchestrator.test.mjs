@@ -4,7 +4,9 @@ import assert from 'node:assert/strict';
 process.env.GITHUB_REPOSITORY = 'owner/repo';
 
 const { buildPrompt, parseAgentResult } = await import('./agent.mjs');
-const { byPriority, isEligible, stageForStatus } = await import('./stages.mjs');
+const { byPriority, describeDependencies, isEligible, needsDependencyCheck, stageForStatus, unmetDependencies } = await import(
+  './stages.mjs'
+);
 
 test('AGENT_RESULT を最終行から読み取る', () => {
   const text = '作業しました。\n\nAGENT_RESULT: {"outcome": "done", "summary": "PR #3 を作成"}';
@@ -172,4 +174,28 @@ test('作業ブランチと base の関係（最新 / 遅れ / コンフリク�
     config.repoDir = saved;
     fs.rmSync(tmp, { recursive: true, force: true });
   }
+});
+
+test('同じ工程の中では Issue 番号の小さいものから', () => {
+  const item = (status, number) => ({ status, issue: { number } });
+  const sorted = [item('Ready', 9), item('Review', 12), item('Ready', 3), item('Implement', 20)].sort(byPriority);
+  assert.deepEqual(sorted.map((i) => i.issue.number), [12, 20, 3, 9]);
+});
+
+test('依存関係を確認するのは Ready から着手するときだけ', () => {
+  assert.equal(needsDependencyCheck({ status: 'Ready' }), true);
+  assert.equal(needsDependencyCheck({ status: 'Spec' }), false);
+  assert.equal(needsDependencyCheck({ status: 'Implement' }), false);
+});
+
+test('完了としてクローズされた前提だけを満たしたとみなす', () => {
+  const blockers = [
+    { number: 1, state: 'closed', stateReason: 'completed' },
+    { number: 2, state: 'open', stateReason: null },
+    { number: 3, state: 'closed', stateReason: 'not_planned' },
+    { number: 4, state: 'CLOSED', stateReason: null },
+  ];
+  assert.deepEqual(unmetDependencies(blockers).map((b) => b.number), [2, 3]);
+  assert.deepEqual(unmetDependencies([]), []);
+  assert.equal(describeDependencies(unmetDependencies(blockers)), '#2 #3（not_planned）');
 });
