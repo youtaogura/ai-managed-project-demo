@@ -136,3 +136,17 @@ describe('SettingsScreen（このアプリについて）', () => {
     expect(onOpenAbout).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('SettingsScreen（書き出し）', () => {
+  it('行に要約を出し、タップで onOpenStarters を呼ぶ', async () => {
+    const onOpenStarters = jest.fn();
+    await render(
+      withSettings(
+        createSettingsStore(createMemoryStorage().storage),
+        <SettingsScreen onOpenStarters={onOpenStarters} />,
+      ),
+    );
+    await fireEvent.press(await screen.findByRole('button', { name: '書き出し、オン · 一度に 3 つ' }));
+    expect(onOpenStarters).toHaveBeenCalledTimes(1);
+  });
+});
