@@ -180,3 +180,7 @@ export function paramsToInitialValues(
   if (coverUrl !== undefined) initial.coverUrl = coverUrl;
   return initial;
 }
+
+export function crossesInteger(prev: number, next: number): boolean {
+  return prev !== next && Math.floor(prev) !== Math.floor(next);
+}
