@@ -51,7 +51,9 @@ describe('useSettings', () => {
       </SettingsContextProvider>,
     );
     expect(screen.queryByText('子')).toBeNull();
-    await act(async () => release({ enabledKinds: ['movie'], heroCriterion: 'recent' }));
+    await act(async () =>
+      release({ enabledKinds: ['movie'], heroCriterion: 'recent', defaultStatus: 'completed' }),
+    );
     expect(screen.getByText('子')).toBeTruthy();
   });
 
@@ -82,7 +84,11 @@ describe('useSettings', () => {
     const saved: string[][] = [];
     let calls = 0;
     const store: SettingsStore = {
-      load: async () => ({ enabledKinds: ['book'], heroCriterion: 'recent' }),
+      load: async () => ({
+        enabledKinds: ['book'],
+        heroCriterion: 'recent',
+        defaultStatus: 'completed',
+      }),
       save: async (s) => {
         calls += 1;
         if (calls === 1) throw new Error('fail');

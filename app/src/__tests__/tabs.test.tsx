@@ -105,8 +105,9 @@ describe('記録の追加', () => {
     await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
     expect((await screen.findAllByText('統合テストの本')).length).toBeGreaterThan(0);
     await act(async () => router.replace('/'));
-    expect(await screen.findByText('統合テストの本')).toBeTruthy();
-    expect(screen.getByLabelText('統合テストの本')).toBeTruthy();
+    // 初期ステータスが「読み終わった」なので、一覧の上の大きな表示にも出る
+    expect((await screen.findAllByText('統合テストの本')).length).toBeGreaterThan(0);
+    expect(screen.getAllByLabelText('統合テストの本').length).toBeGreaterThan(0);
   });
 });
 

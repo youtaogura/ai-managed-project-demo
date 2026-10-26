@@ -1,4 +1,4 @@
-import { MEDIA_KINDS, type MediaKind } from '../types/record';
+import { MEDIA_KINDS, RECORD_STATUSES, type MediaKind, type RecordStatus } from '../types/record';
 import {
   DEFAULT_SETTINGS,
   HERO_CRITERIA_IDS,
@@ -18,6 +18,7 @@ function defaults(): AppSettings {
   return {
     enabledKinds: [...DEFAULT_SETTINGS.enabledKinds],
     heroCriterion: DEFAULT_SETTINGS.heroCriterion,
+    defaultStatus: DEFAULT_SETTINGS.defaultStatus,
   };
 }
 
@@ -36,6 +37,10 @@ function parseHeroCriterion(value: unknown): HeroCriterion | null {
   return HERO_CRITERIA_IDS.find((id) => id === value) ?? null;
 }
 
+function parseDefaultStatus(value: unknown): RecordStatus | null {
+  return RECORD_STATUSES.find((status) => status === value) ?? null;
+}
+
 /** フィールドごとに検証し、不正なフィールドだけ既定値にする。 */
 export function parseSettings(raw: string | null): AppSettings {
   const result = defaults();
@@ -51,6 +56,8 @@ export function parseSettings(raw: string | null): AppSettings {
   if (enabledKinds) result.enabledKinds = enabledKinds;
   const heroCriterion = parseHeroCriterion(parsed.heroCriterion);
   if (heroCriterion) result.heroCriterion = heroCriterion;
+  const defaultStatus = parseDefaultStatus(parsed.defaultStatus);
+  if (defaultStatus) result.defaultStatus = defaultStatus;
   return result;
 }
 

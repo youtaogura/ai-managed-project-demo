@@ -2,9 +2,13 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import { router } from 'expo-router';
 
 import { withRepository, withSettings } from '../../testProviders';
-import { paramsToInitialValues } from '../../lib/recordForm';
+import { paramsToInitialValues, todayString } from '../../lib/recordForm';
 import { createRecordRepository } from '../../lib/recordRepository';
 import type { KeyValueStorage } from '../../lib/storage';
+import { createSettingsStore, SETTINGS_STORAGE_KEY } from '../../lib/settingsStore';
+import { createMemoryStorage } from '../../testUtils';
+import type { ReactNode } from 'react';
+import type { NewRecordInput, RecordStatus } from '../../types/record';
 import { RecordFormScreen } from '../RecordFormScreen';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -61,7 +65,7 @@ describe('RecordFormScreen（新規）', () => {
     expect(router.replace).toHaveBeenCalledWith('/records/' + created?.id);
     expect(router.back).not.toHaveBeenCalled();
     expect(add).toHaveBeenCalledWith(
-      expect.objectContaining({ title: '新しい本', status: 'planned' }),
+      expect.objectContaining({ title: '新しい本', status: 'completed' }),
     );
     expect(await repository.getAll()).toHaveLength(1);
   });
@@ -386,5 +390,95 @@ describe('RecordFormScreen（使う種別）', () => {
     await waitFor(() => expect(router.back).toHaveBeenCalled());
     const [saved] = await repository.getAll();
     expect(saved).toMatchObject({ title: '変更後', kind: 'book' });
+  });
+});
+
+describe('RecordFormScreen（ステータスの初期値）', () => {
+  const withDefault = (status: RecordStatus, children: ReactNode) =>
+    withSettings(
+      createSettingsStore(
+        createMemoryStorage({ [SETTINGS_STORAGE_KEY]: JSON.stringify({ defaultStatus: status }) })
+          .storage,
+      ),
+      children,
+    );
+
+  const saveNew = async (status: RecordStatus, initialValues: Partial<NewRecordInput>) => {
+    const repository = memoryRepository();
+    await render(
+      withDefault(
+        status,
+        withRepository(
+          repository,
+          <RecordFormScreen initialValues={{ title: 'T', ...initialValues }} />,
+        ),
+      ),
+    );
+    await screen.findByLabelText('タイトル（必須）');
+    await press('記録する');
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
+    return (await repository.getAll())[0];
+  };
+
+  it('completed（初期）は終えた日に今日', async () => {
+    expect(await saveNew('completed', {})).toMatchObject({
+      status: 'completed',
+      startDate: null,
+      endDate: todayString(),
+    });
+  });
+
+  it('in_progress は始めた日に今日', async () => {
+    expect(await saveNew('in_progress', {})).toMatchObject({
+      status: 'in_progress',
+      startDate: todayString(),
+      endDate: null,
+    });
+  });
+
+  it.each(['planned', 'dropped'] as const)('%s は日付が空', async (status) => {
+    expect(await saveNew(status, {})).toMatchObject({ status, startDate: null, endDate: null });
+  });
+
+  it('種別に合わせた言い方で選ばれ、種別を切り替えても保たれる', async () => {
+    const repository = memoryRepository();
+    await render(
+      withDefault(
+        'in_progress',
+        withRepository(repository, <RecordFormScreen initialValues={{ kind: 'movie' }} />),
+      ),
+    );
+    const status = await screen.findByRole('radio', { name: '見てる' });
+    expect(status.props.accessibilityState).toMatchObject({ checked: true });
+    await fireEvent.press(screen.getByRole('radio', { name: '本' }));
+    expect(screen.getByRole('radio', { name: '読んでる' }).props.accessibilityState).toMatchObject({
+      checked: true,
+    });
+  });
+
+  it('initialValues が status・日付を明示していればそれを優先する', async () => {
+    expect(await saveNew('completed', { status: 'planned', endDate: '2020-01-01' })).toMatchObject({
+      status: 'planned',
+      endDate: '2020-01-01',
+    });
+  });
+
+  it('編集では設定にかかわらず記録のステータス・日付が変わらない', async () => {
+    const repository = memoryRepository();
+    const record = await repository.add({ ...baseInput, status: 'planned' });
+    await render(
+      withDefault(
+        'completed',
+        withRepository(repository, <RecordFormScreen recordId={record.id} />),
+      ),
+    );
+    await screen.findByLabelText('タイトル（必須）');
+    await press('保存する');
+    await waitFor(() => expect(router.back).toHaveBeenCalled());
+    expect((await repository.getAll())[0]).toMatchObject({
+      status: 'planned',
+      startDate: null,
+      endDate: null,
+    });
   });
 });
