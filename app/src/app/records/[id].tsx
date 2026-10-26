@@ -12,6 +12,7 @@ export default function RecordDetailRoute() {
       <RecordDetailScreen
         recordId={id}
         onEdit={(recordId) => router.push({ pathname: '/record/[id]', params: { id: recordId } })}
+        onWrite={(recordId) => router.push(`/write/${recordId}`)}
         onDeleted={goToList}
         onBack={goToList}
       />

@@ -137,6 +137,22 @@ describe('RecordDetailScreen の表示', () => {
   });
 });
 
+describe('書き出しの続きを書く入口', () => {
+  it('completed のとき行を出し、押すと onWrite を呼ぶ', async () => {
+    const onWrite = jest.fn();
+    const fake = createFakeRepository([full]);
+    await renderDetail(fake.repository, <RecordDetailScreen recordId="x" onWrite={onWrite} />);
+    await waitFor(() => expect(screen.getByRole('button', { name: '書き出しの続きを書く' })).toBeTruthy());
+    await fireEvent.press(screen.getByRole('button', { name: '書き出しの続きを書く' }));
+    expect(onWrite).toHaveBeenCalledWith('x');
+  });
+
+  it('completed 以外では出さない', async () => {
+    await show({ ...full, status: 'in_progress' });
+    expect(screen.queryByRole('button', { name: '書き出しの続きを書く' })).toBeNull();
+  });
+});
+
 describe('RecordDetailScreen の操作', () => {
   it('「編集」で onEdit、戻るで onBack が呼ばれる', async () => {
     const onEdit = jest.fn();
