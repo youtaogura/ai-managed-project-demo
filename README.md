@@ -120,8 +120,10 @@ docker compose run --rm --entrypoint bash orchestrator -c '
 
 ### 5. 接続確認（まだ何も変更しない）
 
+> **main を pull したら、必ず `docker compose build` で再ビルドしてください。** オーケストレーター・プロンプト・ガードはイメージに焼き込まれているため、再ビルドしないと古いコードのまま動きます。イメージ内のオーケストレーターが main と違う場合、起動時に警告が出て、`doctor` は ✘ になります。
+
 ```bash
-docker compose build                                   # .env を変えたら不要、コードを変えたら再ビルド
+docker compose build                                   # コードを変えたら（main を pull したら）必ず再ビルド。.env の変更だけなら不要
 docker compose run --rm orchestrator doctor            # 設定・認証・Project・push 権限を確認
 docker compose run --rm orchestrator status            # ボードの内容と次の工程を表示
 docker compose run --rm --entrypoint claude orchestrator -p "OK とだけ返して" --max-turns 1   # Claude の認証確認
@@ -145,7 +147,7 @@ docker compose run --rm -e DRY_RUN=0 orchestrator run --issue 1   # 要件整理
 `.env` の `DRY_RUN=0` にしてから:
 
 ```bash
-docker compose up -d
+docker compose up -d --build   # --build で、毎回最新のコードからイメージを作り直す
 docker compose logs -f
 docker compose down          # 実行中の工程の終了を待ってから停止
 ```

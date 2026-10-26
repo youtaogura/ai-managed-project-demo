@@ -77,6 +77,41 @@ test('必須チェックは policy.json と CI のジョブ名に一致する', 
   for (const name of config.requiredChecks) assert.ok(jobNames.includes(name), `CI にジョブ ${name} がありません`);
 });
 
+test('イメージ内のオーケストレーターと main の差分を検出する', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const { checkImageFreshness } = await import('./freshness.mjs');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'freshness-'));
+  const repo = path.join(tmp, 'repo');
+  const image = path.join(tmp, 'image');
+  const git = (...a) => execFileSync('git', a, { cwd: repo });
+  const files = { 'orchestrator/index.mjs': 'a\n', 'orchestrator/prompts/spec.md': 'b\n', 'orchestrator/test/e2e/run.sh': 'c\n' };
+  for (const [f, c] of Object.entries(files)) {
+    fs.mkdirSync(path.dirname(path.join(repo, f)), { recursive: true });
+    fs.writeFileSync(path.join(repo, f), c);
+  }
+  git('init', '-q', '-b', 'main');
+  git('-c', 'user.name=t', '-c', 'user.email=t@e', 'commit', '-qm', 'x', '--allow-empty');
+  git('add', '-A');
+  git('-c', 'user.name=t', '-c', 'user.email=t@e', 'commit', '-qm', 'y');
+  // イメージ側: index.mjs は同じ、spec.md は古い内容、test/ は無い
+  fs.mkdirSync(path.join(image, 'prompts'), { recursive: true });
+  fs.writeFileSync(path.join(image, 'index.mjs'), 'a\n');
+  fs.writeFileSync(path.join(image, 'prompts/spec.md'), 'old\n');
+  try {
+    assert.deepEqual(await checkImageFreshness({ ref: 'main', repoDir: repo, dir: image }), { checked: true, stale: ['prompts/spec.md'] });
+    fs.writeFileSync(path.join(image, 'prompts/spec.md'), 'b\n');
+    assert.deepEqual(await checkImageFreshness({ ref: 'main', repoDir: repo, dir: image }), { checked: true, stale: [] });
+    fs.rmSync(path.join(image, 'index.mjs'));
+    assert.deepEqual((await checkImageFreshness({ ref: 'main', repoDir: repo, dir: image })).stale, ['index.mjs']);
+    assert.equal((await checkImageFreshness({ ref: 'nope', repoDir: repo, dir: image })).checked, false);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 test('プロンプトの変数を埋め込む', () => {
   const p = buildPrompt('implement', {
     REPO: 'owner/repo',
