@@ -59,6 +59,11 @@ export function createFakeRepository(initial: MediaRecord[] = []) {
       records = records.filter((r) => r.id !== id);
       return records.length !== before;
     },
+    deleteAll: async () => {
+      const deleted = records;
+      records = [];
+      return deleted;
+    },
     importRecords: async (incoming, mode) => {
       records = mode === 'replace' ? [...incoming] : [...records, ...incoming];
       return records.length;

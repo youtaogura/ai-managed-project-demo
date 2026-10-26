@@ -159,5 +159,5 @@ type LicenseEntry = { name: string; version: string; license: string };
 8. **TMDb の表記を出典に加える。** Issue にはないが、`TMDB_ATTRIBUTION` に「このアプリについてからも再利用できる」と明記されており、TMDb の利用規約が求める表記。
 9. **バージョンは `Constants.nativeAppVersion` / `nativeBuildVersion`。** ビルド番号は `app.json` に無くネイティブ側の値が要る。Expo Go・Web では取れないことがあり、その場合は「バージョン 1.0.0」だけを出す。`expo-application` の追加は却下（`expo-constants` で足りる）。
 10. **「先に書き出す」は確認シートを閉じて書き出しシートを開く。** 却下: 確認シートの上に重ねる（`BottomSheet` の多重表示は未検証）。書き出し後はリンクからやり直す。
-11. **削除後の移動 API（dismissTo / navigate）は実装時にドキュメントで確認して選び、この仕様書に追記する。**
+11. **削除後の移動は `router.dismissTo('/')`。** SDK 58 の expo-router に `dismissTo` があり（`router.navigate` は積み上げる可能性があるため却下）、データ画面を閉じて記録一覧タブへ戻れる。`dismissAll` は使わない。テストは `router.dismissTo` のモックで検証。
 12. **触覚フィードバックは既存の `triggerImpactHaptic()`。** Issue は「1 回」としか指定がない。通知系のフィードバックは新しい関数が要るため却下。

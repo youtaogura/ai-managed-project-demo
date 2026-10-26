@@ -25,6 +25,8 @@ export type RecordRepository = {
   add(input: NewRecordInput): Promise<MediaRecord>;
   update(id: string, input: NewRecordInput): Promise<MediaRecord | null>;
   delete(id: string): Promise<boolean>;
+  /** すべての記録を削除し、削除した記録を返す。保存は 1 回の setItem で、失敗したら reject し記録は変わらない。 */
+  deleteAll(): Promise<MediaRecord[]>;
   /** 読み込み後の件数を返す。保存は 1 回の setItem で、失敗したら reject し記録は変わらない。 */
   importRecords(records: readonly MediaRecord[], mode: ImportMode): Promise<number>;
 };
@@ -126,6 +128,13 @@ export function createRecordRepository(
         if (next.length === records.length) return false;
         await save(next);
         return true;
+      }),
+
+    deleteAll: () =>
+      serialize(async () => {
+        const records = await load();
+        await save([]);
+        return records;
       }),
 
     importRecords: (incoming, mode) =>

@@ -1,21 +1,25 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppText } from '../components/AppText';
+import { DeleteAllSheet } from '../components/DeleteAllSheet';
 import { ExportSheet, type ExportFormat } from '../components/ExportSheet';
 import { ImportSheet } from '../components/ImportSheet';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { ScreenHeaderBar } from '../components/ScreenHeaderBar';
 import { SettingsCard } from '../components/SettingsCard';
 import { SettingsRow } from '../components/SettingsRow';
-import { colors, space } from '../design/tokens';
+import { colors, size, space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
+import { usePhotoService } from '../hooks/usePhotoService';
 import { useFileService } from '../hooks/useFileService';
 import { useLastExportedAt } from '../hooks/useLastExportedAt';
 import { useRecordRepository } from '../hooks/useRecordRepository';
 import { useRecords } from '../hooks/useRecords';
 import { useSettings } from '../hooks/useSettings';
+import { deleteAllRecords } from '../lib/deleteAllRecords';
+import { triggerImpactHaptic } from '../lib/haptics';
 import { buildBackup, parseBackup } from '../lib/backup';
 import { recordsToCsv } from '../lib/csv';
 import { createExportStore, type ExportStore } from '../lib/exportStore';
@@ -50,6 +54,7 @@ export function DataScreen({
   const bottomInset = useBottomInset();
   const repository = useRecordRepository();
   const fileService = useFileService();
+  const photoService = usePhotoService();
   const { settings, replace } = useSettings();
   const { records, reload } = useRecords();
   const { lastExportedAt, markExported } = useLastExportedAt(exportStore);
@@ -61,6 +66,8 @@ export function DataScreen({
   const [mode, setMode] = useState<ImportMode>('merge');
   const [includeSettings, setIncludeSettings] = useState(true);
   const [importing, setImporting] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const lastExportedLabel = lastExportedAt ? formatDate(lastExportedAt) : 'まだ書き出していません';
 
@@ -130,6 +137,23 @@ export function DataScreen({
     }
   };
 
+  const onConfirmDelete = async () => {
+    setMessage(null);
+    setDeleting(true);
+    try {
+      await deleteAllRecords({ repository, photoService });
+      setDeleteOpen(false);
+      triggerImpactHaptic();
+      await reload();
+      router.dismissTo('/');
+    } catch {
+      setDeleteOpen(false);
+      setMessage({ tone: 'error', text: '削除できませんでした。記録は変わっていません' });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <ScreenContainer>
       <ScreenHeaderBar title="データ" onClose={() => router.back()} />
@@ -166,7 +190,33 @@ export function DataScreen({
         <AppText variant="micro" style={styles.note}>
           記録はこの端末の中にだけ保存されています。機種変更の前には書き出してください。
         </AppText>
+        {records.length > 0 ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              setMessage(null);
+              setDeleteOpen(true);
+            }}
+            style={styles.deleteLink}
+          >
+            <AppText variant="body" style={styles.deleteText}>
+              すべての記録を削除
+            </AppText>
+          </Pressable>
+        ) : null}
       </ScrollView>
+      <DeleteAllSheet
+        visible={deleteOpen}
+        count={records.length}
+        busy={deleting}
+        onExport={() => {
+          setDeleteOpen(false);
+          setMessage(null);
+          setExportOpen(true);
+        }}
+        onCancel={() => setDeleteOpen(false)}
+        onConfirm={() => void onConfirmDelete()}
+      />
       <ExportSheet
         visible={exportOpen}
         count={records.length}
@@ -196,4 +246,11 @@ const styles = StyleSheet.create({
   countLabel: { color: colors.textSecondary },
   gap: { height: space[2] },
   note: { color: colors.textTertiary },
+  deleteLink: {
+    minHeight: size.touchMin,
+    marginTop: space[6],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  deleteText: { color: colors.danger },
 });
