@@ -11,11 +11,40 @@ const valid = {
   startDate: '2024-01-01',
   endDate: '2024-01-02',
   status: 'completed',
-  review: '良かった',
   rating: 4.5,
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-01-01T00:00:00.000Z',
   source: { provider: 'manual' },
+  oneLiner: 'よかった',
+  starters: [
+    {
+      id: 's1',
+      starter: 'いちばん心に残ったのは、',
+      text: '嵐',
+      createdAt: '2024-01-01T00:00:00.000Z',
+    },
+  ],
+  quotes: [
+    {
+      id: 'q1',
+      text: '引用',
+      page: '12',
+      comment: null,
+      createdAt: '2024-01-01T00:00:00.000Z',
+    },
+  ],
+  memos: [
+    {
+      id: 'm1',
+      text: 'メモ',
+      page: null,
+      createdAt: '2024-01-01T00:00:00.000Z',
+    },
+  ],
+  freeTexts: [{ id: 'f1', text: '文章', createdAt: '2024-01-01T00:00:00.000Z' }],
+  favorite: true,
+  spineColor: 'spine-3',
+  shelfIds: ['shelf-1'],
 };
 
 describe('isMediaRecord', () => {
@@ -39,7 +68,36 @@ describe('isMediaRecord', () => {
     ['rating 範囲外', { ...valid, rating: 6 }],
     ['rating undefined', { ...valid, rating: undefined }],
     ['creator 数値', { ...valid, creator: 1 }],
-    ['review 欠落', { ...valid, review: undefined }],
+    ['oneLiner 欠落', { ...valid, oneLiner: undefined }],
+    ['oneLiner 数値', { ...valid, oneLiner: 1 }],
+    ['starters 欠落', { ...valid, starters: undefined }],
+    ['starters の要素が不正', { ...valid, starters: [{ id: 's' }] }],
+    [
+      'quotes の page が数値',
+      {
+        ...valid,
+        quotes: [{ id: 'q', text: 't', page: 1, comment: null, createdAt: 'x' }],
+      },
+    ],
+    ['memos が配列でない', { ...valid, memos: {} }],
+    ['memos の要素が不正', { ...valid, memos: [{ id: 'm', text: 1, page: null, createdAt: 'x' }] }],
+    ['freeTexts の要素が不正', { ...valid, freeTexts: [null] }],
+    ['favorite が文字列', { ...valid, favorite: 'true' }],
+    ['spineColor 不正', { ...valid, spineColor: 'spine-11' }],
+    ['shelfIds が配列でない', { ...valid, shelfIds: 'a' }],
+    ['shelfIds に数値', { ...valid, shelfIds: [1] }],
+    [
+      '古い形式（review あり・新フィールドなし）',
+      {
+        id: 'a',
+        title: 'T',
+        review: 'x',
+        status: 'completed',
+        rating: null,
+        createdAt: 'a',
+        updatedAt: 'b',
+      },
+    ],
     ['日付逆転', { ...valid, startDate: '2024-02-01', endDate: '2024-01-01' }],
   ])('%s は無効', (_name, value) => {
     expect(isMediaRecord(value)).toBe(false);
@@ -91,14 +149,18 @@ describe('source の補完', () => {
       isbn: '9784065199817',
     });
     expect(parseRecords([legacy])[0]?.source).toEqual({ provider: 'manual' });
-    expect(parseRecords([{ ...legacy, isbn: '' }])[0]?.source).toEqual({ provider: 'manual' });
+    expect(parseRecords([{ ...legacy, isbn: '' }])[0]?.source).toEqual({
+      provider: 'manual',
+    });
   });
 
   it('不正な source は捨てずに補い、ほかの項目は変わらない', () => {
-    const [record] = parseRecords([
-      { ...valid, isbn: '1', source: { provider: 'ndl', ndlId: '' } },
-    ]);
-    expect(record).toEqual({ ...valid, isbn: '1', source: { provider: 'openbd', isbn: '1' } });
+    const [record] = parseRecords([{ ...valid, isbn: '1', source: { provider: 'ndl', ndlId: '' } }]);
+    expect(record).toEqual({
+      ...valid,
+      isbn: '1',
+      source: { provider: 'openbd', isbn: '1' },
+    });
   });
 
   it('有効な source は保持する', () => {

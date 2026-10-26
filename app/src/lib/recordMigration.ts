@@ -3,7 +3,7 @@ import type { KeyValueStorage } from './storage';
 
 export const RECORDS_KEY = 'records.v1';
 export const SCHEMA_VERSION_STORAGE_KEY = 'records.schemaVersion';
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 
 type Migration = { to: number; run: (rawItems: unknown[]) => unknown[] };
 
@@ -12,7 +12,10 @@ function addSource(item: unknown): unknown {
     return item;
   }
   const isbn = (item as Record<string, unknown>).isbn;
-  return { ...item, source: sourceFromIsbn(typeof isbn === 'string' ? isbn : null) };
+  return {
+    ...item,
+    source: sourceFromIsbn(typeof isbn === 'string' ? isbn : null),
+  };
 }
 
 // 版ごとの移行。今後の移行はここに { to, run } を足す

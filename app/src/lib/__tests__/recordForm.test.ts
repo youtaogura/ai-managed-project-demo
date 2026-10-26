@@ -139,7 +139,6 @@ describe('toNewRecordInput', () => {
       publisher: ' 出版 ',
       isbn: '978',
       rating: '3.5',
-      review: '',
       coverUrl: 'http://x/c.png',
     });
     expect(input).toMatchObject({
@@ -148,7 +147,6 @@ describe('toNewRecordInput', () => {
       publisher: '出版',
       isbn: '978',
       rating: 3.5,
-      review: null,
       startDate: null,
       coverUrl: 'http://x/c.png',
       photoUri: null,
@@ -185,11 +183,18 @@ describe('createFormValues / recordToFormValues', () => {
       startDate: '2024-01-01',
       endDate: null,
       status: 'in_progress',
-      review: 'r',
       rating: 2.5,
       createdAt: 'a',
       updatedAt: 'b',
       source: { provider: 'manual' },
+      oneLiner: null,
+      starters: [],
+      quotes: [],
+      memos: [],
+      freeTexts: [],
+      favorite: false,
+      shelfIds: [],
+      spineColor: 'spine-1',
     };
     expect(recordToFormValues(record)).toMatchObject({
       title: 'T',
@@ -222,7 +227,9 @@ describe('paramsToInitialValues', () => {
       coverUrl: 'U',
       source: { provider: 'manual' },
     });
-    expect(paramsToInitialValues({ title: ['a', 'b'], isbn: '' })).toEqual({ source: { provider: 'manual' } });
+    expect(paramsToInitialValues({ title: ['a', 'b'], isbn: '' })).toEqual({
+      source: { provider: 'manual' },
+    });
   });
 });
 
@@ -275,19 +282,37 @@ describe('source', () => {
       isbn: '9784065199817',
       source: { provider: 'openbd', isbn: '9784065199817' },
     });
-    expect(toNewRecordInput(v).source).toEqual({ provider: 'openbd', isbn: '9784065199817' });
-    expect(toNewRecordInput({ ...v, isbn: '9784101010013' }).source).toEqual({ provider: 'manual' });
-    expect(toNewRecordInput({ ...v, isbn: '' }).source).toEqual({ provider: 'manual' });
+    expect(toNewRecordInput(v).source).toEqual({
+      provider: 'openbd',
+      isbn: '9784065199817',
+    });
+    expect(toNewRecordInput({ ...v, isbn: '9784101010013' }).source).toEqual({
+      provider: 'manual',
+    });
+    expect(toNewRecordInput({ ...v, isbn: '' }).source).toEqual({
+      provider: 'manual',
+    });
   });
 
   it('ndl は ISBN を書き換えても保持される', () => {
-    const v = createFormValues({ title: 'T', isbn: '1', source: { provider: 'ndl', ndlId: '9' } });
-    expect(toNewRecordInput({ ...v, isbn: '2' }).source).toEqual({ provider: 'ndl', ndlId: '9' });
+    const v = createFormValues({
+      title: 'T',
+      isbn: '1',
+      source: { provider: 'ndl', ndlId: '9' },
+    });
+    expect(toNewRecordInput({ ...v, isbn: '2' }).source).toEqual({
+      provider: 'ndl',
+      ndlId: '9',
+    });
   });
 
   it('paramsToInitialValues は古い tmdb の source を manual にする', () => {
     expect(
-      paramsToInitialValues({ sourceProvider: 'tmdb', sourceType: 'tv', sourceId: '7' }).source,
+      paramsToInitialValues({
+        sourceProvider: 'tmdb',
+        sourceType: 'tv',
+        sourceId: '7',
+      }).source,
     ).toEqual({ provider: 'manual' });
   });
 
@@ -296,6 +321,8 @@ describe('source', () => {
       provider: 'ndl',
       ndlId: '5',
     });
-    expect(paramsToInitialValues({ sourceProvider: 'ndl' }).source).toEqual({ provider: 'manual' });
+    expect(paramsToInitialValues({ sourceProvider: 'ndl' }).source).toEqual({
+      provider: 'manual',
+    });
   });
 });

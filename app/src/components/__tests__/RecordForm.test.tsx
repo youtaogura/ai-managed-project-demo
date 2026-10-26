@@ -1,9 +1,4 @@
-import {
-  act,
-  fireEvent,
-  render as rtlRender,
-  screen,
-} from '@testing-library/react-native';
+import { act, fireEvent, render as rtlRender, screen } from '@testing-library/react-native';
 import type { ReactElement } from 'react';
 import { Linking, StyleSheet } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
@@ -35,8 +30,7 @@ afterEach(() => {
 
 const press = (name: string) => fireEvent.press(screen.getByRole('button', { name }));
 const star = () => screen.getByLabelText('レーティング');
-const touch = (name: string, x: number) =>
-  fireEvent(star(), name, { nativeEvent: { locationX: x, pageX: x } });
+const touch = (name: string, x: number) => fireEvent(star(), name, { nativeEvent: { locationX: x, pageX: x } });
 const setRating = async (x: number) => {
   await fireEvent(star(), 'layout', {
     nativeEvent: { layout: { width: 200 } },
@@ -44,8 +38,7 @@ const setRating = async (x: number) => {
   await touch('responderGrant', x);
   await touch('responderRelease', x);
 };
-const type = (label: string, text: string) =>
-  fireEvent.changeText(screen.getByLabelText(label), text);
+const type = (label: string, text: string) => fireEvent.changeText(screen.getByLabelText(label), text);
 
 describe('RecordForm', () => {
   it('タイトルが空だと保存せずエラーを表示する', async () => {
@@ -65,7 +58,6 @@ describe('RecordForm', () => {
     await type('作者・著者', '夏目漱石');
     await type('出版社', '新潮社');
     await type('ISBN', '9784101010013');
-    await type('感想（任意）', '良い');
     await setRating(148);
     await press('記録する');
     expect(onSubmit).toHaveBeenCalledWith({
@@ -78,10 +70,54 @@ describe('RecordForm', () => {
       startDate: null,
       endDate: null,
       status: 'planned',
-      review: '良い',
       rating: 3.7,
       source: { provider: 'manual' },
+      oneLiner: null,
+      starters: [],
+      quotes: [],
+      memos: [],
+      freeTexts: [],
+      favorite: false,
+      shelfIds: [],
     });
+  });
+
+  it('感想の入力欄は出ない', async () => {
+    await render(<RecordForm onSubmit={jest.fn()} />);
+    expect(screen.queryByText('感想', { exact: false })).toBeNull();
+  });
+
+  it('編集のとき、フォームにない項目（ひとこと・書き出し・本棚など）をそのまま引き継ぐ', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    const starters = [
+      {
+        id: 's',
+        starter: 'は、',
+        text: '続き',
+        createdAt: '2024-01-01T00:00:00.000Z',
+      },
+    ];
+    await render(
+      <RecordForm
+        initialValues={{
+          title: '本',
+          oneLiner: 'よかった',
+          starters,
+          favorite: true,
+          shelfIds: ['shelf-1'],
+        }}
+        onSubmit={onSubmit}
+      />,
+    );
+    await press('記録する');
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        oneLiner: 'よかった',
+        starters,
+        favorite: true,
+        shelfIds: ['shelf-1'],
+      }),
+    );
   });
 
   describe('日付', () => {
@@ -125,7 +161,11 @@ describe('RecordForm', () => {
       await render(
         <RecordForm
           onSubmit={onSubmit}
-          initialValues={{ title: 'a', startDate: '2024-03-02', endDate: '2024-03-01' }}
+          initialValues={{
+            title: 'a',
+            startDate: '2024-03-02',
+            endDate: '2024-03-01',
+          }}
         />,
       );
       await press('記録する');
@@ -179,9 +219,7 @@ describe('RecordForm', () => {
 
   it('保存する入力に kind がない', async () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined);
-    await render(
-      <RecordForm onSubmit={onSubmit} initialValues={{ title: 'x', isbn: '1', publisher: 'p' }} />,
-    );
+    await render(<RecordForm onSubmit={onSubmit} initialValues={{ title: 'x', isbn: '1', publisher: 'p' }} />);
     await press('記録する');
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ isbn: '1', publisher: 'p' }));
     expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('kind');
@@ -217,8 +255,7 @@ describe('RecordForm', () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined);
     await render(<RecordForm onSubmit={onSubmit} initialValues={{ title: 'x' }} />);
     expect(star().props.accessibilityRole).toBe('adjustable');
-    const act1 = (actionName: string) =>
-      fireEvent(star(), 'accessibilityAction', { nativeEvent: { actionName } });
+    const act1 = (actionName: string) => fireEvent(star(), 'accessibilityAction', { nativeEvent: { actionName } });
     await act1('decrement');
     expect(star().props.accessibilityValue).toEqual({ text: '未評価' });
     await act1('increment');
@@ -256,9 +293,7 @@ describe('RecordForm', () => {
     expect(screen.getByLabelText('出版社').props.value).toBe('P');
     expect(screen.getByLabelText('ISBN').props.value).toBe('I');
     await press('記録する');
-    expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({ isbn: 'I', coverUrl: 'http://c' }),
-    );
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ isbn: 'I', coverUrl: 'http://c' }));
   });
 
   it('保存失敗でメッセージを表示し入力値を保持する', async () => {
@@ -289,11 +324,7 @@ describe('RecordForm', () => {
   it('保存後に onSaved が呼ばれる', async () => {
     const onSaved = jest.fn();
     await render(
-      <RecordForm
-        onSubmit={jest.fn().mockResolvedValue(undefined)}
-        onSaved={onSaved}
-        initialValues={{ title: 'a' }}
-      />,
+      <RecordForm onSubmit={jest.fn().mockResolvedValue(undefined)} onSaved={onSaved} initialValues={{ title: 'a' }} />,
     );
     await press('記録する');
     expect(onSaved).toHaveBeenCalledTimes(1);
@@ -325,12 +356,7 @@ describe('RecordForm', () => {
   describe('削除', () => {
     const open = async (onDelete: () => Promise<void>, onDeleted?: () => void) => {
       await render(
-        <RecordForm
-          onSubmit={jest.fn()}
-          onDelete={onDelete}
-          onDeleted={onDeleted}
-          initialValues={{ title: '吾輩' }}
-        />,
+        <RecordForm onSubmit={jest.fn()} onDelete={onDelete} onDeleted={onDeleted} initialValues={{ title: '吾輩' }} />,
       );
       await press('この記録を削除');
     };
@@ -339,9 +365,7 @@ describe('RecordForm', () => {
       const onDelete = jest.fn().mockResolvedValue(undefined);
       const onDeleted = jest.fn();
       await open(onDelete, onDeleted);
-      expect(
-        screen.getByText('「吾輩」の記録と、付けた写真が削除されます。元に戻せません。'),
-      ).toBeTruthy();
+      expect(screen.getByText('「吾輩」の記録と、付けた写真が削除されます。元に戻せません。')).toBeTruthy();
       await act(async () => press('削除する'));
       expect(onDelete).toHaveBeenCalledTimes(1);
       expect(onDeleted).toHaveBeenCalledTimes(1);
@@ -364,25 +388,19 @@ describe('RecordForm', () => {
   describe('書影の説明', () => {
     it('書影があり写真がないとき、書影取得の説明を出す', async () => {
       await render(<RecordForm onSubmit={jest.fn()} initialValues={{ coverUrl: 'http://c' }} />);
-      expect(
-        screen.getByText('書影を取得しました。自分で撮った写真に変えることもできます'),
-      ).toBeTruthy();
+      expect(screen.getByText('書影を取得しました。自分で撮った写真に変えることもできます')).toBeTruthy();
     });
 
     it('画像がないとき、文字の表紙の説明を出す', async () => {
       await render(<RecordForm onSubmit={jest.fn()} />);
       expect(screen.getByTestId('text-cover')).toBeTruthy();
       expect(
-        screen.getByText(
-          'ポスターがないので、タイトルから表紙を作っています。写真を付けるとこちらに表示されます',
-        ),
+        screen.getByText('ポスターがないので、タイトルから表紙を作っています。写真を付けるとこちらに表示されます'),
       ).toBeTruthy();
     });
 
     it('写真があるときは説明を出さない', async () => {
-      await render(
-        <RecordForm onSubmit={jest.fn()} initialValues={{ photoUri: 'file:///p.jpg' }} />,
-      );
+      await render(<RecordForm onSubmit={jest.fn()} initialValues={{ photoUri: 'file:///p.jpg' }} />);
       expect(screen.queryByText(/書影を取得しました|ポスターがない/)).toBeNull();
     });
   });
@@ -408,10 +426,7 @@ describe('RecordForm', () => {
       });
       const onSubmit = jest.fn().mockResolvedValue(undefined);
       await render(
-        <RecordForm
-          onSubmit={onSubmit}
-          initialValues={{ title: 'a', coverUrl: 'http://c/cover.jpg' }}
-        />,
+        <RecordForm onSubmit={onSubmit} initialValues={{ title: 'a', coverUrl: 'http://c/cover.jpg' }} />,
         service,
       );
       expect(thumbnailUri()).toBe('http://c/cover.jpg');
@@ -438,10 +453,7 @@ describe('RecordForm', () => {
         save: jest.fn().mockResolvedValue(SAVED),
       });
       await render(
-        <RecordForm
-          onSubmit={jest.fn().mockResolvedValue(undefined)}
-          initialValues={{ title: 'a', photoUri: OLD }}
-        />,
+        <RecordForm onSubmit={jest.fn().mockResolvedValue(undefined)} initialValues={{ title: 'a', photoUri: OLD }} />,
         service,
       );
       await choose('ライブラリから選択');
@@ -474,7 +486,11 @@ describe('RecordForm', () => {
       await render(
         <RecordForm
           onSubmit={onSubmit}
-          initialValues={{ title: 'a', photoUri: OLD, coverUrl: 'http://c/cover.jpg' }}
+          initialValues={{
+            title: 'a',
+            photoUri: OLD,
+            coverUrl: 'http://c/cover.jpg',
+          }}
         />,
         service,
       );
@@ -521,10 +537,7 @@ describe('RecordForm', () => {
         save: jest.fn().mockResolvedValue(SAVED),
       });
       const view = await render(
-        <RecordForm
-          onSubmit={jest.fn().mockResolvedValue(undefined)}
-          initialValues={{ title: 'a' }}
-        />,
+        <RecordForm onSubmit={jest.fn().mockResolvedValue(undefined)} initialValues={{ title: 'a' }} />,
         service,
       );
       await choose('ライブラリから選択');
@@ -558,10 +571,7 @@ describe('RecordForm', () => {
         pick: jest.fn().mockResolvedValue(picked()),
         save: jest.fn().mockRejectedValue(new Error('x')),
       });
-      await render(
-        <RecordForm onSubmit={jest.fn()} initialValues={{ title: 'a', photoUri: OLD }} />,
-        service,
-      );
+      await render(<RecordForm onSubmit={jest.fn()} initialValues={{ title: 'a', photoUri: OLD }} />, service);
       await choose('ライブラリから選択');
       expect(screen.getByText('写真を保存できませんでした')).toBeTruthy();
       expect(thumbnailUri()).toBe(OLD);
@@ -588,7 +598,10 @@ describe('RecordForm', () => {
         .fn()
         .mockResolvedValueOnce({ status: 'denied', canAskAgain: true })
         .mockResolvedValueOnce(picked());
-      const service = createMockPhotoService({ pick, save: jest.fn().mockResolvedValue(SAVED) });
+      const service = createMockPhotoService({
+        pick,
+        save: jest.fn().mockResolvedValue(SAVED),
+      });
       await render(<RecordForm onSubmit={jest.fn()} initialValues={{ title: 'a' }} />, service);
       await choose('ライブラリから選択');
       expect(screen.getByText('写真ライブラリへのアクセスが許可されていません')).toBeTruthy();
@@ -600,4 +613,3 @@ describe('RecordForm', () => {
     });
   });
 });
-

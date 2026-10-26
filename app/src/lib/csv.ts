@@ -12,7 +12,7 @@ const HEADERS = [
   '始めた日',
   '終えた日',
   'レーティング',
-  '感想',
+  'ひとこと',
   '登録日時',
   '更新日時',
 ];
@@ -40,7 +40,7 @@ function row(record: MediaRecord): string {
     textCell(record.startDate),
     textCell(record.endDate),
     record.rating === null ? '' : String(record.rating),
-    textCell(record.review),
+    textCell(record.oneLiner),
     textCell(record.createdAt),
     textCell(record.updatedAt),
   ].join(',');

@@ -40,9 +40,15 @@ const baseInput = {
   startDate: null,
   endDate: null,
   status: 'planned' as const,
-  review: null,
   rating: null,
   source: { provider: 'manual' as const },
+  oneLiner: null,
+  starters: [],
+  quotes: [],
+  memos: [],
+  freeTexts: [],
+  favorite: false,
+  shelfIds: [],
 };
 
 const press = (name: string) => fireEvent.press(screen.getByRole('button', { name }));
@@ -64,9 +70,7 @@ describe('RecordFormScreen（新規）', () => {
     const [created] = await repository.getAll();
     expect(router.replace).toHaveBeenCalledWith('/records/' + created?.id);
     expect(router.back).not.toHaveBeenCalled();
-    expect(add).toHaveBeenCalledWith(
-      expect.objectContaining({ title: '新しい本', status: 'completed' }),
-    );
+    expect(add).toHaveBeenCalledWith(expect.objectContaining({ title: '新しい本', status: 'completed' }));
     expect(await repository.getAll()).toHaveLength(1);
   });
 
@@ -83,10 +87,7 @@ describe('RecordFormScreen（新規）', () => {
   it('初期値が入力済みになり、書影 URL が保存される', async () => {
     const repository = memoryRepository();
     await render(
-      withRepository(
-        repository,
-        <RecordFormScreen initialValues={{ title: '検索結果', coverUrl: 'http://c' }} />,
-      ),
+      withRepository(repository, <RecordFormScreen initialValues={{ title: '検索結果', coverUrl: 'http://c' }} />),
     );
     expect(screen.getByLabelText('タイトル（必須）').props.value).toBe('検索結果');
     await press('記録する');
@@ -101,15 +102,16 @@ describe('RecordFormScreen（新規）', () => {
       withRepository(
         repository,
         <RecordFormScreen
-          initialValues={{ title: 'N', source: { provider: 'ndl', ndlId: '5' } }}
+          initialValues={{
+            title: 'N',
+            source: { provider: 'ndl', ndlId: '5' },
+          }}
         />,
       ),
     );
     await press('記録する');
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
-    expect(add).toHaveBeenCalledWith(
-      expect.objectContaining({ source: { provider: 'ndl', ndlId: '5' } }),
-    );
+    expect(add).toHaveBeenCalledWith(expect.objectContaining({ source: { provider: 'ndl', ndlId: '5' } }));
   });
 
   it('手入力は manual で保存される', async () => {
@@ -117,7 +119,9 @@ describe('RecordFormScreen（新規）', () => {
     await render(withRepository(repository, <RecordFormScreen initialValues={{ title: 'M' }} />));
     await press('記録する');
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
-    expect((await repository.getAll())[0]?.source).toEqual({ provider: 'manual' });
+    expect((await repository.getAll())[0]?.source).toEqual({
+      provider: 'manual',
+    });
   });
 
   it('add が失敗したら画面に留まり失敗メッセージを表示する', async () => {
@@ -147,7 +151,10 @@ describe('RecordFormScreen（編集）', () => {
     await waitFor(() => expect(router.back).toHaveBeenCalled());
     expect(update).toHaveBeenCalledWith(record.id, expect.objectContaining({ title: '変更後' }));
     const [saved] = await repository.getAll();
-    expect(saved).toMatchObject({ coverUrl: 'http://cover', photoUri: 'file://photo' });
+    expect(saved).toMatchObject({
+      coverUrl: 'http://cover',
+      photoUri: 'file://photo',
+    });
   });
 
   it('存在しない id では「記録が見つかりません」を表示する', async () => {
@@ -217,14 +224,7 @@ describe('RecordFormScreen の書影取得', () => {
     initialValues: React.ComponentProps<typeof RecordFormScreen>['initialValues'],
   ) => {
     const repository = memoryRepository();
-    await render(
-      withRepository(
-        repository,
-        <RecordFormScreen initialValues={initialValues} />,
-        undefined,
-        resolver,
-      ),
-    );
+    await render(withRepository(repository, <RecordFormScreen initialValues={initialValues} />, undefined, resolver));
     await press('記録する');
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
     return repository;
@@ -262,7 +262,10 @@ describe('RecordFormScreen の書影取得', () => {
     ['null', null],
     ['例外', new Error('x')],
   ])('取得が %s でも coverUrl: null のまま保存できる', async (_name, value) => {
-    const repository = await renderNew(resolverFor(value), { title: 'a', isbn: ISBN });
+    const repository = await renderNew(resolverFor(value), {
+      title: 'a',
+      isbn: ISBN,
+    });
     expect((await repository.getAll())[0]?.coverUrl).toBeNull();
     expect(screen.queryByText('保存に失敗しました')).toBeNull();
   });
@@ -314,9 +317,7 @@ describe('RecordFormScreen の書影取得', () => {
       photoUri: null,
     });
     const resolver = resolverFor('https://cover/z.jpg');
-    await render(
-      withRepository(repository, <RecordFormScreen recordId={record.id} />, undefined, resolver),
-    );
+    await render(withRepository(repository, <RecordFormScreen recordId={record.id} />, undefined, resolver));
     await screen.findByLabelText('タイトル（必須）');
     await press('保存する');
     await waitFor(() => expect(router.back).toHaveBeenCalled());
@@ -345,7 +346,10 @@ describe('RecordFormScreen（古い tmdb の候補）', () => {
     await press('記録する');
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
     const [saved] = await repository.getAll();
-    expect(saved).toMatchObject({ title: '作品', source: { provider: 'manual' } });
+    expect(saved).toMatchObject({
+      title: '作品',
+      source: { provider: 'manual' },
+    });
     expect(saved).not.toHaveProperty('kind');
   });
 });
@@ -354,8 +358,9 @@ describe('RecordFormScreen（ステータスの初期値）', () => {
   const withDefault = (status: RecordStatus, children: ReactNode) =>
     withSettings(
       createSettingsStore(
-        createMemoryStorage({ [SETTINGS_STORAGE_KEY]: JSON.stringify({ defaultStatus: status }) })
-          .storage,
+        createMemoryStorage({
+          [SETTINGS_STORAGE_KEY]: JSON.stringify({ defaultStatus: status }),
+        }).storage,
       ),
       children,
     );
@@ -365,10 +370,7 @@ describe('RecordFormScreen（ステータスの初期値）', () => {
     await render(
       withDefault(
         status,
-        withRepository(
-          repository,
-          <RecordFormScreen initialValues={{ title: 'T', ...initialValues }} />,
-        ),
+        withRepository(repository, <RecordFormScreen initialValues={{ title: 'T', ...initialValues }} />),
       ),
     );
     await screen.findByLabelText('タイトル（必須）');
@@ -394,17 +396,16 @@ describe('RecordFormScreen（ステータスの初期値）', () => {
   });
 
   it.each(['planned', 'dropped'] as const)('%s は日付が空', async (status) => {
-    expect(await saveNew(status, {})).toMatchObject({ status, startDate: null, endDate: null });
+    expect(await saveNew(status, {})).toMatchObject({
+      status,
+      startDate: null,
+      endDate: null,
+    });
   });
 
   it('読書の言い方で選ばれる', async () => {
     const repository = memoryRepository();
-    await render(
-      withDefault(
-        'in_progress',
-        withRepository(repository, <RecordFormScreen />),
-      ),
-    );
+    await render(withDefault('in_progress', withRepository(repository, <RecordFormScreen />)));
     const status = await screen.findByRole('radio', { name: '読んでる' });
     expect(status.props.accessibilityState).toMatchObject({ checked: true });
   });
@@ -419,12 +420,7 @@ describe('RecordFormScreen（ステータスの初期値）', () => {
   it('編集では設定にかかわらず記録のステータス・日付が変わらない', async () => {
     const repository = memoryRepository();
     const record = await repository.add({ ...baseInput, status: 'planned' });
-    await render(
-      withDefault(
-        'completed',
-        withRepository(repository, <RecordFormScreen recordId={record.id} />),
-      ),
-    );
+    await render(withDefault('completed', withRepository(repository, <RecordFormScreen recordId={record.id} />)));
     await screen.findByLabelText('タイトル（必須）');
     await press('保存する');
     await waitFor(() => expect(router.back).toHaveBeenCalled());

@@ -18,6 +18,8 @@ import { useLastExportedAt } from '../hooks/useLastExportedAt';
 import { useRecordRepository } from '../hooks/useRecordRepository';
 import { useRecords } from '../hooks/useRecords';
 import { useSettings } from '../hooks/useSettings';
+import { useShelfRepository } from '../hooks/useShelfRepository';
+import { useStarterSettings } from '../hooks/useStarterSettings';
 import { deleteAllRecords } from '../lib/deleteAllRecords';
 import { triggerImpactHaptic } from '../lib/haptics';
 import { buildBackup, parseBackup } from '../lib/backup';
@@ -26,11 +28,13 @@ import { createExportStore, type ExportStore } from '../lib/exportStore';
 import { formatCompactDate, formatDate } from '../lib/format';
 import { applyImport } from '../lib/importBackup';
 import { createSettingsStore, type SettingsStore } from '../lib/settingsStore';
+import { createStarterSettingsStore, type StarterSettingsStore } from '../lib/starterSettingsStore';
 import { asyncKeyValueStorage } from '../lib/storage';
 import type { BackupFailureReason, BackupFile, ImportMode } from '../types/backup';
 
 const defaultExportStore = createExportStore(asyncKeyValueStorage);
 const defaultSettingsStore = createSettingsStore(asyncKeyValueStorage);
+const defaultStarterSettingsStore = createStarterSettingsStore(asyncKeyValueStorage);
 
 const FAILURE_MESSAGES: Record<BackupFailureReason, string> = {
   not_json: 'このアプリのバックアップファイルではありません',
@@ -45,17 +49,21 @@ type Candidate = { name: string; backup: BackupFile };
 type DataScreenProps = {
   exportStore?: ExportStore;
   settingsStore?: SettingsStore;
+  starterSettingsStore?: StarterSettingsStore;
 };
 
 export function DataScreen({
   exportStore = defaultExportStore,
   settingsStore = defaultSettingsStore,
+  starterSettingsStore = defaultStarterSettingsStore,
 }: DataScreenProps) {
   const bottomInset = useBottomInset();
   const repository = useRecordRepository();
+  const shelfRepository = useShelfRepository();
   const fileService = useFileService();
   const photoService = usePhotoService();
   const { settings, replace } = useSettings();
+  const { starterSettings, replace: replaceStarterSettings } = useStarterSettings();
   const { records, reload } = useRecords();
   const { lastExportedAt, markExported } = useLastExportedAt(exportStore);
 
@@ -77,15 +85,20 @@ export function DataScreen({
     try {
       const now = new Date();
       const all = await repository.getAll();
+      const shelves = await shelfRepository.getAll();
       const stamp = formatCompactDate(now);
       const file =
         format === 'json'
           ? {
               filename: `records-backup-${stamp}.json`,
               mimeType: 'application/json',
-              content: JSON.stringify(buildBackup(all, settings, now.toISOString()), null, 2),
+              content: JSON.stringify(buildBackup(all, shelves, starterSettings, settings, now.toISOString()), null, 2),
             }
-          : { filename: `records-${stamp}.csv`, mimeType: 'text/csv', content: recordsToCsv(all) };
+          : {
+              filename: `records-${stamp}.csv`,
+              mimeType: 'text/csv',
+              content: recordsToCsv(all),
+            };
       const result = await fileService.saveAndShare(file);
       if (result === 'shared') {
         setExportOpen(false);
@@ -93,7 +106,10 @@ export function DataScreen({
       }
     } catch {
       setExportOpen(false);
-      setMessage({ tone: 'error', text: '書き出せませんでした。もう一度お試しください' });
+      setMessage({
+        tone: 'error',
+        text: '書き出せませんでした。もう一度お試しください',
+      });
     } finally {
       setExporting(false);
     }
@@ -124,14 +140,26 @@ export function DataScreen({
     const { backup } = candidate;
     setImporting(true);
     try {
-      const count = await applyImport({ repository, settingsStore, backup, mode, includeSettings });
+      const count = await applyImport({
+        repository,
+        shelfRepository,
+        settingsStore,
+        starterSettingsStore,
+        backup,
+        mode,
+        includeSettings,
+      });
       if (includeSettings && backup.settings) replace(backup.settings);
+      if (includeSettings && backup.starterSettings) replaceStarterSettings(backup.starterSettings);
       setCandidate(null);
       await reload();
       setMessage({ tone: 'info', text: `${count} 件の記録を読み込みました` });
     } catch {
       setCandidate(null);
-      setMessage({ tone: 'error', text: '読み込めませんでした。記録は変わっていません' });
+      setMessage({
+        tone: 'error',
+        text: '読み込めませんでした。記録は変わっていません',
+      });
     } finally {
       setImporting(false);
     }
@@ -148,7 +176,10 @@ export function DataScreen({
       router.dismissTo('/');
     } catch {
       setDeleteOpen(false);
-      setMessage({ tone: 'error', text: '削除できませんでした。記録は変わっていません' });
+      setMessage({
+        tone: 'error',
+        text: '削除できませんでした。記録は変わっていません',
+      });
     } finally {
       setDeleting(false);
     }
@@ -157,9 +188,7 @@ export function DataScreen({
   return (
     <ScreenContainer>
       <ScreenHeaderBar title="データ" onClose={() => router.back()} />
-      <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: space[6] + bottomInset }]}
-      >
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: space[6] + bottomInset }]}>
         <View style={styles.countBlock}>
           <AppText variant="label" style={styles.countLabel}>
             記録の件数
@@ -170,7 +199,9 @@ export function DataScreen({
           <AppText
             accessibilityRole={message.tone === 'error' ? 'alert' : undefined}
             variant="body"
-            style={{ color: message.tone === 'error' ? colors.danger : colors.textPrimary }}
+            style={{
+              color: message.tone === 'error' ? colors.danger : colors.textPrimary,
+            }}
           >
             {message.text}
           </AppText>
@@ -185,7 +216,11 @@ export function DataScreen({
             }}
           />
           <View style={styles.gap} />
-          <SettingsRow label="記録を読み込む" value="書き出したバックアップから戻す" onPress={() => void onPickFile()} />
+          <SettingsRow
+            label="記録を読み込む"
+            value="書き出したバックアップから戻す"
+            onPress={() => void onPickFile()}
+          />
         </SettingsCard>
         <AppText variant="micro" style={styles.note}>
           記録はこの端末の中にだけ保存されています。機種変更の前には書き出してください。

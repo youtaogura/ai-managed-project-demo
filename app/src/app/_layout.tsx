@@ -12,6 +12,8 @@ import { BookSearchContextProvider } from '../hooks/useBookSearch';
 import { FileServiceContextProvider } from '../hooks/useFileService';
 import { PhotoServiceContextProvider } from '../hooks/usePhotoService';
 import { SettingsContextProvider } from '../hooks/useSettings';
+import { ShelfRepositoryProvider } from '../hooks/useShelfRepository';
+import { StarterSettingsContextProvider } from '../hooks/useStarterSettings';
 import { RecordRepositoryProvider } from '../hooks/useRecordRepository';
 import { useAppFonts } from '../hooks/useAppFonts';
 import { parsePreviewInsets } from '../lib/previewInsets';
@@ -24,24 +26,28 @@ SplashScreen.preventAutoHideAsync().catch(() => undefined);
 function Providers() {
   return (
     <SettingsContextProvider>
-      <RecordRepositoryProvider>
-        <BookLookupContextProvider>
-          <CoverResolverContextProvider>
-            <BookSearchContextProvider>
-              <PhotoServiceContextProvider>
-                <FileServiceContextProvider>
-                  <ThemeProvider value={navigationTheme}>
-                    <Stack screenOptions={stackScreenOptions}>
-                      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                    </Stack>
-                  </ThemeProvider>
-                  <StatusBar style="dark" />
-                </FileServiceContextProvider>
-              </PhotoServiceContextProvider>
-            </BookSearchContextProvider>
-          </CoverResolverContextProvider>
-        </BookLookupContextProvider>
-      </RecordRepositoryProvider>
+      <StarterSettingsContextProvider>
+        <ShelfRepositoryProvider>
+          <RecordRepositoryProvider>
+            <BookLookupContextProvider>
+              <CoverResolverContextProvider>
+                <BookSearchContextProvider>
+                  <PhotoServiceContextProvider>
+                    <FileServiceContextProvider>
+                      <ThemeProvider value={navigationTheme}>
+                        <Stack screenOptions={stackScreenOptions}>
+                          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                        </Stack>
+                      </ThemeProvider>
+                      <StatusBar style="dark" />
+                    </FileServiceContextProvider>
+                  </PhotoServiceContextProvider>
+                </BookSearchContextProvider>
+              </CoverResolverContextProvider>
+            </BookLookupContextProvider>
+          </RecordRepositoryProvider>
+        </ShelfRepositoryProvider>
+      </StarterSettingsContextProvider>
     </SettingsContextProvider>
   );
 }

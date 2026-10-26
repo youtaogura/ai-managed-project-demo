@@ -153,10 +153,7 @@ describe('ISBN で探して追加', () => {
     await renderRouter(routes);
     await fireEvent.press((await screen.findAllByRole('button', { name: '記録する' }))[0]);
     await fireEvent.press(await screen.findByRole('button', { name: 'ISBN を入力する' }));
-    await fireEvent.changeText(
-      await screen.findByLabelText('ISBN（10 桁または 13 桁）'),
-      '978-4-06-519981-7',
-    );
+    await fireEvent.changeText(await screen.findByLabelText('ISBN（10 桁または 13 桁）'), '978-4-06-519981-7');
     await fireEvent.press(screen.getByRole('button', { name: '探す' }));
     expect(await screen.findByDisplayValue('取得した本')).toBeTruthy();
     expect(screen.getByDisplayValue('著者A')).toBeTruthy();
@@ -230,9 +227,7 @@ describe('振り返りタブの遷移', () => {
   it('空表示の「記録する」→「手で入力する」で記録の追加画面へ移る', async () => {
     await renderRouter(routes);
     await fireEvent.press(screen.getByRole('tab', { name: '振り返り' }));
-    await fireEvent.press(
-      (await screen.findAllByRole('button', { name: '記録する' })).slice(-1)[0],
-    );
+    await fireEvent.press((await screen.findAllByRole('button', { name: '記録する' })).slice(-1)[0]);
     await fireEvent.press(await screen.findByRole('button', { name: '本を手で入力する' }));
     await waitFor(() => expect(screen).toHavePathname('/record/new'));
   });
@@ -254,11 +249,18 @@ describe('振り返りタブの遷移', () => {
           startDate: null,
           endDate: null,
           status: 'completed',
-          review: null,
           rating: null,
           createdAt: now,
           updatedAt: now,
           source: { provider: 'manual' },
+          oneLiner: null,
+          starters: [],
+          quotes: [],
+          memos: [],
+          freeTexts: [],
+          favorite: false,
+          spineColor: 'spine-1',
+          shelfIds: [],
         },
       ]),
     );

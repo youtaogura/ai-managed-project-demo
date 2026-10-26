@@ -1,4 +1,13 @@
 import { RECORD_STATUSES, type MediaRecord, type RecordStatus } from '../types/record';
+import {
+  isArrayOf,
+  isFreeTextEntry,
+  isMemoEntry,
+  isQuoteEntry,
+  isSpineColor,
+  isStarterEntry,
+  isStringArray,
+} from './recordEntries';
 import { isRecordSource, sourceFromIsbn } from './recordSource';
 import { isValidDateRange, isValidRating } from './validation';
 
@@ -22,7 +31,8 @@ function toMediaRecord(value: unknown): MediaRecord | null {
   if (!isOneOf<RecordStatus>(RECORD_STATUSES, status)) return null;
   if (typeof createdAt !== 'string' || typeof updatedAt !== 'string') return null;
   if (!(rating === null || typeof rating === 'number') || !isValidRating(rating)) return null;
-  const { creator, publisher, isbn, coverUrl, photoUri, startDate, endDate, review } = value;
+  const { creator, publisher, isbn, coverUrl, photoUri, startDate, endDate } = value;
+  const { oneLiner, starters, quotes, memos, freeTexts, favorite, spineColor, shelfIds } = value;
   if (
     !isNullableString(creator) ||
     !isNullableString(publisher) ||
@@ -31,7 +41,18 @@ function toMediaRecord(value: unknown): MediaRecord | null {
     !isNullableString(photoUri) ||
     !isNullableString(startDate) ||
     !isNullableString(endDate) ||
-    !isNullableString(review)
+    !isNullableString(oneLiner)
+  ) {
+    return null;
+  }
+  if (
+    !isArrayOf(starters, isStarterEntry) ||
+    !isArrayOf(quotes, isQuoteEntry) ||
+    !isArrayOf(memos, isMemoEntry) ||
+    !isArrayOf(freeTexts, isFreeTextEntry) ||
+    typeof favorite !== 'boolean' ||
+    !isSpineColor(spineColor) ||
+    !isStringArray(shelfIds)
   ) {
     return null;
   }
@@ -47,11 +68,18 @@ function toMediaRecord(value: unknown): MediaRecord | null {
     startDate,
     endDate,
     status,
-    review,
     rating,
     createdAt,
     updatedAt,
     source: isRecordSource(value.source) ? value.source : sourceFromIsbn(isbn),
+    oneLiner,
+    starters,
+    quotes,
+    memos,
+    freeTexts,
+    favorite,
+    spineColor,
+    shelfIds,
   };
 }
 

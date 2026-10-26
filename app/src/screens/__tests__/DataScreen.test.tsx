@@ -10,7 +10,10 @@ import type { FileService } from '../../lib/fileService/FileService';
 import { formatDate } from '../../lib/format';
 import { createRecordRepository, RECORDS_STORAGE_KEY } from '../../lib/recordRepository';
 import { createSettingsStore, SETTINGS_STORAGE_KEY, type SettingsStore } from '../../lib/settingsStore';
-import { withRepository, withSettings } from '../../testProviders';
+import { createShelfRepository } from '../../lib/shelfRepository';
+import { createStarterSettingsStore } from '../../lib/starterSettingsStore';
+import { defaultStarterSettings } from '../../lib/starterDefaults';
+import { withRepository, withSettings, withShelfRepository, withStarterSettings } from '../../testProviders';
 import { createMemoryStorage, createMockPhotoService, makeRecord } from '../../testUtils';
 import type { PhotoService } from '../../lib/photo/PhotoService';
 import { triggerImpactHaptic } from '../../lib/haptics';
@@ -26,7 +29,12 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 jest.mock('../../lib/haptics', () => ({ triggerImpactHaptic: jest.fn() }));
 jest.mock('expo-router', () => {
   const actual = jest.requireActual('expo-router');
-  return { ...actual, router: Object.assign(Object.create(actual.router), { dismissTo: jest.fn() }) };
+  return {
+    ...actual,
+    router: Object.assign(Object.create(actual.router), {
+      dismissTo: jest.fn(),
+    }),
+  };
 });
 
 const records = [
@@ -45,7 +53,12 @@ function fakeFileService(overrides: Partial<FileService> = {}) {
 
 async function setup(
   fileService: FileService,
-  options: { initial?: MediaRecord[]; photoService?: PhotoService; settingsStore?: SettingsStore; extra?: Record<string, string> } = {},
+  options: {
+    initial?: MediaRecord[];
+    photoService?: PhotoService;
+    settingsStore?: SettingsStore;
+    extra?: Record<string, string>;
+  } = {},
 ) {
   const { initial = records, extra = {} } = options;
   const photoService = options.photoService ?? createMockPhotoService();
@@ -56,21 +69,40 @@ async function setup(
   const repository = createRecordRepository(memory.storage);
   const settingsStore = options.settingsStore ?? createSettingsStore(memory.storage);
   const exportStore = createExportStore(memory.storage);
+  const shelfRepository = createShelfRepository(memory.storage);
+  const starterSettingsStore = createStarterSettingsStore(memory.storage);
   await renderRouter({
     index: () =>
-      withSettings(
-        settingsStore,
-        withRepository(
-          repository,
-          <FileServiceContextProvider service={fileService}>
-            <DataScreen exportStore={exportStore} settingsStore={settingsStore} />
-          </FileServiceContextProvider>,
-          photoService,
+      withStarterSettings(
+        starterSettingsStore,
+        withShelfRepository(
+          shelfRepository,
+          withSettings(
+            settingsStore,
+            withRepository(
+              repository,
+              <FileServiceContextProvider service={fileService}>
+                <DataScreen
+                  exportStore={exportStore}
+                  settingsStore={settingsStore}
+                  starterSettingsStore={starterSettingsStore}
+                />
+              </FileServiceContextProvider>,
+              photoService,
+            ),
+          ),
         ),
       ),
     other: () => <Text>other</Text>,
   });
-  return { memory, repository, photoService, settingsStore };
+  return {
+    memory,
+    repository,
+    photoService,
+    settingsStore,
+    shelfRepository,
+    starterSettingsStore,
+  };
 }
 
 const press = (name: string | RegExp) => fireEvent.press(screen.getByRole('button', { name }));
@@ -80,7 +112,11 @@ describe('DataScreen', () => {
   it('件数・行・説明文を出す（未書き出し）', async () => {
     await setup(fakeFileService());
     expect(await screen.findByText('2')).toBeTruthy();
-    expect(screen.getByRole('button', { name: '記録を書き出す、まだ書き出していません' })).toBeTruthy();
+    expect(
+      screen.getByRole('button', {
+        name: '記録を書き出す、まだ書き出していません',
+      }),
+    ).toBeTruthy();
     expect(screen.getByRole('button', { name: /^記録を読み込む/ })).toBeTruthy();
     expect(
       screen.getByText('記録はこの端末の中にだけ保存されています。機種変更の前には書き出してください。'),
@@ -94,10 +130,14 @@ describe('DataScreen', () => {
 
   it('最後に書き出した日を出す', async () => {
     await setup(fakeFileService(), {
-      extra: { [LAST_EXPORTED_AT_KEY]: new Date(2026, 9, 26, 12).toISOString() },
+      extra: {
+        [LAST_EXPORTED_AT_KEY]: new Date(2026, 9, 26, 12).toISOString(),
+      },
     });
     expect(
-      await screen.findByRole('button', { name: '記録を書き出す、2026年10月26日' }),
+      await screen.findByRole('button', {
+        name: '記録を書き出す、2026年10月26日',
+      }),
     ).toBeTruthy();
   });
 
@@ -116,9 +156,7 @@ describe('DataScreen', () => {
     const parsed = JSON.parse(arg?.content ?? '{}');
     expect(parsed.format).toBe(BACKUP_FORMAT);
     expect(parsed.records.map((r: MediaRecord) => r.photoUri)).toEqual([null, null]);
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: `記録を書き出す、${today()}` })).toBeTruthy(),
-    );
+    await waitFor(() => expect(screen.getByRole('button', { name: `記録を書き出す、${today()}` })).toBeTruthy());
     expect(memory.data.get(LAST_EXPORTED_AT_KEY)).toBeTruthy();
     expect(screen.queryByText('表形式（CSV）')).toBeNull();
   });
@@ -137,7 +175,9 @@ describe('DataScreen', () => {
   });
 
   it('キャンセルでは日時を更新しない', async () => {
-    const service = fakeFileService({ saveAndShare: jest.fn().mockResolvedValue('cancelled') });
+    const service = fakeFileService({
+      saveAndShare: jest.fn().mockResolvedValue('cancelled'),
+    });
     const { memory } = await setup(service);
     await screen.findByText('2');
     await press(/^記録を書き出す/);
@@ -147,14 +187,14 @@ describe('DataScreen', () => {
   });
 
   it('書き出しの例外ではエラーを出し、日時を更新しない', async () => {
-    const service = fakeFileService({ saveAndShare: jest.fn().mockRejectedValue(new Error('x')) });
+    const service = fakeFileService({
+      saveAndShare: jest.fn().mockRejectedValue(new Error('x')),
+    });
     const { memory } = await setup(service);
     await screen.findByText('2');
     await press(/^記録を書き出す/);
     await press('バックアップ（JSON）');
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      '書き出せませんでした。もう一度お試しください',
-    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('書き出せませんでした。もう一度お試しください');
     expect(memory.data.has(LAST_EXPORTED_AT_KEY)).toBe(false);
   });
 
@@ -175,6 +215,8 @@ function backupText(overrides: Record<string, unknown> = {}) {
   return JSON.stringify({
     ...buildBackup(
       [makeRecord({ id: 'a', title: 'ファイルのアルファ' }), makeRecord({ id: 'c', title: 'ガンマ' })],
+      [],
+      defaultStarterSettings(),
       { heroCriterion: 'none', defaultStatus: 'completed' },
       '2026-10-26T03:00:00.000Z',
     ),
@@ -183,7 +225,9 @@ function backupText(overrides: Record<string, unknown> = {}) {
 }
 
 const pick = (text: string, name = 'b.json') =>
-  fakeFileService({ pickTextFile: jest.fn().mockResolvedValue({ name, text }) });
+  fakeFileService({
+    pickTextFile: jest.fn().mockResolvedValue({ name, text }),
+  });
 
 describe('DataScreen（読み込み）', () => {
   it('キャンセルなら何も出ない', async () => {
@@ -198,10 +242,7 @@ describe('DataScreen（読み込み）', () => {
     ['{', 'このアプリのバックアップファイルではありません'],
     ['{"a":1}', 'このアプリのバックアップファイルではありません'],
     [backupText({ records: [{ id: 'x' }] }), 'ファイルが壊れているため読み込めません'],
-    [
-      backupText({ version: 2 }),
-      '新しいバージョンのアプリで書き出されたファイルです。アプリを更新してください',
-    ],
+    [backupText({ version: 3 }), '新しいバージョンのアプリで書き出されたファイルです。アプリを更新してください'],
   ])('不正なファイルは何も変えずにエラーを出す: %#', async (text, expected) => {
     const { repository } = await setup(pick(text));
     await screen.findByText('2');
@@ -212,7 +253,11 @@ describe('DataScreen（読み込み）', () => {
   });
 
   it('ファイルを開けなければエラーを出す', async () => {
-    await setup(fakeFileService({ pickTextFile: jest.fn().mockRejectedValue(new Error('x')) }));
+    await setup(
+      fakeFileService({
+        pickTextFile: jest.fn().mockRejectedValue(new Error('x')),
+      }),
+    );
     await screen.findByText('2');
     await press(/^記録を読み込む/);
     expect(await screen.findByRole('alert')).toHaveTextContent('ファイルを開けませんでした');
@@ -225,10 +270,12 @@ describe('DataScreen（読み込み）', () => {
     expect(await screen.findByText('my.json')).toBeTruthy();
     expect(screen.getByText('2 件の記録')).toBeTruthy();
     expect(screen.getByText(/書き出した日 2026年10月26日/)).toBeTruthy();
-    expect(screen.getByRole('radio', { name: '今の記録に追加する' }).props.accessibilityState)
-      .toMatchObject({ selected: true });
-    expect(screen.getByRole('radio', { name: '設定も読み込む' }).props.accessibilityState)
-      .toMatchObject({ selected: true });
+    expect(screen.getByRole('radio', { name: '今の記録に追加する' }).props.accessibilityState).toMatchObject({
+      selected: true,
+    });
+    expect(screen.getByRole('radio', { name: '設定も読み込む' }).props.accessibilityState).toMatchObject({
+      selected: true,
+    });
     await press('キャンセル');
     await waitFor(() => expect(screen.queryByText('my.json')).toBeNull());
     expect(await repository.getAll()).toHaveLength(2);
@@ -278,14 +325,14 @@ describe('DataScreen（読み込み）', () => {
         throw new Error('fail');
       },
     };
-    const { repository } = await setup(pick(backupText()), { settingsStore: failing });
+    const { repository } = await setup(pick(backupText()), {
+      settingsStore: failing,
+    });
     await screen.findByText('2');
     await press(/^記録を読み込む/);
     await fireEvent.press(await screen.findByRole('radio', { name: '今の記録と置き換える' }));
     await press('読み込む');
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      '読み込めませんでした。記録は変わっていません',
-    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('読み込めませんでした。記録は変わっていません');
     expect((await repository.getAll()).map((r) => r.id)).toEqual(['a', 'b']);
   });
 
@@ -325,7 +372,9 @@ describe('DataScreen（すべての記録を削除）', () => {
     await screen.findByText('2');
     const link = screen.getByRole('button', { name: 'すべての記録を削除' });
     expect(link).toHaveStyle({ minHeight: 44 });
-    expect(screen.getByText('すべての記録を削除')).toHaveStyle({ color: colors.danger });
+    expect(screen.getByText('すべての記録を削除')).toHaveStyle({
+      color: colors.danger,
+    });
   });
 
   it('0 件ではリンクを出さない', async () => {
@@ -339,15 +388,16 @@ describe('DataScreen（すべての記録を削除）', () => {
     await openSheet();
     expect(screen.getByText('すべての記録を削除しますか？')).toBeTruthy();
     expect(
-      screen.getByText(
-        '2 件の記録と、付けた写真がすべて削除されます。元に戻せません。設定はそのまま残ります。',
-      ),
+      screen.getByText('2 件の記録と、付けた写真がすべて削除されます。元に戻せません。設定はそのまま残ります。'),
     ).toBeTruthy();
   });
 
   it('「すべて削除する」で記録と写真を消し、設定は残し、触覚 1 回・一覧へ戻る', async () => {
     const { memory, photoService, settingsStore } = await setup(fakeFileService());
-    await settingsStore.save({ ...DEFAULT_SETTINGS, heroCriterion: 'highRated' });
+    await settingsStore.save({
+      ...DEFAULT_SETTINGS,
+      heroCriterion: 'highRated',
+    });
     const settingsBefore = memory.data.get(SETTINGS_STORAGE_KEY);
     await openSheet();
     await press('すべて削除する');

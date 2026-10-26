@@ -23,7 +23,6 @@ export function RecordInfoSection({ record, onDelete }: RecordInfoSectionProps) 
           {record.title}
         </AppText>
       </View>
-      {record.review ? <AppText variant="body">{record.review}</AppText> : null}
       <View style={styles.rows}>
         <AppText variant="sectionTitle">作品の情報</AppText>
         {buildInfoRows(record).map((row) => (
