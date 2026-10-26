@@ -1,4 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
+import { Platform } from 'react-native';
 
 import { expoPhotoService } from '../ExpoPhotoService';
 
@@ -125,5 +126,27 @@ describe('ExpoPhotoService.remove', () => {
       throw new Error('x');
     });
     await expect(expoPhotoService.remove('file:///documents/photos/a.jpg')).resolves.toBeUndefined();
+  });
+});
+
+describe('Web', () => {
+  const originalOS = Platform.OS;
+  beforeEach(() => {
+    Platform.OS = 'web';
+  });
+  afterEach(() => {
+    Platform.OS = originalOS;
+  });
+
+  it('カメラは起動せず canceled を返す', async () => {
+    await expect(expoPhotoService.pick('camera')).resolves.toEqual({ status: 'canceled' });
+    expect(mockPicker.launchCameraAsync).not.toHaveBeenCalled();
+  });
+
+  it('save は URI をそのまま返し、remove は何もしない', async () => {
+    await expect(expoPhotoService.save('blob:x')).resolves.toBe('blob:x');
+    await expoPhotoService.remove('blob:x');
+    expect(mockCopy).not.toHaveBeenCalled();
+    expect(mockDelete).not.toHaveBeenCalled();
   });
 });

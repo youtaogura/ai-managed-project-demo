@@ -1,5 +1,5 @@
-import { StyleSheet } from 'react-native';
-import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
+import { StyleSheet, Text } from 'react-native';
+import { SafeAreaInsetsContext, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { fireEvent, renderRouter, screen } from 'expo-router/testing-library';
 
 import RootLayout from '../app/_layout';
@@ -55,5 +55,30 @@ describe('上端インセットのある端末（ヘッダー付き画面）', (
     await fireEvent.press(await screen.findByRole('button', { name: '追加' }));
     expect(await screen.findByLabelText('タイトル')).toBeTruthy();
     expect(screen).toHavePathname('/record/new');
+  });
+});
+
+describe('EXPO_PUBLIC_PREVIEW_INSETS', () => {
+  const original = process.env.EXPO_PUBLIC_PREVIEW_INSETS;
+  afterEach(() => {
+    if (original === undefined) delete process.env.EXPO_PUBLIC_PREVIEW_INSETS;
+    else process.env.EXPO_PUBLIC_PREVIEW_INSETS = original;
+  });
+
+  function Probe() {
+    const i = useSafeAreaInsets();
+    return <Text>{`${i.top},${i.right},${i.bottom},${i.left}`}</Text>;
+  }
+
+  it('有効な値ならルートレイアウト配下の余白になる', async () => {
+    process.env.EXPO_PUBLIC_PREVIEW_INSETS = '59,0,34,0';
+    await renderRouter({ _layout: RootLayout, index: Probe });
+    expect(await screen.findByText('59,0,34,0')).toBeTruthy();
+  });
+
+  it('不正な値なら余白を上書きしない', async () => {
+    process.env.EXPO_PUBLIC_PREVIEW_INSETS = 'x';
+    await renderRouter({ _layout: RootLayout, index: Probe });
+    expect(await screen.findByText('0,0,0,0')).toBeTruthy();
   });
 });

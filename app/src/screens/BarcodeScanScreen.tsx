@@ -1,7 +1,7 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useBookLookup } from '../hooks/useBookLookup';
 import { isbnFromBarcode } from '../lib/barcode';
@@ -21,7 +21,16 @@ function ActionButton({ label, onPress }: { label: string; onPress: () => void }
   );
 }
 
-export function BarcodeScanScreen() {
+function UnsupportedOnWeb() {
+  return (
+    <View style={styles.center}>
+      <Text style={styles.message}>この機能はスマートフォンでのみ使えます</Text>
+      <ActionButton label="手入力で追加" onPress={() => router.replace('/record/new')} />
+    </View>
+  );
+}
+
+function NativeBarcodeScan() {
   const [permission, requestPermission] = useCameraPermissions();
   const provider = useBookLookup();
   const [state, setState] = useState<ScanState>('scanning');
@@ -138,6 +147,10 @@ export function BarcodeScanScreen() {
       </View>
     </View>
   );
+}
+
+export function BarcodeScanScreen() {
+  return Platform.OS === 'web' ? <UnsupportedOnWeb /> : <NativeBarcodeScan />;
 }
 
 const styles = StyleSheet.create({
