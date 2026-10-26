@@ -9,7 +9,6 @@ import { ReviewEmpty } from '../components/ReviewEmpty';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { colors, radius, size, space } from '../design/tokens';
 import { useAddSheet } from '../hooks/useAddSheet';
-import { useSettings } from '../hooks/useSettings';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useRecords } from '../hooks/useRecords';
 import {
@@ -19,8 +18,6 @@ import {
   summarizeRatings,
   summarizeYear,
 } from '../lib/analytics';
-import { filterRecordsByKinds } from '../lib/enabledKinds';
-import { KIND_LABELS } from '../lib/statusLabel';
 
 type ReviewScreenProps = {
   onAdd?: () => void;
@@ -28,16 +25,10 @@ type ReviewScreenProps = {
 };
 
 export function ReviewScreen({ onAdd, onOpenRecords }: ReviewScreenProps) {
-  const { records: allRecords, loading } = useRecords();
-  const { settings } = useSettings();
-  const { addOpen, openAdd, closeAdd, select, enabledKinds, mediaSearchEnabled } =
-    useAddSheet(onAdd);
+  const { records, loading } = useRecords();
+  const { addOpen, openAdd, closeAdd, select } = useAddSheet(onAdd);
   const bottomInset = useBottomInset();
 
-  const records = useMemo(
-    () => filterRecordsByKinds(allRecords, settings.enabledKinds),
-    [allRecords, settings.enabledKinds],
-  );
   const summary = useMemo(() => {
     const monthly = aggregateMonthlyCompletions(records, new Date());
     return {
@@ -58,13 +49,7 @@ export function ReviewScreen({ onAdd, onOpenRecords }: ReviewScreenProps) {
           <AppText variant="screenTitle">振り返り</AppText>
         </View>
         <ReviewEmpty onAdd={openAdd} />
-        <AddSheet
-          visible={addOpen}
-          onClose={closeAdd}
-          onSelect={select}
-          mediaSearchEnabled={mediaSearchEnabled}
-          enabledKinds={enabledKinds}
-        />
+        <AddSheet visible={addOpen} onClose={closeAdd} onSelect={select} />
       </ScreenContainer>
     );
   }
@@ -107,11 +92,7 @@ export function ReviewScreen({ onAdd, onOpenRecords }: ReviewScreenProps) {
 
         <View style={styles.section}>
           <AppText variant="sectionTitle">月別の完了数</AppText>
-          <MonthlyBarChart
-            months={monthly.months}
-            currentMonth={currentMonth}
-            kinds={enabledKinds}
-          />
+          <MonthlyBarChart months={monthly.months} currentMonth={currentMonth} />
         </View>
 
         {monthly.undatedCompleted > 0 ? (
@@ -137,29 +118,6 @@ export function ReviewScreen({ onAdd, onOpenRecords }: ReviewScreenProps) {
           <RatingDistribution distribution={ratings.distribution} />
         </View>
 
-        <View style={styles.section}>
-          <AppText variant="label" style={styles.secondary}>
-            種別ごとの平均
-          </AppText>
-          <View>
-            {enabledKinds.map((kind) => {
-              const entry = ratings.byKind[kind];
-              return entry ? (
-                <View key={kind} style={styles.kindRow}>
-                  <AppText variant="body" style={styles.kindName}>
-                    {KIND_LABELS[kind]}
-                  </AppText>
-                  <AppText variant="label" style={styles.secondary}>
-                    {`${entry.count} 作品`}
-                  </AppText>
-                  <AppText variant="value" style={styles.kindAverage}>
-                    {formatAverage(entry.average)}
-                  </AppText>
-                </View>
-              ) : null;
-            })}
-          </View>
-        </View>
       </ScrollView>
     </ScreenContainer>
   );
@@ -201,14 +159,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[4],
   },
   underline: { textDecorationLine: 'underline' },
-  kindRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space[3],
-    paddingVertical: space[3],
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-  },
-  kindName: { flex: 1 },
-  kindAverage: { minWidth: 32, textAlign: 'right' },
 });

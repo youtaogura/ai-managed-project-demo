@@ -1,4 +1,4 @@
-import { MEDIA_KINDS, RECORD_STATUSES, type MediaKind, type MediaRecord, type RecordStatus } from '../types/record';
+import { RECORD_STATUSES, type MediaRecord, type RecordStatus } from '../types/record';
 import { isRecordSource, sourceFromIsbn } from './recordSource';
 import { isValidDateRange, isValidRating } from './validation';
 
@@ -16,9 +16,8 @@ function isOneOf<T extends string>(list: readonly T[], value: unknown): value is
 
 function toMediaRecord(value: unknown): MediaRecord | null {
   if (!isObject(value)) return null;
-  const { id, kind, title, status, rating, createdAt, updatedAt } = value;
+  const { id, title, status, rating, createdAt, updatedAt } = value;
   if (typeof id !== 'string' || id === '') return null;
-  if (!isOneOf<MediaKind>(MEDIA_KINDS, kind)) return null;
   if (typeof title !== 'string' || title.trim() === '') return null;
   if (!isOneOf<RecordStatus>(RECORD_STATUSES, status)) return null;
   if (typeof createdAt !== 'string' || typeof updatedAt !== 'string') return null;
@@ -39,7 +38,6 @@ function toMediaRecord(value: unknown): MediaRecord | null {
   if (!isValidDateRange(startDate, endDate)) return null;
   return {
     id,
-    kind,
     title,
     creator,
     publisher,

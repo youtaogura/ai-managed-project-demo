@@ -1,12 +1,12 @@
 import type { NewRecordInput, RecordStatus } from '../types/record';
 import { RECORD_STATUSES } from '../types/record';
 
-/** 設定画面用の、読む系と見る系を併記した表記。 */
+/** 設定画面用のステータス表記。 */
 export const STATUS_DEFAULT_LABELS: Record<RecordStatus, string> = {
-  planned: '読みたい・見たい',
-  in_progress: '読んでる・見てる',
+  planned: '読みたい',
+  in_progress: '読んでる',
   dropped: '途中でやめた',
-  completed: '読み終わった・見終わった',
+  completed: '読み終わった',
 };
 
 export const STATUS_DEFAULT_OPTIONS: readonly {

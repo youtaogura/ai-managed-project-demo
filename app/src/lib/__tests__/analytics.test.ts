@@ -22,12 +22,12 @@ describe('aggregateMonthlyCompletions', () => {
     expect(months.every((m) => m.total === 0)).toBe(true);
   });
 
-  it('種別別・合計を数え、範囲外・非 completed は除く', () => {
+  it('月ごとの合計を数え、範囲外・非 completed は除く', () => {
     const { months, undatedCompleted } = aggregateMonthlyCompletions(
       [
-        done('2025-11-01', { kind: 'book' }),
-        done('2026-10-31', { kind: 'movie' }),
-        done('2026-10-02', { kind: 'movie' }),
+        done('2025-11-01'),
+        done('2026-10-31'),
+        done('2026-10-02'),
         done('2025-10-31'),
         done('2026-11-01'),
         makeRecord({ status: 'in_progress', endDate: '2026-10-05' }),
@@ -35,9 +35,7 @@ describe('aggregateMonthlyCompletions', () => {
       now,
     );
     expect(months[0].total).toBe(1);
-    expect(months[0].byKind.book).toBe(1);
     expect(months[11].total).toBe(2);
-    expect(months[11].byKind.movie).toBe(2);
     expect(undatedCompleted).toBe(0);
   });
 
@@ -65,18 +63,16 @@ describe('summarizeRatings', () => {
     expect(r.count).toBe(4);
   });
 
-  it('平均は小数第 2 位を四捨五入し、種別ごとにも出す', () => {
+  it('平均は小数第 2 位を四捨五入する', () => {
     const r = summarizeRatings([
-      makeRecord({ kind: 'book', rating: 3 }),
-      makeRecord({ kind: 'book', rating: 3.5 }),
-      makeRecord({ kind: 'movie', rating: 3.5 }),
-      makeRecord({ kind: 'movie', rating: 3.5 }),
-      makeRecord({ kind: 'anime', rating: 2.9 }),
+      makeRecord({ rating: 3 }),
+      makeRecord({ rating: 3.5 }),
+      makeRecord({ rating: 3.5 }),
+      makeRecord({ rating: 3.5 }),
+      makeRecord({ rating: 2.9 }),
     ]);
     expect(r.average).toBe(3.3);
-    expect(r.byKind.book).toEqual({ count: 2, average: 3.3 });
-    expect(r.byKind.movie).toEqual({ count: 2, average: 3.5 });
-    expect(r.byKind.manga).toBeUndefined();
+    expect(r).not.toHaveProperty('byKind');
   });
 
   it('0 件の平均は null', () => {

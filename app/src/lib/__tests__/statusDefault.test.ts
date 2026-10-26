@@ -47,11 +47,11 @@ describe('applyDefaultStatus', () => {
 
   it('選択肢は 4 つで、併記表記の表示名を持つ', () => {
     expect(STATUS_DEFAULT_OPTIONS.map((o) => o.label)).toEqual([
-      '読みたい・見たい',
-      '読んでる・見てる',
+      '読みたい',
+      '読んでる',
       '途中でやめた',
-      '読み終わった・見終わった',
+      '読み終わった',
     ]);
-    expect(STATUS_DEFAULT_LABELS.completed).toBe('読み終わった・見終わった');
+    expect(STATUS_DEFAULT_LABELS.completed).toBe('読み終わった');
   });
 });

@@ -2,7 +2,6 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { getAppInfo } from '../../lib/appInfo';
 import { router } from 'expo-router';
 
-import { TMDB_ATTRIBUTION } from '../../lib/mediaSearch/tmdb/TmdbSearchProvider';
 import { AboutScreen } from '../AboutScreen';
 
 jest.mock('../../lib/appInfo', () => ({
@@ -40,8 +39,7 @@ describe('AboutScreen', () => {
     expect(screen.getByText('書誌情報・書影（ISBN から）')).toBeTruthy();
     expect(screen.getByText('国立国会図書館サーチ')).toBeTruthy();
     expect(screen.getByText('タイトル検索')).toBeTruthy();
-    expect(screen.getByText('TMDb')).toBeTruthy();
-    expect(screen.getByText(TMDB_ATTRIBUTION)).toBeTruthy();
+    expect(screen.queryByText(/TMDb/)).toBeNull();
     expect(screen.getByText('Noto Sans JP / しっぽり明朝')).toBeTruthy();
     expect(screen.getByText('フォント（SIL Open Font License）')).toBeTruthy();
     expect(screen.queryByText(/国立国会図書館サーチ.*書影/)).toBeNull();
@@ -51,7 +49,7 @@ describe('AboutScreen', () => {
     await render(<AboutScreen />);
     expect(
       screen.getByText(
-        '記録はこの端末の中にだけ保存され、外部に送られることはありません。書誌情報や映画情報を探すときだけ、ISBN やキーワードを上の出典に問い合わせます。',
+        '記録はこの端末の中にだけ保存され、外部に送られることはありません。書誌情報を探すときだけ、ISBN やキーワードを上の出典に問い合わせます。',
       ),
     ).toBeTruthy();
   });

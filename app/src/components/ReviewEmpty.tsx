@@ -20,7 +20,7 @@ export function ReviewEmpty({ onAdd }: ReviewEmptyProps) {
       </View>
       <AppText variant="sectionTitle">記録がたまると、ここに振り返りが表示されます</AppText>
       <AppText variant="label" style={styles.description}>
-        読み終えた本や、見終えた映画を記録すると、月ごとの完了数やレーティングの傾向がわかります
+        読み終えた本を記録すると、月ごとの完了数やレーティングの傾向がわかります
       </AppText>
       <Button variant="primary" label="記録する" onPress={onAdd} />
     </View>

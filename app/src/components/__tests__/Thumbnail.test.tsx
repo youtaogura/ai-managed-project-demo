@@ -18,8 +18,8 @@ describe('Thumbnail', () => {
     expect(screen.getByText('📖')).toBeTruthy();
   });
 
-  it('画像がなければ種別のプレースホルダー', async () => {
-    await render(<Thumbnail record={makeRecord({ kind: 'movie' })} />);
-    expect(screen.getByText('🎬')).toBeTruthy();
+  it('画像がなければ 📖 のプレースホルダー', async () => {
+    await render(<Thumbnail record={makeRecord()} />);
+    expect(screen.getByText('📖')).toBeTruthy();
   });
 });

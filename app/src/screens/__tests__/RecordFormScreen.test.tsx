@@ -31,7 +31,6 @@ function memoryRepository() {
 }
 
 const baseInput = {
-  kind: 'book' as const,
   title: '既存',
   creator: '作者',
   publisher: null,
@@ -252,7 +251,6 @@ describe('RecordFormScreen の書影取得', () => {
   it.each([
     ['書影 URL がある', { title: 'a', isbn: ISBN, coverUrl: 'https://own' }],
     ['写真がある', { title: 'a', isbn: ISBN, photoUri: 'file://p' }],
-    ['映画で ISBN が保存されない', { title: 'a', kind: 'movie' as const, isbn: ISBN }],
     ['ISBN がない', { title: 'a' }],
   ])('%s ときは取得しない', async (_name, initial) => {
     const resolver = resolverFor('https://cover/x.jpg');
@@ -326,109 +324,29 @@ describe('RecordFormScreen の書影取得', () => {
   });
 });
 
-describe('RecordFormScreen（TMDb の候補）', () => {
-  const params = {
-    kind: 'anime',
-    title: '作品',
-    creator: '監督A',
-    coverUrl: 'https://image.tmdb.org/t/p/w185/p.jpg',
-    sourceProvider: 'tmdb',
-    sourceType: 'tv',
-    sourceId: '42',
-  };
-
-  it('そのまま保存すると tmdb の source・ポスター・種別が入り、ISBN・出版社は null', async () => {
+describe('RecordFormScreen（古い tmdb の候補）', () => {
+  it('tmdb の source を持つクエリは manual として扱い、種別なしで保存する', async () => {
     const repository = memoryRepository();
     await render(
       withRepository(
         repository,
-        <RecordFormScreen initialValues={paramsToInitialValues(params)} />,
+        <RecordFormScreen
+          initialValues={paramsToInitialValues({
+            kind: 'anime',
+            title: '作品',
+            sourceProvider: 'tmdb',
+            sourceType: 'tv',
+            sourceId: '42',
+          })}
+        />,
       ),
     );
-    await press('記録する');
-    await waitFor(() => expect(router.replace).toHaveBeenCalled());
-    expect((await repository.getAll())[0]).toMatchObject({
-      kind: 'anime',
-      title: '作品',
-      creator: '監督A',
-      coverUrl: 'https://image.tmdb.org/t/p/w185/p.jpg',
-      isbn: null,
-      publisher: null,
-      source: { provider: 'tmdb', mediaType: 'tv', tmdbId: '42' },
-    });
-  });
-
-  it('保存した記録を編集して保存しても source は保持される', async () => {
-    const repository = memoryRepository();
-    const record = await repository.add({
-      ...baseInput,
-      kind: 'movie',
-      title: '映画',
-      source: { provider: 'tmdb', mediaType: 'movie', tmdbId: '603' },
-    });
-    await render(withRepository(repository, <RecordFormScreen recordId={record.id} />));
-    await screen.findByDisplayValue('映画');
-    await fireEvent.changeText(screen.getByLabelText('タイトル（必須）'), '映画（改）');
-    await press('保存する');
-    await waitFor(() => expect(router.back).toHaveBeenCalled());
-    expect((await repository.getAll())[0]).toMatchObject({
-      title: '映画（改）',
-      source: { provider: 'tmdb', mediaType: 'movie', tmdbId: '603' },
-    });
-  });
-});
-
-describe('RecordFormScreen（使う種別）', () => {
-  it('初期の種別が使わない種別なら、同じ系統の使う種別に置き換わる', async () => {
-    const repository = memoryRepository();
-    await render(
-      withSettings(
-        ['manga', 'movie', 'anime'],
-        withRepository(repository, <RecordFormScreen initialValues={{ title: 'T' }} />),
-      ),
-    );
-    expect(await screen.findByRole('radio', { name: '漫画' })).toBeTruthy();
-    expect(screen.getByRole('radio', { name: '漫画' }).props.accessibilityState).toMatchObject({
-      checked: true,
-    });
-    await press('記録する');
-    await waitFor(() => expect(router.replace).toHaveBeenCalled());
-    expect((await repository.getAll())[0]?.kind).toBe('manga');
-  });
-
-  it('使う種別が 1 つなら、渡された種別に関わらずその種別で保存される', async () => {
-    const repository = memoryRepository();
-    await render(
-      withSettings(
-        ['drama'],
-        withRepository(
-          repository,
-          <RecordFormScreen initialValues={{ title: 'T', kind: 'book' }} />,
-        ),
-      ),
-    );
-    await screen.findByLabelText('タイトル（必須）');
     expect(screen.queryByText('種別')).toBeNull();
     await press('記録する');
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
-    expect((await repository.getAll())[0]?.kind).toBe('drama');
-  });
-
-  it('使わない種別の記録も、編集して保存できる（元の種別を保つ）', async () => {
-    const repository = memoryRepository();
-    const record = await repository.add({ ...baseInput, kind: 'book' });
-    await render(
-      withSettings(
-        ['movie'],
-        withRepository(repository, <RecordFormScreen recordId={record.id} />),
-      ),
-    );
-    expect(await screen.findByRole('radio', { name: '本' })).toBeTruthy();
-    await fireEvent.changeText(screen.getByLabelText('タイトル（必須）'), '変更後');
-    await press('保存する');
-    await waitFor(() => expect(router.back).toHaveBeenCalled());
     const [saved] = await repository.getAll();
-    expect(saved).toMatchObject({ title: '変更後', kind: 'book' });
+    expect(saved).toMatchObject({ title: '作品', source: { provider: 'manual' } });
+    expect(saved).not.toHaveProperty('kind');
   });
 });
 
@@ -479,20 +397,16 @@ describe('RecordFormScreen（ステータスの初期値）', () => {
     expect(await saveNew(status, {})).toMatchObject({ status, startDate: null, endDate: null });
   });
 
-  it('種別に合わせた言い方で選ばれ、種別を切り替えても保たれる', async () => {
+  it('読書の言い方で選ばれる', async () => {
     const repository = memoryRepository();
     await render(
       withDefault(
         'in_progress',
-        withRepository(repository, <RecordFormScreen initialValues={{ kind: 'movie' }} />),
+        withRepository(repository, <RecordFormScreen />),
       ),
     );
-    const status = await screen.findByRole('radio', { name: '見てる' });
+    const status = await screen.findByRole('radio', { name: '読んでる' });
     expect(status.props.accessibilityState).toMatchObject({ checked: true });
-    await fireEvent.press(screen.getByRole('radio', { name: '本' }));
-    expect(screen.getByRole('radio', { name: '読んでる' }).props.accessibilityState).toMatchObject({
-      checked: true,
-    });
   });
 
   it('initialValues が status・日付を明示していればそれを優先する', async () => {

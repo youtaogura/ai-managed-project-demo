@@ -29,7 +29,7 @@ describe('RecordsScreen', () => {
       </RecordRepositoryProvider>,
     );
     expect(await screen.findByText('最初の1作品を記録しよう')).toBeTruthy();
-    expect(screen.getByText('読み終えた本や、見終えた映画を記録するとここに並んでいきます')).toBeTruthy();
+    expect(screen.getByText('読み終えた本を記録するとここに並んでいきます')).toBeTruthy();
   });
 });
 

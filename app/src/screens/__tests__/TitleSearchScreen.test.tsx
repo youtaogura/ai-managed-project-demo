@@ -188,7 +188,7 @@ describe('TitleSearchScreen', () => {
       await press('見つからないので手で入力する');
       expect(router.replace).toHaveBeenCalledWith({
         pathname: '/record/new',
-        params: { kind: 'book', title: 'x' },
+        params: { title: 'x' },
       });
     },
   );
@@ -213,7 +213,7 @@ describe('TitleSearchScreen', () => {
     expect(lookupFn).toHaveBeenCalledWith('9784065199817');
     expect(router.replace).toHaveBeenCalledWith({
       pathname: '/record/new',
-      params: { kind: 'book', title: 'openBD の本', isbn: book.isbn, creator: 'OB著者',
+      params: { title: 'openBD の本', isbn: book.isbn, creator: 'OB著者',
         publisher: 'OB出版',
         sourceProvider: 'openbd',
         sourceId: book.isbn,
@@ -234,7 +234,6 @@ describe('TitleSearchScreen', () => {
       expect(router.replace).toHaveBeenCalledWith({
         pathname: '/record/new',
         params: {
-          kind: 'book',
           title: '本A',
           creator: '著者A',
           publisher: '出版A',
@@ -271,22 +270,22 @@ describe('TitleSearchScreen', () => {
     expect(lookupFn).not.toHaveBeenCalled();
     expect(router.replace).toHaveBeenCalledWith({
       pathname: '/record/new',
-      params: { kind: 'book', title: '本B' },
+      params: { title: '本B' },
     });
   });
 
-  it('手入力で続けるはキーワードをタイトルとして引き継ぐ（空なら kind のみ）', async () => {
+  it('手入力で続けるはキーワードをタイトルとして引き継ぐ（空ならパラメータなし）', async () => {
     await setup(async () => ok());
     await press('見つからないので手で入力する');
     expect(router.replace).toHaveBeenLastCalledWith({
       pathname: '/record/new',
-      params: { kind: 'book' },
+      params: {},
     });
     await enter('ワン');
     await press('見つからないので手で入力する');
     expect(router.replace).toHaveBeenLastCalledWith({
       pathname: '/record/new',
-      params: { kind: 'book', title: 'ワン' },
+      params: { title: 'ワン' },
     });
   });
 

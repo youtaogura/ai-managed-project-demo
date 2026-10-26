@@ -11,7 +11,6 @@ describe('isbnLookupParams', () => {
         coverUrl: 'http://c',
       }),
     ).toEqual({
-      kind: 'book',
       title: 'T',
       isbn: '9784065199817',
       creator: 'A',
@@ -22,12 +21,12 @@ describe('isbnLookupParams', () => {
     });
     expect(
       bookInfoToParams({ isbn: '1', title: 'T', author: null, publisher: null, coverUrl: null }),
-    ).toEqual({ kind: 'book', title: 'T', isbn: '1', sourceProvider: 'openbd', sourceId: '1' });
+    ).toEqual({ title: 'T', isbn: '1', sourceProvider: 'openbd', sourceId: '1' });
   });
 
   it('ISBN のみの params を作る', () => {
-    expect(isbnOnlyParams('9784065199817')).toEqual({ kind: 'book', isbn: '9784065199817' });
-    expect(isbnOnlyParams(null)).toEqual({ kind: 'book' });
+    expect(isbnOnlyParams('9784065199817')).toEqual({ isbn: '9784065199817' });
+    expect(isbnOnlyParams(null)).toEqual({});
   });
 
   it('見つからなかったときの ISBN 画面向け params を作る', () => {

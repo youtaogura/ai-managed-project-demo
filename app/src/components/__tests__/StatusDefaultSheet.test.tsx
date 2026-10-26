@@ -10,7 +10,7 @@ describe('StatusDefaultSheet', () => {
     expect(screen.getByText('ステータスの初期値')).toBeTruthy();
     expect(screen.getAllByRole('radio')).toHaveLength(4);
     expect(
-      screen.getByRole('radio', { name: '読んでる・見てる' }).props.accessibilityState,
+      screen.getByRole('radio', { name: '読んでる' }).props.accessibilityState,
     ).toMatchObject({ selected: true });
     expect(
       screen.getByRole('radio', { name: '途中でやめた' }).props.accessibilityState,

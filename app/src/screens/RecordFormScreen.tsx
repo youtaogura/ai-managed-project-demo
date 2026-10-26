@@ -8,7 +8,6 @@ import { colors, space } from '../design/tokens';
 import { useCoverResolver } from '../hooks/useCoverResolver';
 import { useSettings } from '../hooks/useSettings';
 import { useRecordRepository } from '../hooks/useRecordRepository';
-import { resolveInitialKind } from '../lib/enabledKinds';
 import { applyDefaultStatus } from '../lib/statusDefault';
 import { todayString } from '../lib/recordForm';
 import { needsCover } from '../lib/coverLookup/needsCover';
@@ -62,10 +61,7 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
     return (
       <RecordForm
         initialValues={applyDefaultStatus(
-          {
-            ...initialValues,
-            kind: resolveInitialKind(initialValues?.kind, settings.enabledKinds),
-          },
+          initialValues ?? {},
           settings.defaultStatus,
           todayString(),
         )}

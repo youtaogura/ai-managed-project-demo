@@ -30,7 +30,7 @@ jest.mock('expo-router', () => {
 });
 
 const records = [
-  makeRecord({ id: 'a', title: 'アルファ', kind: 'anime' }),
+  makeRecord({ id: 'a', title: 'アルファ' }),
   makeRecord({ id: 'b', title: 'ベータ', photoUri: 'file:///p.jpg' }),
 ];
 
@@ -133,7 +133,7 @@ describe('DataScreen', () => {
     const arg = jest.mocked(service.saveAndShare).mock.calls[0]?.[0];
     expect(arg?.mimeType).toBe('text/csv');
     expect(arg?.filename).toMatch(/^records-\d{8}\.csv$/);
-    expect(arg?.content.startsWith('﻿種別,')).toBe(true);
+    expect(arg?.content.startsWith('﻿タイトル,')).toBe(true);
   });
 
   it('キャンセルでは日時を更新しない', async () => {
@@ -175,7 +175,7 @@ function backupText(overrides: Record<string, unknown> = {}) {
   return JSON.stringify({
     ...buildBackup(
       [makeRecord({ id: 'a', title: 'ファイルのアルファ' }), makeRecord({ id: 'c', title: 'ガンマ' })],
-      { enabledKinds: ['movie'], heroCriterion: 'none', defaultStatus: 'completed' },
+      { heroCriterion: 'none', defaultStatus: 'completed' },
       '2026-10-26T03:00:00.000Z',
     ),
     ...overrides,
@@ -246,7 +246,6 @@ describe('DataScreen（読み込み）', () => {
     expect(all[1]?.photoUri).toBe('file:///p.jpg');
     expect(await screen.findByText('3')).toBeTruthy();
     expect(JSON.parse(memory.data.get(SETTINGS_STORAGE_KEY) ?? '{}')).toEqual({
-      enabledKinds: ['movie'],
       heroCriterion: 'none',
       defaultStatus: 'completed',
     });

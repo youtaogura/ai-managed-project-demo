@@ -1,21 +1,16 @@
-export const MEDIA_KINDS = ['book', 'manga', 'movie', 'drama', 'anime'] as const;
-export type MediaKind = (typeof MEDIA_KINDS)[number];
-
 export const RECORD_STATUSES = ['planned', 'in_progress', 'dropped', 'completed'] as const;
 export type RecordStatus = (typeof RECORD_STATUSES)[number];
 
-export const RECORD_SOURCE_PROVIDERS = ['manual', 'openbd', 'ndl', 'tmdb'] as const;
+export const RECORD_SOURCE_PROVIDERS = ['manual', 'openbd', 'ndl'] as const;
 export type RecordSourceProvider = (typeof RECORD_SOURCE_PROVIDERS)[number];
 
 export type RecordSource =
   | { provider: 'manual' }
   | { provider: 'openbd'; isbn: string }
-  | { provider: 'ndl'; ndlId: string }
-  | { provider: 'tmdb'; mediaType: 'movie' | 'tv'; tmdbId: string };
+  | { provider: 'ndl'; ndlId: string };
 
 export type MediaRecord = {
   id: string;
-  kind: MediaKind;
   title: string;
   creator: string | null;
   publisher: string | null;

@@ -20,7 +20,6 @@ export function createMemoryStorage(initial: Record<string, string> = {}) {
 export function makeRecord(overrides: Partial<MediaRecord> = {}): MediaRecord {
   return {
     id: 'r1',
-    kind: 'book',
     title: 'タイトル',
     creator: null,
     publisher: null,

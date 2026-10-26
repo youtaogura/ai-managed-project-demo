@@ -29,7 +29,6 @@ export function BookSearchRow({ candidate, onPress, disabled }: BookSearchRowPro
     >
       <Cover
         record={{
-          kind: 'book',
           title: candidate.title,
           creator: candidate.author,
           photoUri: null,

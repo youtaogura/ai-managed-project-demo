@@ -39,8 +39,8 @@ describe('analytics ルート', () => {
 
   it('記録があれば月別の完了数と平均レーティングを表示する', async () => {
     await setup([
-      makeRecord({ id: '1', kind: 'book', status: 'completed', endDate: '2026-10-01', rating: 4 }),
-      makeRecord({ id: '2', kind: 'movie', status: 'completed', endDate: '2026-10-03', rating: 3 }),
+      makeRecord({ id: '1', status: 'completed', endDate: '2026-10-01', rating: 4 }),
+      makeRecord({ id: '2', status: 'completed', endDate: '2026-10-03', rating: 3 }),
     ]);
     expect(await screen.findByText('月別の完了数')).toBeTruthy();
     expect(screen.getByText('平均レーティング')).toBeTruthy();

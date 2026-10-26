@@ -10,7 +10,6 @@ import IsbnLookupRoute from '../app/record/isbn';
 import NewRecordRoute from '../app/record/new';
 import BarcodeScanRoute from '../app/record/scan';
 import TitleSearchRoute from '../app/record/search';
-import MediaSearchRoute from '../app/record/media-search';
 import RecordDetailRoute from '../app/records/[id]';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -35,7 +34,6 @@ const routes = {
   'record/isbn': IsbnLookupRoute,
   'record/scan': BarcodeScanRoute,
   'record/search': TitleSearchRoute,
-  'record/media-search': MediaSearchRoute,
   'record/[id]': EditRecordRoute,
 };
 
@@ -95,7 +93,6 @@ describe('探す 3 画面はネイティブヘッダーを出さず、画面内�
     ['/record/scan', 'バーコードを読み取る', 'バーコードで読み取る'],
     ['/record/isbn', 'ISBN を入力する', 'ISBN で探す'],
     ['/record/search', '閉じる', 'タイトルで探す'],
-    ['/record/media-search', '閉じる', 'タイトルで探す'],
   ])('%s', async (path, inScreen, nativeTitle) => {
     await renderRouter(routes, { initialUrl: path });
     await waitFor(() => expect(screen.queryAllByText(inScreen).length + screen.queryAllByLabelText(inScreen).length).toBeGreaterThan(0));

@@ -3,14 +3,11 @@ import { needsCover } from '../needsCover';
 import { withCover } from '../withCover';
 
 describe('needsCover', () => {
-  const base = { kind: 'book' as const, isbn: '9784065199817', coverUrl: null, photoUri: null };
-  it('本・漫画で ISBN があり写真も書影もなければ true', () => {
+  const base = { isbn: '9784065199817', coverUrl: null, photoUri: null };
+  it('ISBN があり写真も書影もなければ true', () => {
     expect(needsCover(base)).toBe(true);
-    expect(needsCover({ ...base, kind: 'manga' })).toBe(true);
   });
   it.each([
-    { kind: 'movie' as const },
-    { kind: 'anime' as const },
     { isbn: null },
     { coverUrl: 'https://c' },
     { photoUri: 'file://p' },
@@ -18,7 +15,7 @@ describe('needsCover', () => {
     expect(needsCover({ ...base, ...override })).toBe(false);
   });
   it('MediaRecord も受け取れる', () => {
-    expect(needsCover(makeRecord({ kind: 'book', isbn: null }))).toBe(false);
+    expect(needsCover(makeRecord({ isbn: null }))).toBe(false);
   });
 });
 

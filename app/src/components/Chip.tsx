@@ -21,7 +21,7 @@ type ChipGroupProps<T extends string> = {
 type ChipCellProps = {
   label: string;
   selected: boolean;
-  role: 'radio' | 'checkbox';
+  role: 'radio';
   compact: boolean;
   basis: `${number}%`;
   onPress: () => void;
@@ -75,40 +75,6 @@ export function ChipGroup<T extends string>({
           selected={option.value === value}
           role="radio"
           compact={compact}
-          basis={basis}
-          onPress={() => onChange(option.value)}
-        />
-      ))}
-    </View>
-  );
-}
-
-type ChipMultiGroupProps<T extends string> = {
-  label: string;
-  options: readonly ChipOption<T>[];
-  values: readonly T[];
-  /** タップされた値。選択・解除の判断は呼び出し側が行う。 */
-  onChange: (value: T) => void;
-  columns?: number;
-};
-
-export function ChipMultiGroup<T extends string>({
-  label,
-  options,
-  values,
-  onChange,
-  columns = options.length,
-}: ChipMultiGroupProps<T>) {
-  const basis = `${100 / columns}%` as const;
-  return (
-    <View accessibilityLabel={label} style={styles.group}>
-      {options.map((option) => (
-        <ChipCell
-          key={option.value}
-          label={option.label}
-          selected={values.includes(option.value)}
-          role="checkbox"
-          compact={false}
           basis={basis}
           onPress={() => onChange(option.value)}
         />

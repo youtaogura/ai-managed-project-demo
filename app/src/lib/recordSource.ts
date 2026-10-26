@@ -18,8 +18,6 @@ export function isRecordSource(value: unknown): value is RecordSource {
       return isNonEmptyString(v.isbn);
     case 'ndl':
       return isNonEmptyString(v.ndlId);
-    case 'tmdb':
-      return (v.mediaType === 'movie' || v.mediaType === 'tv') && isNonEmptyString(v.tmdbId);
   }
 }
 
@@ -31,8 +29,6 @@ export function sourceKey(source: RecordSource): string | null {
       return `openbd:${source.isbn}`;
     case 'ndl':
       return `ndl:${source.ndlId}`;
-    case 'tmdb':
-      return `tmdb:${source.mediaType}:${source.tmdbId}`;
   }
 }
 
@@ -57,8 +53,6 @@ export function sourceToParams(source: RecordSource): Record<string, string> {
       return { sourceProvider: 'openbd', sourceId: source.isbn };
     case 'ndl':
       return { sourceProvider: 'ndl', sourceId: source.ndlId };
-    case 'tmdb':
-      return { sourceProvider: 'tmdb', sourceType: source.mediaType, sourceId: source.tmdbId };
   }
 }
 
@@ -73,9 +67,5 @@ export function paramsToSource(params: Params): RecordSource {
   if (id === undefined) return { provider: 'manual' };
   if (provider === 'openbd') return { provider, isbn: id };
   if (provider === 'ndl') return { provider, ndlId: id };
-  if (provider === 'tmdb') {
-    const type = text(params, 'sourceType');
-    if (type === 'movie' || type === 'tv') return { provider, mediaType: type, tmdbId: id };
-  }
   return { provider: 'manual' };
 }

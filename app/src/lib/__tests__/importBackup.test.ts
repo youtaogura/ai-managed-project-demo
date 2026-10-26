@@ -3,7 +3,7 @@ import type { BackupFile } from '../../types/backup';
 import type { SettingsStore } from '../settingsStore';
 import { applyImport } from '../importBackup';
 
-const newSettings = { enabledKinds: ['movie' as const], heroCriterion: 'none' as const, defaultStatus: 'completed' as const };
+const newSettings = { heroCriterion: 'none' as const, defaultStatus: 'completed' as const };
 const backup: BackupFile = {
   format: 'ai-managed-records-backup',
   version: 1,

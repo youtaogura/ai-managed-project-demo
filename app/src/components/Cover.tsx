@@ -7,7 +7,7 @@ import type { MediaRecord } from '../types/record';
 import { TextCover } from './TextCover';
 
 type CoverProps = {
-  record: Pick<MediaRecord, 'kind' | 'title' | 'creator' | 'photoUri' | 'coverUrl'>;
+  record: Pick<MediaRecord, 'title' | 'creator' | 'photoUri' | 'coverUrl'>;
   width: number;
   radius?: number;
 };
@@ -22,13 +22,7 @@ export function Cover({ record, width, radius = 0 }: CoverProps) {
 
   if (uri === undefined) {
     return (
-      <TextCover
-        kind={record.kind}
-        title={record.title}
-        creator={record.creator}
-        width={width}
-        radius={radius}
-      />
+      <TextCover title={record.title} creator={record.creator} width={width} radius={radius} />
     );
   }
 

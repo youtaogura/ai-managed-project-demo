@@ -19,7 +19,7 @@ import { needsCover } from '../lib/coverLookup/needsCover';
 import { triggerImpactHaptic } from '../lib/haptics';
 import { getHeroBackground } from '../lib/heroColor';
 import { infoCellLabels } from '../lib/infoCellLabels';
-import { getStatusLabel, KIND_LABELS } from '../lib/statusLabel';
+import { getStatusLabel } from '../lib/statusLabel';
 import type { MediaRecord, NewRecordInput } from '../types/record';
 
 type RecordDetailScreenProps = {
@@ -173,8 +173,7 @@ export function RecordDetailScreen({
     );
   }
 
-  const labels = infoCellLabels(record.kind);
-  const byline = [record.creator, KIND_LABELS[record.kind]].filter(Boolean).join(' · ');
+  const labels = infoCellLabels();
   const photoMessage = photoError ?? picker.error?.message ?? null;
 
   return (
@@ -183,7 +182,7 @@ export function RecordDetailScreen({
         ref={scrollRef}
         contentContainerStyle={{ paddingBottom: size.buttonHeight + BAR_PADDING * 2 + bottomInset + space[6] }}
       >
-        <View style={[styles.hero, { backgroundColor: getHeroBackground(record.kind) }]}>
+        <View style={[styles.hero, { backgroundColor: getHeroBackground() }]}>
           <View style={styles.cover}>
             <Cover record={record} width={COVER_WIDTH} radius={radius.thumb} />
           </View>
@@ -199,15 +198,17 @@ export function RecordDetailScreen({
         <View style={styles.body} onLayout={(e) => setBodyY(e.nativeEvent.layout.y)}>
           <View style={styles.titleGroup}>
             <AppText variant="screenTitle">{record.title}</AppText>
-            <AppText variant="body" style={{ color: colors.textSecondary }}>
-              {byline}
-            </AppText>
+            {record.creator ? (
+              <AppText variant="body" style={{ color: colors.textSecondary }}>
+                {record.creator}
+              </AppText>
+            ) : null}
             {record.rating !== null ? (
               <RatingStars rating={record.rating} size={STARS_SIZE} valueVariant="displayNumber" />
             ) : null}
           </View>
           <InfoCellRow>
-            <InfoCell label="ステータス" value={getStatusLabel(record.kind, record.status)} />
+            <InfoCell label="ステータス" value={getStatusLabel(record.status)} />
             <InfoCell label={labels.start} value={record.startDate} />
             <InfoCell label={labels.end} value={record.endDate} />
           </InfoCellRow>

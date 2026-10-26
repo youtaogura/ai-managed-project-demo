@@ -3,7 +3,6 @@ import {
   fireEvent,
   render as rtlRender,
   screen,
-  waitFor,
 } from '@testing-library/react-native';
 import type { ReactElement } from 'react';
 import { Linking, StyleSheet } from 'react-native';
@@ -12,8 +11,6 @@ import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { space } from '../../design/tokens';
 import { PhotoServiceContextProvider } from '../../hooks/usePhotoService';
 import type { PhotoService } from '../../lib/photo/PhotoService';
-import { withSettings } from '../../testProviders';
-import type { MediaKind, NewRecordInput } from '../../types/record';
 import { createMockPhotoService } from '../../testUtils';
 import { RecordForm } from '../RecordForm';
 
@@ -72,7 +69,6 @@ describe('RecordForm', () => {
     await setRating(148);
     await press('記録する');
     expect(onSubmit).toHaveBeenCalledWith({
-      kind: 'book',
       title: '吾輩は猫である',
       creator: '夏目漱石',
       publisher: '新潮社',
@@ -116,14 +112,12 @@ describe('RecordForm', () => {
       expect(dateButton('読み始めた日')).toBeTruthy();
     });
 
-    it('種別に応じて見出しとヒントが切り替わる', async () => {
+    it('見出しとヒントは読書の文言', async () => {
       await render(<RecordForm onSubmit={jest.fn()} />);
+      expect(dateButton('読み始めた日')).toBeTruthy();
+      expect(dateButton('読み終えた日')).toBeTruthy();
       expect(screen.getByText('「読み終わった」を選ぶと、終えた日に今日が入ります')).toBeTruthy();
-      await fireEvent.press(screen.getByRole('radio', { name: '映画' }));
-      expect(dateButton('見始めた日')).toBeTruthy();
-      expect(dateButton('見終えた日')).toBeTruthy();
-      expect(screen.getByText('「見終わった」を選ぶと、終えた日に今日が入ります')).toBeTruthy();
-      expect(screen.getByLabelText('監督など')).toBeTruthy();
+      expect(screen.getByLabelText('作者・著者')).toBeTruthy();
     });
 
     it('終えた日が開始日より前だとエラーを表示し保存しない', async () => {
@@ -153,10 +147,13 @@ describe('RecordForm', () => {
       expect(dateButton('読み終えた日', '2024/05/10')).toBeTruthy();
     });
 
-    it('ステータスは本・漫画で「読」、それ以外で「見」のラベルになる', async () => {
+    it('ステータスは読書の 4 文言だけ', async () => {
       await render(<RecordForm onSubmit={jest.fn()} />);
-      expect(screen.getAllByRole('radio')).toHaveLength(9);
-      expect(screen.getByRole('radio', { name: '読みたい' })).toBeTruthy();
+      expect(screen.getAllByRole('radio').map((r) => r.props.accessibilityLabel ?? '')).toHaveLength(4);
+      for (const name of ['読みたい', '読んでる', '途中でやめた', '読み終わった']) {
+        expect(screen.getByRole('radio', { name })).toBeTruthy();
+      }
+      expect(screen.queryByText(/見たい|見てる|見終わった/)).toBeNull();
     });
 
     it('年を増減できる', async () => {
@@ -172,28 +169,22 @@ describe('RecordForm', () => {
     });
   });
 
-  it('種別でステータス文言と ISBN・出版社の表示が切り替わり、ステータスは維持される', async () => {
+  it('種別の選択はなく、ISBN・出版社が常に出る', async () => {
     await render(<RecordForm onSubmit={jest.fn()} />);
-    await fireEvent.press(screen.getByRole('radio', { name: '読んでる' }));
-    await fireEvent.press(screen.getByRole('radio', { name: '映画' }));
-    expect(screen.getByRole('radio', { name: '見てる' }).props.accessibilityState.selected).toBe(
-      true,
-    );
-    expect(screen.queryByLabelText('ISBN')).toBeNull();
-    expect(screen.queryByLabelText('出版社')).toBeNull();
-    await fireEvent.press(screen.getByRole('radio', { name: '漫画' }));
+    expect(screen.queryByText('種別')).toBeNull();
+    expect(screen.queryByRole('radio', { name: /^(本|漫画|映画|ドラマ|アニメ)$/ })).toBeNull();
     expect(screen.getByLabelText('ISBN')).toBeTruthy();
-    expect(screen.getByRole('radio', { name: '読んでる' })).toBeTruthy();
+    expect(screen.getByLabelText('出版社')).toBeTruthy();
   });
 
-  it('映画に切り替えて保存すると isbn / publisher は null', async () => {
+  it('保存する入力に kind がない', async () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined);
     await render(
       <RecordForm onSubmit={onSubmit} initialValues={{ title: 'x', isbn: '1', publisher: 'p' }} />,
     );
-    await fireEvent.press(screen.getByRole('radio', { name: '映画' }));
     await press('記録する');
-    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ isbn: null, publisher: null }));
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ isbn: '1', publisher: 'p' }));
+    expect(onSubmit.mock.calls[0][0]).not.toHaveProperty('kind');
   });
 
   it('タップ・ドラッグで評価が変わり、離した値が保存される', async () => {
@@ -252,7 +243,6 @@ describe('RecordForm', () => {
       <RecordForm
         onSubmit={onSubmit}
         initialValues={{
-          kind: 'manga',
           title: 'T',
           creator: 'C',
           publisher: 'P',
@@ -265,12 +255,9 @@ describe('RecordForm', () => {
     expect(screen.getByLabelText('作者・著者').props.value).toBe('C');
     expect(screen.getByLabelText('出版社').props.value).toBe('P');
     expect(screen.getByLabelText('ISBN').props.value).toBe('I');
-    expect(screen.getByRole('radio', { name: '漫画' }).props.accessibilityState.selected).toBe(
-      true,
-    );
     await press('記録する');
     expect(onSubmit).toHaveBeenCalledWith(
-      expect.objectContaining({ kind: 'manga', coverUrl: 'http://c' }),
+      expect.objectContaining({ isbn: 'I', coverUrl: 'http://c' }),
     );
   });
 
@@ -614,38 +601,3 @@ describe('RecordForm', () => {
   });
 });
 
-describe('RecordForm（使う種別）', () => {
-  const renderWith = (
-    kinds: MediaKind[],
-    initial?: Partial<NewRecordInput>,
-    onSubmit = jest.fn(),
-  ) => render(withSettings(kinds, <RecordForm initialValues={initial} onSubmit={onSubmit} />));
-
-  it('種別の選択肢は使う種別だけ', async () => {
-    await renderWith(['book', 'anime']);
-    expect(await screen.findByRole('radio', { name: '本' })).toBeTruthy();
-    expect(screen.getByRole('radio', { name: 'アニメ' })).toBeTruthy();
-    expect(screen.queryByRole('radio', { name: '漫画' })).toBeNull();
-    expect(screen.queryByRole('radio', { name: '映画' })).toBeNull();
-  });
-
-  it('使う種別が 1 つなら種別の選択 UI を出さず、その種別で保存される', async () => {
-    const onSubmit = jest.fn().mockResolvedValue(undefined);
-    await renderWith(['movie'], { kind: 'movie' }, onSubmit);
-    await screen.findByLabelText('タイトル（必須）');
-    expect(screen.queryByText('種別')).toBeNull();
-    expect(screen.queryByRole('radio', { name: '映画' })).toBeNull();
-    await type('タイトル（必須）', '作品');
-    await press('記録する');
-    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
-    expect(onSubmit.mock.calls[0][0].kind).toBe('movie');
-  });
-
-  it('編集中の記録が使わない種別でも、元の種別が選択肢に残る', async () => {
-    await renderWith(['movie'], { kind: 'book', title: '本' });
-    expect(await screen.findByRole('radio', { name: '本' })).toBeTruthy();
-    await fireEvent.press(screen.getByRole('radio', { name: '映画' }));
-    expect(screen.getByRole('radio', { name: '本' })).toBeTruthy();
-    expect(screen.queryByRole('radio', { name: '漫画' })).toBeNull();
-  });
-});

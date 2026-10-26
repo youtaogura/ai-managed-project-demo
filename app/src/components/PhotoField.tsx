@@ -8,7 +8,7 @@ import { Button } from './Button';
 import { Cover } from './Cover';
 
 type PhotoFieldProps = {
-  record: Pick<MediaRecord, 'kind' | 'title' | 'creator' | 'photoUri' | 'coverUrl'>;
+  record: Pick<MediaRecord, 'title' | 'creator' | 'photoUri' | 'coverUrl'>;
   /** 新しく作成した保存先 URI、または null（写真を外す） */
   onChange: (uri: string | null) => void;
 };
@@ -63,7 +63,9 @@ export function PhotoField({ record, onChange }: PhotoFieldProps) {
             {error.message}
           </AppText>
         ) : null}
-        {error?.denied ? <Button variant="outline" label="設定を開く" onPress={openSettings} /> : null}
+        {error?.denied ? (
+          <Button variant="outline" label="設定を開く" onPress={openSettings} />
+        ) : null}
       </View>
     </View>
   );

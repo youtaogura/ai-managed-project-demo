@@ -19,11 +19,12 @@ function text(overrides: Record<string, unknown> = {}) {
 describe('buildBackup', () => {
   it('形式を付け、photoUri を null にし、入力は書き換えない', () => {
     const records = [makeRecord({ id: 'a', photoUri: 'file:///p.jpg', title: '作品' })];
-    const settings = { ...DEFAULT_SETTINGS, enabledKinds: ['book' as const] };
+    const settings = { ...DEFAULT_SETTINGS, heroCriterion: 'planned' as const };
     const backup = buildBackup(records, settings, AT);
     expect(backup).toMatchObject({ format: BACKUP_FORMAT, version: 1, exportedAt: AT });
     expect(backup.records).toEqual([{ ...records[0], photoUri: null }]);
     expect(backup.settings).toEqual(settings);
+    expect(JSON.stringify(backup)).not.toMatch(/kind|enabledKinds/i);
     expect(records[0]?.photoUri).toBe('file:///p.jpg');
   });
 });
@@ -32,7 +33,7 @@ describe('parseBackup', () => {
   it('書き出し → 文字列 → 読み戻しで photoUri 以外が一致する', () => {
     const records = [
       makeRecord({ id: 'a', photoUri: 'file:///p.jpg', rating: 4.5, review: '感想\n"x"' }),
-      makeRecord({ id: 'b', kind: 'movie', status: 'completed', endDate: '2024-02-01' }),
+      makeRecord({ id: 'b', status: 'completed', endDate: '2024-02-01' }),
     ];
     const result = parseBackup(JSON.stringify(buildBackup(records, DEFAULT_SETTINGS, AT)));
     expect(result.ok).toBe(true);
@@ -40,6 +41,15 @@ describe('parseBackup', () => {
     expect(result.backup.records).toEqual(records.map((r) => ({ ...r, photoUri: null })));
     expect(result.backup.settings).toEqual(DEFAULT_SETTINGS);
     expect(result.backup.exportedAt).toBe(AT);
+  });
+
+  it('古い形式（kind あり）のバックアップも読め、kind は出力に含まれない', () => {
+    const old = { ...makeRecord({ id: 'o' }), kind: 'movie' };
+    const result = parseBackup(text({ records: [old] }));
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.backup.records).toEqual([makeRecord({ id: 'o' })]);
+    expect(result.backup.records[0]).not.toHaveProperty('kind');
   });
 
   it('JSON でないと not_json', () => {
@@ -74,12 +84,11 @@ describe('parseBackup', () => {
 
   it('settings はフィールドごとに検証し、なければ null', () => {
     const result = parseBackup(
-      text({ settings: { enabledKinds: ['movie', 'unknown'], heroCriterion: 'bad' } }),
+      text({ settings: { enabledKinds: ['movie', 'unknown'], heroCriterion: 'bad', defaultStatus: 'planned' } }),
     );
     expect(result.ok && result.backup.settings).toEqual({
-      enabledKinds: ['movie'],
       heroCriterion: DEFAULT_SETTINGS.heroCriterion,
-      defaultStatus: DEFAULT_SETTINGS.defaultStatus,
+      defaultStatus: 'planned',
     });
     const none = parseBackup(text({ settings: undefined }));
     expect(none.ok && none.backup.settings).toBeNull();

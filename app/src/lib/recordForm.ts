@@ -1,6 +1,4 @@
 import {
-  MEDIA_KINDS,
-  type MediaKind,
   type MediaRecord,
   type NewRecordInput,
   type RecordSource,
@@ -10,7 +8,6 @@ import { paramsToSource } from './recordSource';
 import { isValidDateString, isValidRating } from './validation';
 
 export type RecordFormValues = {
-  kind: MediaKind;
   title: string;
   creator: string;
   publisher: string;
@@ -37,17 +34,12 @@ export const ERROR_DATE_FORMAT = '日付は YYYY-MM-DD の形式で入力して�
 export const ERROR_DATE_ORDER = '終了日は開始日以降にしてください';
 export const ERROR_RATING = 'レーティングは 1.0〜5.0 の範囲で、小数第1位まで入力してください';
 
-export function hasPublisherFields(kind: MediaKind): boolean {
-  return kind === 'book' || kind === 'manga';
-}
-
 export function formatRating(value: number | null): string {
   return value === null ? '' : value.toFixed(1);
 }
 
 export function createFormValues(initial: Partial<NewRecordInput> = {}): RecordFormValues {
   return {
-    kind: initial.kind ?? 'book',
     title: initial.title ?? '',
     creator: initial.creator ?? '',
     publisher: initial.publisher ?? '',
@@ -140,18 +132,16 @@ function emptyToNull(text: string): string | null {
 }
 
 export function toNewRecordInput(values: RecordFormValues): NewRecordInput {
-  const withPublisher = hasPublisherFields(values.kind);
   const rating = parseRating(values.rating);
-  const isbn = withPublisher ? emptyToNull(values.isbn) : null;
+  const isbn = emptyToNull(values.isbn);
   const source: RecordSource =
     values.source.provider === 'openbd' && isbn !== values.source.isbn
       ? { provider: 'manual' }
       : values.source;
   return {
-    kind: values.kind,
     title: values.title.trim(),
     creator: emptyToNull(values.creator),
-    publisher: withPublisher ? emptyToNull(values.publisher) : null,
+    publisher: emptyToNull(values.publisher),
     isbn,
     coverUrl: values.coverUrl,
     photoUri: values.photoUri,
@@ -164,10 +154,6 @@ export function toNewRecordInput(values: RecordFormValues): NewRecordInput {
   };
 }
 
-function isMediaKind(value: string): value is MediaKind {
-  return (MEDIA_KINDS as readonly string[]).includes(value);
-}
-
 export function paramsToInitialValues(
   params: Record<string, string | string[] | undefined>,
 ): Partial<NewRecordInput> {
@@ -176,8 +162,6 @@ export function paramsToInitialValues(
     return typeof value === 'string' && value !== '' ? value : undefined;
   };
   const initial: Partial<NewRecordInput> = {};
-  const kind = text('kind');
-  if (kind !== undefined && isMediaKind(kind)) initial.kind = kind;
   const title = text('title');
   if (title !== undefined) initial.title = title;
   const creator = text('creator');

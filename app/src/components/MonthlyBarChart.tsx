@@ -2,28 +2,18 @@ import { StyleSheet, View } from 'react-native';
 
 import { colors, space } from '../design/tokens';
 import { monthLabel, type MonthlyCompletion } from '../lib/analytics';
-import { KIND_SHADES } from '../lib/kindShades';
-import { KIND_LABELS } from '../lib/statusLabel';
-import { MEDIA_KINDS, type MediaKind } from '../types/record';
 import { AppText } from './AppText';
 
 const CHART_HEIGHT = 120;
 const COUNT_HEIGHT = 14;
 const MIN_BAR = 2;
-const SWATCH = 8;
 
 type MonthlyBarChartProps = {
   months: MonthlyCompletion[];
   currentMonth: string;
-  /** 積み上げ・凡例に出す種別（省略時はすべて）。 */
-  kinds?: readonly MediaKind[];
 };
 
-export function MonthlyBarChart({
-  months,
-  currentMonth,
-  kinds = MEDIA_KINDS,
-}: MonthlyBarChartProps) {
+export function MonthlyBarChart({ months, currentMonth }: MonthlyBarChartProps) {
   const max = Math.max(0, ...months.map((m) => m.total));
   return (
     <View>
@@ -44,19 +34,7 @@ export function MonthlyBarChart({
                     {String(m.total)}
                   </AppText>
                 ) : null}
-                <View style={[styles.stack, { height: barHeight }]}>
-                  {kinds.map((kind) =>
-                    m.byKind[kind] > 0 ? (
-                      <View
-                        key={kind}
-                        style={{
-                          flex: m.byKind[kind],
-                          backgroundColor: KIND_SHADES[kind],
-                        }}
-                      />
-                    ) : null,
-                  )}
-                </View>
+                <View style={[styles.bar, { height: barHeight }]} />
               </View>
               <AppText
                 variant="micro"
@@ -70,16 +48,6 @@ export function MonthlyBarChart({
             </View>
           );
         })}
-      </View>
-      <View style={styles.legend}>
-        {kinds.map((kind) => (
-          <View key={kind} style={styles.legendItem}>
-            <View style={[styles.swatch, { backgroundColor: KIND_SHADES[kind] }]} />
-            <AppText variant="micro" style={styles.legendText}>
-              {KIND_LABELS[kind]}
-            </AppText>
-          </View>
-        ))}
       </View>
     </View>
   );
@@ -95,19 +63,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   total: { color: colors.textSecondary, marginBottom: 2 },
-  stack: {
-    flexDirection: 'column-reverse',
-    width: '100%',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  legend: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: space[3],
-    marginTop: space[3],
-  },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
-  swatch: { width: SWATCH, height: SWATCH, borderRadius: 2 },
-  legendText: { color: colors.textSecondary },
+  bar: { width: '100%', borderRadius: 2, backgroundColor: colors.textPrimary },
 });

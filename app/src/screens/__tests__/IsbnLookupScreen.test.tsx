@@ -125,7 +125,6 @@ describe('IsbnLookupScreen', () => {
     expect(router.replace).toHaveBeenCalledWith({
       pathname: '/record/new',
       params: {
-        kind: 'book',
         title: 'タイトル',
         isbn: '9784065199817',
         creator: '著者',
@@ -167,7 +166,7 @@ describe('IsbnLookupScreen', () => {
     await press('手で入力する');
     expect(router.replace).toHaveBeenCalledWith({
       pathname: '/record/new',
-      params: { kind: 'book', isbn: '9784065199817' },
+      params: { isbn: '9784065199817' },
     });
   });
 
@@ -221,7 +220,7 @@ describe('IsbnLookupScreen', () => {
     await press('手で入力する');
     expect(router.replace).toHaveBeenCalledWith({
       pathname: '/record/new',
-      params: { kind: 'book' },
+      params: {},
     });
   });
 
