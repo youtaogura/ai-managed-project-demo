@@ -53,6 +53,13 @@ export function RecordsScreen({
       >
         <Text style={styles.addButtonText}>バーコードで読み取って追加</Text>
       </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push('/record/search')}
+        style={styles.lookupButton}
+      >
+        <Text style={styles.addButtonText}>タイトルで探して追加</Text>
+      </Pressable>
     </View>
   );
 
@@ -87,8 +94,9 @@ export function RecordsScreen({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  lookupRow: { flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
+  lookupRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, padding: spacing.md },
   lookupButton: {
+    minWidth: '45%',
     flex: 1,
     alignItems: 'center',
     backgroundColor: colors.tint,

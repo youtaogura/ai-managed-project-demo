@@ -4,6 +4,7 @@ import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-li
 import { RECORDS_STORAGE_KEY } from '../lib/recordRepository';
 import RootLayout from '../app/_layout';
 import IsbnLookupRoute from '../app/record/isbn';
+import TitleSearchRoute from '../app/record/search';
 import TabsLayout from '../app/(tabs)/_layout';
 import AnalyticsRoute from '../app/(tabs)/analytics';
 import RecordsRoute from '../app/(tabs)/index';
@@ -22,6 +23,7 @@ const routes = {
   '(tabs)/index': RecordsRoute,
   '(tabs)/analytics': AnalyticsRoute,
   'record/isbn': IsbnLookupRoute,
+  'record/search': TitleSearchRoute,
   'record/new': NewRecordRoute,
   'record/[id]': EditRecordRoute,
 };
@@ -114,5 +116,36 @@ describe('ISBN で探して追加', () => {
     const saved = await lookupAndSave('');
     expect(saved).toHaveLength(1);
     expect(saved[0]).toMatchObject({ kind: 'book', coverUrl: null });
+  });
+});
+
+describe('タイトルで探して追加', () => {
+  const original = globalThis.fetch;
+  const rss = `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcndl="http://ndl.go.jp/dcndl/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+<channel><title>search</title>
+<item><title>候補の本</title><author>著者C 著</author><dc:publisher>出版社D</dc:publisher><dc:date>2020</dc:date>
+<dc:identifier xsi:type="dcndl:ISBN">9784065199817</dc:identifier></item>
+</channel></rss>`;
+
+  afterEach(() => {
+    globalThis.fetch = original;
+  });
+
+  it('候補を選ぶと（openBD に無くても）候補の情報がフォームに入力済みで表示される', async () => {
+    globalThis.fetch = jest.fn(async (input: unknown) => {
+      const url = String(input);
+      if (url.includes('openbd')) return { ok: true, json: async () => [null] } as Response;
+      return { ok: true, text: async () => rss } as Response;
+    });
+    await renderRouter(routes);
+    await fireEvent.press(await screen.findByRole('button', { name: 'タイトルで探して追加' }));
+    await fireEvent.changeText(await screen.findByLabelText('タイトルのキーワード'), '候補');
+    await fireEvent.press(screen.getByRole('button', { name: '検索' }));
+    await fireEvent.press(await screen.findByRole('button', { name: /候補の本/ }));
+    expect(await screen.findByDisplayValue('候補の本')).toBeTruthy();
+    expect(screen.getByDisplayValue('著者C 著')).toBeTruthy();
+    expect(screen.getByDisplayValue('出版社D')).toBeTruthy();
+    expect(screen.getByDisplayValue('9784065199817')).toBeTruthy();
   });
 });
