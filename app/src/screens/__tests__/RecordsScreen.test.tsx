@@ -151,4 +151,25 @@ describe('RecordsScreen', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'バーコードで読み取って追加' }));
     await waitFor(() => expect(screen).toHavePathname('/record/scan'));
   });
+
+  it('記録があるとき「手入力で追加」を表示し、押すと onAdd が呼ばれる', async () => {
+    const onAdd = jest.fn();
+    await setup(createFakeRepository(records).repository, undefined, { onAdd });
+    await waitFor(() => expect(screen.getByText('アルファ')).toBeTruthy());
+    await fireEvent.press(screen.getByRole('button', { name: '手入力で追加' }));
+    expect(onAdd).toHaveBeenCalledTimes(1);
+  });
+
+  it('記録が 0 件でも「手入力で追加」を表示する', async () => {
+    await setup(createFakeRepository([]).repository);
+    expect(await screen.findByText('まだ記録がありません')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '手入力で追加' })).toBeTruthy();
+  });
+
+  it('onAdd 未指定でも「手入力で追加」を押して落ちない', async () => {
+    await setup(createFakeRepository(records).repository);
+    await waitFor(() => expect(screen.getByText('アルファ')).toBeTruthy());
+    await fireEvent.press(screen.getByRole('button', { name: '手入力で追加' }));
+    expect(screen.getByText('アルファ')).toBeTruthy();
+  });
 });
