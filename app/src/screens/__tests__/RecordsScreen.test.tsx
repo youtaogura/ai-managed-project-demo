@@ -52,6 +52,8 @@ describe('RecordsScreen', () => {
     expect(await screen.findByText('まだ記録がありません')).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: '追加' }));
     expect(router.push).toHaveBeenCalledWith('/record/new');
+    await fireEvent.press(screen.getByRole('button', { name: 'ISBN で探して追加' }));
+    expect(router.push).toHaveBeenCalledWith('/record/isbn');
   });
 
 
