@@ -1,9 +1,7 @@
-import { useState } from 'react';
-import { Linking, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { colors, radius, space } from '../design/tokens';
-import { usePhotoService } from '../hooks/usePhotoService';
-import type { PhotoSource } from '../lib/photo/PhotoService';
+import { usePhotoPicker } from '../hooks/usePhotoPicker';
 import type { MediaRecord } from '../types/record';
 import { AppText } from './AppText';
 import { Button } from './Button';
@@ -15,13 +13,6 @@ type PhotoFieldProps = {
   onChange: (uri: string | null) => void;
 };
 
-type PhotoError = { message: string; denied: { canAskAgain: boolean; source: PhotoSource } | null };
-
-const SOURCE_NAMES: Record<PhotoSource, string> = {
-  camera: 'カメラ',
-  library: '写真ライブラリ',
-};
-
 const COVER_WIDTH = 112;
 
 function describe(record: PhotoFieldProps['record']): string | null {
@@ -31,34 +22,7 @@ function describe(record: PhotoFieldProps['record']): string | null {
 }
 
 export function PhotoField({ record, onChange }: PhotoFieldProps) {
-  const service = usePhotoService();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<PhotoError | null>(null);
-
-  const choose = async (source: PhotoSource) => {
-    setBusy(true);
-    setError(null);
-    try {
-      const result = await service.pick(source);
-      if (result.status === 'denied') {
-        setError({
-          message: `${SOURCE_NAMES[source]}へのアクセスが許可されていません`,
-          denied: { canAskAgain: result.canAskAgain, source },
-        });
-      } else if (result.status === 'picked') {
-        onChange(await service.save(result.uri));
-      }
-    } catch {
-      setError({ message: '写真を保存できませんでした', denied: null });
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const openSettings = () => {
-    if (error?.denied?.canAskAgain) void choose(error.denied.source);
-    else void Linking.openSettings();
-  };
+  const { busy, error, choose, openSettings } = usePhotoPicker(onChange);
 
   const description = describe(record);
 

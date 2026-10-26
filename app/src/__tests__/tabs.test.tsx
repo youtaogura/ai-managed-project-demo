@@ -63,7 +63,7 @@ describe('分析タブの最新表示', () => {
     await fireEvent.press(await screen.findByRole('button', { name: '手で入力する' }));
     await fireEvent.changeText(await screen.findByLabelText('タイトル（必須）'), '分析用の本');
     await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
-    expect(await screen.findByText('分析用の本')).toBeTruthy();
+    expect((await screen.findAllByText('分析用の本')).length).toBeGreaterThan(0);
     await act(async () => router.replace('/'));
     await fireEvent.press(screen.getByRole('tab', { name: '振り返り' }));
     expect(await screen.findByText('月別の完了数')).toBeTruthy();
@@ -77,7 +77,7 @@ describe('記録の追加', () => {
     await fireEvent.press(await screen.findByRole('button', { name: '手で入力する' }));
     await fireEvent.changeText(await screen.findByLabelText('タイトル（必須）'), '統合テストの本');
     await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
-    expect(await screen.findByText('統合テストの本')).toBeTruthy();
+    expect((await screen.findAllByText('統合テストの本')).length).toBeGreaterThan(0);
     await act(async () => router.replace('/'));
     expect(await screen.findByText('統合テストの本')).toBeTruthy();
     expect(screen.getByLabelText('統合テストの本')).toBeTruthy();
@@ -133,7 +133,7 @@ describe('ISBN で探して追加', () => {
     expect(screen.getByDisplayValue('出版社B')).toBeTruthy();
     expect(screen.getByDisplayValue('9784065199817')).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
-    await waitFor(() => expect(screen.getByText('取得した本')).toBeTruthy());
+    await waitFor(() => expect(screen.getAllByText('取得した本').length).toBeGreaterThan(0));
     const raw = await AsyncStorage.getItem(RECORDS_STORAGE_KEY);
     const saved: unknown = raw === null ? null : JSON.parse(raw);
     return Array.isArray(saved) ? saved : [];

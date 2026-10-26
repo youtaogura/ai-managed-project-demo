@@ -8,7 +8,7 @@ export default function RecordDetailRoute() {
   const goToList = () => router.replace('/');
   return (
     <>
-      <Stack.Screen options={{ title: '記録の詳細' }} />
+      <Stack.Screen options={{ headerShown: false }} />
       <RecordDetailScreen
         recordId={id}
         onEdit={(recordId) => router.push({ pathname: '/record/[id]', params: { id: recordId } })}
