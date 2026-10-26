@@ -3,6 +3,8 @@ import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
 import { colors, space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
+import { useSettings } from '../hooks/useSettings';
+import { formKindOptions } from '../lib/enabledKinds';
 import { usePhotoService } from '../hooks/usePhotoService';
 import { formatDateDisplay } from '../lib/date';
 import {
@@ -22,7 +24,7 @@ import {
   getStatusLabel,
   KIND_LABELS,
 } from '../lib/statusLabel';
-import { MEDIA_KINDS, RECORD_STATUSES, type NewRecordInput } from '../types/record';
+import { RECORD_STATUSES, type NewRecordInput } from '../types/record';
 import { AppText } from './AppText';
 import { Button } from './Button';
 import { ChipGroup } from './Chip';
@@ -43,11 +45,6 @@ type RecordFormProps = {
   onDeleted?: () => void;
 };
 
-const kindOptions = MEDIA_KINDS.map((value) => ({
-  value,
-  label: KIND_LABELS[value],
-}));
-
 export function RecordForm({
   initialValues,
   submitLabel = '記録する',
@@ -57,7 +54,14 @@ export function RecordForm({
   onDeleted,
 }: RecordFormProps) {
   const bottomInset = useBottomInset();
+  const { settings } = useSettings();
   const [values, setValues] = useState<RecordFormValues>(() => createFormValues(initialValues));
+  // 元の種別はマウント時点の値で固定し、切り替えても選択肢に残す
+  const [originalKind] = useState(() => createFormValues(initialValues).kind);
+  const kindOptions = formKindOptions(settings.enabledKinds, originalKind).map((value) => ({
+    value,
+    label: KIND_LABELS[value],
+  }));
   const [errors, setErrors] = useState<RecordFormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
@@ -151,24 +155,29 @@ export function RecordForm({
   const labels = getDateLabels(values.kind);
   const openLabel = openDate === 'start' ? labels.start : labels.end;
   const openValue = openDate === 'start' ? values.startDate : values.endDate;
-  const preview = { ...values, creator: values.creator.trim() === '' ? null : values.creator };
+  const preview = {
+    ...values,
+    creator: values.creator.trim() === '' ? null : values.creator,
+  };
 
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <PhotoField record={preview} onChange={changePhoto} />
 
-        <View>
-          <AppText variant="label" style={styles.heading}>
-            種別
-          </AppText>
-          <ChipGroup
-            label="種別"
-            options={kindOptions}
-            value={values.kind}
-            onChange={(kind) => setField('kind', kind)}
-          />
-        </View>
+        {kindOptions.length > 1 ? (
+          <View>
+            <AppText variant="label" style={styles.heading}>
+              種別
+            </AppText>
+            <ChipGroup
+              label="種別"
+              options={kindOptions}
+              value={values.kind}
+              onChange={(kind) => setField('kind', kind)}
+            />
+          </View>
+        ) : null}
 
         <TextField
           label="タイトル"
@@ -267,7 +276,9 @@ export function RecordForm({
             {failure}
           </AppText>
         ) : null}
-        {submitting ? <ActivityIndicator accessibilityLabel="処理中" color={colors.textSecondary} /> : null}
+        {submitting ? (
+          <ActivityIndicator accessibilityLabel="処理中" color={colors.textSecondary} />
+        ) : null}
         <Button label={submitLabel} disabled={submitting} onPress={() => void handleSubmit()} />
       </View>
 

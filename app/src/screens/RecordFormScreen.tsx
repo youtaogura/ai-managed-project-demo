@@ -6,7 +6,9 @@ import { AppText } from '../components/AppText';
 import { RecordForm } from '../components/RecordForm';
 import { colors, space } from '../design/tokens';
 import { useCoverResolver } from '../hooks/useCoverResolver';
+import { useSettings } from '../hooks/useSettings';
 import { useRecordRepository } from '../hooks/useRecordRepository';
+import { resolveInitialKind } from '../lib/enabledKinds';
 import { needsCover } from '../lib/coverLookup/needsCover';
 import type { MediaRecord, NewRecordInput } from '../types/record';
 
@@ -19,6 +21,7 @@ type LoadState = { status: 'loading' } | { status: 'ready'; record: MediaRecord 
 
 export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenProps) {
   const repository = useRecordRepository();
+  const { settings } = useSettings();
   const resolveCover = useCoverResolver();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const addedId = useRef<string | null>(null);
@@ -56,7 +59,10 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
   if (recordId === undefined) {
     return (
       <RecordForm
-        initialValues={initialValues}
+        initialValues={{
+          ...initialValues,
+          kind: resolveInitialKind(initialValues?.kind, settings.enabledKinds),
+        }}
         onSubmit={async (input) => {
           const added = await repository.add(await fillCover(input));
           addedId.current = added.id;

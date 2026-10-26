@@ -20,9 +20,10 @@ import { YearCounter } from '../components/YearCounter';
 import { colors, space } from '../design/tokens';
 import { useAddSheet } from '../hooks/useAddSheet';
 import { useBottomInset } from '../hooks/useBottomInset';
-import { useMediaSearch } from '../hooks/useMediaSearch';
+import { useSettings } from '../hooks/useSettings';
 import { useRecords } from '../hooks/useRecords';
 import { useSortOrder } from '../hooks/useSortOrder';
+import { filterRecordsByKinds } from '../lib/enabledKinds';
 import { createSortOrderStore, type SortOrderStore } from '../lib/sortOrderStore';
 import { SORT_ORDER_LABELS, sortRecords } from '../lib/sortRecords';
 import { asyncKeyValueStorage } from '../lib/storage';
@@ -46,16 +47,21 @@ export function RecordsScreen({
   onAdd,
   onOpen,
 }: RecordsScreenProps) {
-  const { records, loading } = useRecords();
-  const mediaSearchEnabled = useMediaSearch() !== null;
+  const { records: allRecords, loading } = useRecords();
+  const { settings } = useSettings();
   const [order, setOrder] = useSortOrder(sortOrderStore);
-  const { addOpen, openAdd, closeAdd, select } = useAddSheet(onAdd);
+  const { addOpen, openAdd, closeAdd, select, enabledKinds, mediaSearchEnabled } =
+    useAddSheet(onAdd);
   const [sortOpen, setSortOpen] = useState(false);
   const { width } = useWindowDimensions();
   const bottomInset = useBottomInset();
   const listRef = useRef<FlatList<MediaRecord>>(null);
   useScrollToTop(listRef);
 
+  const records = useMemo(
+    () => filterRecordsByKinds(allRecords, settings.enabledKinds),
+    [allRecords, settings.enabledKinds],
+  );
   const sorted = useMemo(() => sortRecords(records, order), [records, order]);
   const recent = useMemo(() => recentlyFinished(records, RECENT_LIMIT), [records]);
   const counts = useMemo(() => countCompletions(records, new Date()), [records]);
@@ -80,6 +86,7 @@ export function RecordsScreen({
         onClose={closeAdd}
         onSelect={select}
         mediaSearchEnabled={mediaSearchEnabled}
+        enabledKinds={enabledKinds}
       />
       <SortSheet
         visible={sortOpen}

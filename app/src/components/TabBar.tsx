@@ -6,7 +6,11 @@ import { AppText } from './AppText';
 
 const TAB_MIN_WIDTH = 64;
 const HOME_INDICATOR = 34;
-const ICONS: Record<string, string> = { index: '▤', analytics: '▥' };
+const ICONS: Record<string, string> = {
+  index: '▤',
+  analytics: '▥',
+  settings: '⚙',
+};
 
 export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: BottomTabBarProps) {
   return (
@@ -14,7 +18,10 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: B
       role="tablist"
       style={[
         styles.bar,
-        { height: size.tabbarHeight - HOME_INDICATOR + insets.bottom, paddingBottom: insets.bottom },
+        {
+          height: size.tabbarHeight - HOME_INDICATOR + insets.bottom,
+          paddingBottom: insets.bottom,
+        },
       ]}
     >
       {state.routes.map((route, index) => {
@@ -22,7 +29,11 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: B
         const label = descriptors[route.key]?.options.title ?? route.name;
         const color = focused ? colors.accent : colors.textSecondary;
         const onPress = () => {
-          const event = emitter.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+          const event = emitter.emit({
+            type: 'tabPress',
+            target: route.key,
+            canPreventDefault: true,
+          });
           if (!focused && !event.defaultPrevented) navigateToTab(route.key);
         };
         return (

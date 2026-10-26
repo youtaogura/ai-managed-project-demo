@@ -11,6 +11,7 @@ import { CoverResolverContextProvider } from '../hooks/useCoverResolver';
 import { BookSearchContextProvider } from '../hooks/useBookSearch';
 import { MediaSearchContextProvider } from '../hooks/useMediaSearch';
 import { PhotoServiceContextProvider } from '../hooks/usePhotoService';
+import { SettingsContextProvider } from '../hooks/useSettings';
 import { RecordRepositoryProvider } from '../hooks/useRecordRepository';
 import { useAppFonts } from '../hooks/useAppFonts';
 import { parsePreviewInsets } from '../lib/previewInsets';
@@ -22,24 +23,26 @@ SplashScreen.preventAutoHideAsync().catch(() => undefined);
 // 名前文字列で個別指定すると、ルート名と食い違ったときに黙って無効になるため。
 function Providers() {
   return (
-    <RecordRepositoryProvider>
-      <BookLookupContextProvider>
-        <CoverResolverContextProvider>
-          <BookSearchContextProvider>
-            <MediaSearchContextProvider>
-              <PhotoServiceContextProvider>
-                <ThemeProvider value={navigationTheme}>
-                  <Stack screenOptions={stackScreenOptions}>
-                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                  </Stack>
-                </ThemeProvider>
-                <StatusBar style="light" />
-              </PhotoServiceContextProvider>
-            </MediaSearchContextProvider>
-          </BookSearchContextProvider>
-        </CoverResolverContextProvider>
-      </BookLookupContextProvider>
-    </RecordRepositoryProvider>
+    <SettingsContextProvider>
+      <RecordRepositoryProvider>
+        <BookLookupContextProvider>
+          <CoverResolverContextProvider>
+            <BookSearchContextProvider>
+              <MediaSearchContextProvider>
+                <PhotoServiceContextProvider>
+                  <ThemeProvider value={navigationTheme}>
+                    <Stack screenOptions={stackScreenOptions}>
+                      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                    </Stack>
+                  </ThemeProvider>
+                  <StatusBar style="light" />
+                </PhotoServiceContextProvider>
+              </MediaSearchContextProvider>
+            </BookSearchContextProvider>
+          </CoverResolverContextProvider>
+        </BookLookupContextProvider>
+      </RecordRepositoryProvider>
+    </SettingsContextProvider>
   );
 }
 

@@ -3,10 +3,10 @@ import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-li
 
 import { MediaSearchContextProvider } from '../../hooks/useMediaSearch';
 import type { MediaSearchProvider } from '../../lib/mediaSearch/MediaSearchProvider';
-import { withRepository } from '../../testProviders';
+import { withRepository, withSettings } from '../../testProviders';
 import { createSortOrderStore } from '../../lib/sortOrderStore';
 import { createFakeRepository, createMemoryStorage, makeRecord } from '../../testUtils';
-import type { MediaRecord } from '../../types/record';
+import type { MediaKind, MediaRecord } from '../../types/record';
 import type { RecordRepository } from '../../lib/recordRepository';
 import { RecordsScreen } from '../RecordsScreen';
 
@@ -72,6 +72,44 @@ const titles = () =>
   screen
     .getAllByRole('button', { name: /^(アルファ|ベータ|ガンマ)$/ })
     .map((n) => n.props.accessibilityLabel as string);
+
+describe('RecordsScreen（使う種別）', () => {
+  const setupKinds = (kinds: MediaKind[], repository: RecordRepository) =>
+    renderRouter({
+      index: () =>
+        withSettings(
+          kinds,
+          withRepository(
+            repository,
+            <RecordsScreen sortOrderStore={createSortOrderStore(createMemoryStorage().storage)} />,
+          ),
+        ),
+    });
+
+  it('使わない種別の記録は一覧にも最近の段にも出ない。リポジトリは変わらない', async () => {
+    const { repository } = createFakeRepository(records);
+    await setupKinds(['book'], repository);
+    await waitFor(() => expect(screen.getAllByLabelText('アルファ').length).toBeGreaterThan(0));
+    expect(screen.queryByLabelText('ベータ')).toBeNull();
+    expect(screen.queryByLabelText('ガンマ')).toBeNull();
+    expect(await repository.getAll()).toHaveLength(3);
+  });
+
+  it('年・月のカウンターにも使わない種別の記録を数えない', async () => {
+    const dated = [
+      makeRecord({ id: 'b1', title: 'A', kind: 'book', endDate: `${thisMonth}-01` }),
+      makeRecord({ id: 'm1', title: 'B', kind: 'movie', endDate: `${thisMonth}-01` }),
+    ];
+    await setupKinds(['book'], createFakeRepository(dated).repository);
+    const month = thisMonth.endsWith('-01') ? 1 : 1;
+    expect(await screen.findByLabelText(`今年 1 作品 · 今月 ${month}`)).toBeTruthy();
+  });
+
+  it('使う種別の記録が 0 件なら「記録なし」の状態を出す', async () => {
+    await setupKinds(['manga'], createFakeRepository(records).repository);
+    expect(await screen.findByText('最初の1作品を記録しよう')).toBeTruthy();
+  });
+});
 
 describe('RecordsScreen', () => {
   it('読み込み中はインジケーターを表示し、完了後に切り替わる', async () => {
@@ -215,7 +253,9 @@ describe('RecordsScreen', () => {
     await setup(createFakeRepository(records).repository, undefined, {}, mediaProvider);
     await screen.findByText('すべての記録');
     await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
-    await fireEvent.press(screen.getByRole('button', { name: '映画・ドラマ・アニメをタイトルで探す' }));
+    await fireEvent.press(
+      screen.getByRole('button', { name: '映画・ドラマ・アニメをタイトルで探す' }),
+    );
     await waitFor(() => expect(screen).toHavePathname('/record/media-search'));
   });
 
@@ -223,9 +263,13 @@ describe('RecordsScreen', () => {
     await setup(createFakeRepository(records).repository, undefined, {}, null);
     await screen.findByText('すべての記録');
     await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
-    expect(screen.queryByRole('button', { name: '映画・ドラマ・アニメをタイトルで探す' })).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: '映画・ドラマ・アニメをタイトルで探す' }),
+    ).toBeNull();
     expect(screen.getByRole('button', { name: '本をタイトルで探す' })).toBeTruthy();
-    await fireEvent.press(screen.getByRole('button', { name: '映画・ドラマ・アニメを手で入力する' }));
+    await fireEvent.press(
+      screen.getByRole('button', { name: '映画・ドラマ・アニメを手で入力する' }),
+    );
     await waitFor(() => expect(screen).toHavePathname('/record/new'));
     expect(screen).toHaveSearchParams({ kind: 'movie' });
   });
@@ -235,7 +279,9 @@ describe('RecordsScreen', () => {
     await setup(createFakeRepository(records).repository, undefined, { onAdd });
     await screen.findByText('すべての記録');
     await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
-    await fireEvent.press(screen.getByRole('button', { name: '映画・ドラマ・アニメを手で入力する' }));
+    await fireEvent.press(
+      screen.getByRole('button', { name: '映画・ドラマ・アニメを手で入力する' }),
+    );
     expect(onAdd).not.toHaveBeenCalled();
   });
 
