@@ -1,44 +1,32 @@
 import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import { AddSheet } from '../components/AddSheet';
 import { AppText } from '../components/AppText';
-import { MonthlyBarChart } from '../components/MonthlyBarChart';
-import { RatingDistribution } from '../components/RatingDistribution';
+import { BookStackChart } from '../components/BookStackChart';
+import { RatingBreakdown } from '../components/RatingBreakdown';
 import { ReviewEmpty } from '../components/ReviewEmpty';
 import { ScreenContainer } from '../components/ScreenContainer';
-import { colors, radius, size, space } from '../design/tokens';
+import { Shelf } from '../components/Shelf';
+import { colors, radius, space } from '../design/tokens';
 import { useAddSheet } from '../hooks/useAddSheet';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useRecords } from '../hooks/useRecords';
-import {
-  aggregateMonthlyCompletions,
-  formatAverage,
-  formatPeriod,
-  summarizeRatings,
-  summarizeYear,
-} from '../lib/analytics';
+import { formatAverage } from '../lib/analytics';
+import { summarizeReview } from '../lib/review';
 
 type ReviewScreenProps = {
   onAdd?: () => void;
-  onOpenRecords?: () => void;
+  onOpenRecord?: (id: string) => void;
 };
 
-export function ReviewScreen({ onAdd, onOpenRecords }: ReviewScreenProps) {
+export function ReviewScreen({ onAdd, onOpenRecord }: ReviewScreenProps) {
   const { records, loading } = useRecords();
   const { addOpen, openAdd, closeAdd, select } = useAddSheet(onAdd);
   const bottomInset = useBottomInset();
+  const { width } = useWindowDimensions();
 
-  const summary = useMemo(() => {
-    const monthly = aggregateMonthlyCompletions(records, new Date());
-    return {
-      monthly,
-      period: formatPeriod(monthly.months),
-      yearCount: summarizeYear(monthly),
-      currentMonth: monthly.months[monthly.months.length - 1].month,
-      ratings: summarizeRatings(records),
-    };
-  }, [records]);
+  const summary = useMemo(() => summarizeReview(records, new Date()), [records]);
 
   if (loading) return null;
 
@@ -54,7 +42,8 @@ export function ReviewScreen({ onAdd, onOpenRecords }: ReviewScreenProps) {
     );
   }
 
-  const { monthly, period, yearCount, currentMonth, ratings } = summary;
+  const { period, read, impressions, quotes, months, favorites, ratings, topStarter } = summary;
+  const currentMonth = months[months.length - 1].month;
 
   return (
     <ScreenContainer>
@@ -73,51 +62,66 @@ export function ReviewScreen({ onAdd, onOpenRecords }: ReviewScreenProps) {
         <View style={styles.cards}>
           <View style={styles.card}>
             <AppText variant="label" style={styles.secondary}>
-              この1年で終えた
+              読んだ
             </AppText>
-            <View style={styles.cardValue}>
-              <AppText variant="displayNumber">{String(yearCount)}</AppText>
-              <AppText variant="label" style={styles.secondary}>
-                作品
-              </AppText>
-            </View>
+            <AppText variant="displayNumber">{`${read} 冊`}</AppText>
           </View>
           <View style={styles.card}>
             <AppText variant="label" style={styles.secondary}>
-              平均レーティング
+              感想
             </AppText>
-            <AppText variant="displayNumber">{formatAverage(ratings.average)}</AppText>
+            <AppText variant="displayNumber">{String(impressions)}</AppText>
+          </View>
+          <View style={styles.card}>
+            <AppText variant="label" style={styles.secondary}>
+              引用
+            </AppText>
+            <AppText variant="displayNumber">{String(quotes)}</AppText>
           </View>
         </View>
 
         <View style={styles.section}>
-          <AppText variant="sectionTitle">月別の完了数</AppText>
-          <MonthlyBarChart months={monthly.months} currentMonth={currentMonth} />
+          <AppText variant="sectionTitle">月ごとに読んだ本</AppText>
+          <BookStackChart months={months} currentMonth={currentMonth} />
+          <AppText variant="micro" style={styles.secondary}>
+            1冊が1段。背表紙の色で積み上がります
+          </AppText>
         </View>
 
-        {monthly.undatedCompleted > 0 ? (
-          <View style={styles.notice}>
-            <AppText variant="label" style={styles.secondary}>
-              {`終了日が未入力の記録: ${monthly.undatedCompleted} 件`}
-            </AppText>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="入力する"
-              onPress={() => onOpenRecords?.()}
-              style={styles.noticeAction}
-            >
-              <AppText variant="value" style={styles.underline}>
-                入力する
-              </AppText>
-            </Pressable>
+        {favorites.length > 0 ? (
+          <View style={styles.section}>
+            <AppText variant="sectionTitle">今年のお気に入り</AppText>
+            <Shelf
+              records={favorites}
+              width={width - space[4] * 2}
+              onPressRecord={(record) => onOpenRecord?.(record.id)}
+            />
           </View>
         ) : null}
 
         <View style={styles.section}>
-          <AppText variant="sectionTitle">レーティング</AppText>
-          <RatingDistribution distribution={ratings.distribution} />
+          <AppText variant="sectionTitle">どうだった？</AppText>
+          <View style={styles.average}>
+            <AppText variant="label" style={styles.secondary}>
+              平均
+            </AppText>
+            <AppText variant="displayNumber">{formatAverage(ratings.average)}</AppText>
+            {ratings.word !== null ? <AppText variant="value">{ratings.word}</AppText> : null}
+          </View>
+          <RatingBreakdown buckets={ratings.buckets} />
         </View>
 
+        {topStarter !== null ? (
+          <View style={styles.section}>
+            <AppText variant="sectionTitle">今年いちばん使った書き出し</AppText>
+            <View style={styles.starterCard}>
+              <AppText variant="starter">{topStarter.text}</AppText>
+              <AppText variant="label" style={styles.secondary}>
+                {`· ${topStarter.count} 回`}
+              </AppText>
+            </View>
+          </View>
+        ) : null}
       </ScrollView>
     </ScreenContainer>
   );
@@ -125,8 +129,8 @@ export function ReviewScreen({ onAdd, onOpenRecords }: ReviewScreenProps) {
 
 const styles = StyleSheet.create({
   scroll: { flex: 1, backgroundColor: colors.bg },
-  content: { paddingHorizontal: space[5], gap: space[5] },
-  padded: { paddingHorizontal: space[5] },
+  content: { paddingHorizontal: space[4], gap: space[5] },
+  padded: { paddingHorizontal: space[4] },
   header: {
     flexDirection: 'row',
     alignItems: 'baseline',
@@ -142,21 +146,12 @@ const styles = StyleSheet.create({
     padding: space[4],
     gap: space[2],
   },
-  cardValue: { flexDirection: 'row', alignItems: 'baseline', gap: space[1] },
   section: { gap: space[3] },
-  notice: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  average: { flexDirection: 'row', alignItems: 'baseline', gap: space[2] },
+  starterCard: {
     backgroundColor: colors.surface1,
     borderRadius: radius.card,
-    paddingLeft: space[4],
+    padding: space[4],
+    gap: space[2],
   },
-  noticeAction: {
-    minHeight: size.touchMin,
-    minWidth: size.touchMin,
-    justifyContent: 'center',
-    paddingHorizontal: space[4],
-  },
-  underline: { textDecorationLine: 'underline' },
 });

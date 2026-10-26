@@ -4,8 +4,6 @@ import {
   formatAverage,
   formatPeriod,
   monthLabel,
-  summarizeRatings,
-  summarizeYear,
 } from '../analytics';
 
 const now = new Date(2026, 9, 15);
@@ -49,39 +47,6 @@ describe('aggregateMonthlyCompletions', () => {
   });
 });
 
-describe('summarizeRatings', () => {
-  it('バケットの境界と未評価の除外', () => {
-    const r = summarizeRatings([
-      makeRecord({ rating: 1.0 }),
-      makeRecord({ rating: 1.9 }),
-      makeRecord({ rating: 2.0 }),
-      makeRecord({ rating: 5.0 }),
-      makeRecord({ rating: 0.5 }),
-      makeRecord({ rating: null }),
-    ]);
-    expect(r.distribution).toEqual({ 1: 2, 2: 1, 3: 0, 4: 0, 5: 1 });
-    expect(r.count).toBe(4);
-  });
-
-  it('平均は小数第 2 位を四捨五入する', () => {
-    const r = summarizeRatings([
-      makeRecord({ rating: 3 }),
-      makeRecord({ rating: 3.5 }),
-      makeRecord({ rating: 3.5 }),
-      makeRecord({ rating: 3.5 }),
-      makeRecord({ rating: 2.9 }),
-    ]);
-    expect(r.average).toBe(3.3);
-    expect(r).not.toHaveProperty('byKind');
-  });
-
-  it('0 件の平均は null', () => {
-    const r = summarizeRatings([makeRecord()]);
-    expect(r.average).toBeNull();
-    expect(formatAverage(r.average)).toBe('—');
-  });
-});
-
 describe('formatAverage', () => {
   it('小数第 1 位の文字列にする', () => {
     expect(formatAverage(3.3)).toBe('3.3');
@@ -89,22 +54,7 @@ describe('formatAverage', () => {
   });
 });
 
-describe('summarizeYear / formatPeriod / monthLabel', () => {
-  it('12 か月の合計に範囲外・終了日未入力・進行中は含まない', () => {
-    const result = aggregateMonthlyCompletions(
-      [
-        done('2025-11-01'),
-        done('2026-10-31'),
-        done('2025-10-31'),
-        done('2026-11-01'),
-        done(null),
-        makeRecord({ status: 'in_progress', endDate: '2026-10-05' }),
-      ],
-      now,
-    );
-    expect(summarizeYear(result)).toBe(2);
-  });
-
+describe('formatPeriod / monthLabel', () => {
   it('対象期間を「YYYY/MM – YYYY/MM」にする（年またぎ）', () => {
     expect(formatPeriod(aggregateMonthlyCompletions([], now).months)).toBe('2025/11 – 2026/10');
     expect(formatPeriod([])).toBe('');

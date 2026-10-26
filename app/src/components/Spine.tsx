@@ -2,23 +2,11 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { colors, radius, typography } from '../design/tokens';
 import { resolveFontFamily } from '../design/fonts';
+import { spineColorToken } from '../lib/spineColor';
 import { getSpineAccessibilityLabel } from '../lib/spineLabel';
 import { getSpineSize } from '../lib/spineLayout';
-import type { MediaRecord, SpineColor } from '../types/record';
+import type { MediaRecord } from '../types/record';
 import { AppText } from './AppText';
-
-const SPINE_FACES: Record<SpineColor, string> = {
-  'spine-1': colors.spine1,
-  'spine-2': colors.spine2,
-  'spine-3': colors.spine3,
-  'spine-4': colors.spine4,
-  'spine-5': colors.spine5,
-  'spine-6': colors.spine6,
-  'spine-7': colors.spine7,
-  'spine-8': colors.spine8,
-  'spine-9': colors.spine9,
-  'spine-10': colors.spine10,
-};
 
 const LINE_TOP = 22;
 const EDGE_WIDTH = 2;
@@ -49,7 +37,7 @@ export function Spine({ record, onPress }: SpineProps) {
       onPress={() => onPress(record)}
       style={({ pressed }) => [
         styles.base,
-        { width, height, backgroundColor: SPINE_FACES[record.spineColor] },
+        { width, height, backgroundColor: spineColorToken(record.spineColor) },
         pressed && styles.pressed,
       ]}
     >

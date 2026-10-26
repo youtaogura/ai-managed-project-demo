@@ -43,6 +43,6 @@ describe('ReviewScreen', () => {
         <ReviewScreen />
       </RecordRepositoryProvider>,
     );
-    expect(await screen.findByText('記録がたまると、ここに振り返りが表示されます')).toBeTruthy();
+    expect(await screen.findByText('読んだ本がたまると、ここに積み上がります')).toBeTruthy();
   });
 });

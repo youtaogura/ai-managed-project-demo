@@ -8,7 +8,7 @@ export default function AnalyticsRoute() {
   return (
     <ReviewScreen
       onAdd={() => router.push('/record/new')}
-      onOpenRecords={() => router.push('/')}
+      onOpenRecord={(id) => router.push(`/records/${id}`)}
     />
   );
 }

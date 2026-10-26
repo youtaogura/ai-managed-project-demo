@@ -46,6 +46,19 @@ describe('記録のルート配線', () => {
     await waitFor(() => expect(screen.getByText('ダミー編集画面')).toBeTruthy());
   });
 
+  it('振り返りのお気に入りの背表紙から詳細へ遷移する', async () => {
+    const year = new Date().getFullYear();
+    await AsyncStorage.setItem(
+      RECORDS_STORAGE_KEY,
+      JSON.stringify([
+        makeRecord({ id: 'r1', title: '吾輩は猫である', favorite: true, endDate: `${year}-01-05` }),
+      ]),
+    );
+    await renderRouter(routes, { initialUrl: '/analytics' });
+    await fireEvent.press(await screen.findByLabelText(/^吾輩は猫である、/));
+    await waitFor(() => expect(screen).toHavePathname('/records/r1'));
+  });
+
   it('＋ボタンの追加シートから手入力の追加画面へ遷移する', async () => {
     await renderRouter(routes);
     await waitFor(() => expect(screen.getByLabelText(/^吾輩は猫である、/)).toBeTruthy());
