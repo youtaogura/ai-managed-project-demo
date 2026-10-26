@@ -1,3 +1,5 @@
+import type { MediaKind } from './types/record';
+
 export const colors = {
   background: '#fff',
   text: '#111',
@@ -25,3 +27,11 @@ export const overlayColors = {
   text: '#fff',
   background: 'rgba(0, 0, 0, 0.5)',
 } as const;
+
+export const kindColors: Record<MediaKind, string> = {
+  book: '#2f6fed',
+  manga: '#e8590c',
+  movie: '#9c36b5',
+  drama: '#0ca678',
+  anime: '#d6336c',
+};
