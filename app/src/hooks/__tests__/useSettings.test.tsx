@@ -104,4 +104,17 @@ describe('useSettings', () => {
     await waitFor(() => expect(saved).toEqual([['anime']]));
     expect(get().settings.enabledKinds).toEqual(['anime']);
   });
+
+  it('replace で設定全体が置き換わる（保存は呼び出し側）', async () => {
+    const save = jest.fn(async () => undefined);
+    const store: SettingsStore = {
+      load: async () => ({ enabledKinds: ['book'], heroCriterion: 'recent', defaultStatus: 'completed' }),
+      save,
+    };
+    const { get } = await mount(store);
+    await waitFor(() => expect(get().settings.enabledKinds).toEqual(['book']));
+    await act(async () => get().replace({ enabledKinds: ['movie'], heroCriterion: 'none', defaultStatus: 'completed' }));
+    expect(get().settings).toEqual({ enabledKinds: ['movie'], heroCriterion: 'none', defaultStatus: 'completed' });
+    expect(save).not.toHaveBeenCalled();
+  });
 });

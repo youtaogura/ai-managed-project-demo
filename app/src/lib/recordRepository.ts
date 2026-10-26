@@ -1,3 +1,4 @@
+import type { ImportMode } from '../types/backup';
 import type { MediaRecord, NewRecordInput } from '../types/record';
 import { parseRecords } from './recordGuard';
 import { RECORDS_KEY, migrateRecords } from './recordMigration';
@@ -24,6 +25,8 @@ export type RecordRepository = {
   add(input: NewRecordInput): Promise<MediaRecord>;
   update(id: string, input: NewRecordInput): Promise<MediaRecord | null>;
   delete(id: string): Promise<boolean>;
+  /** 読み込み後の件数を返す。保存は 1 回の setItem で、失敗したら reject し記録は変わらない。 */
+  importRecords(records: readonly MediaRecord[], mode: ImportMode): Promise<number>;
 };
 
 const defaultNow = () => new Date().toISOString();
@@ -124,5 +127,23 @@ export function createRecordRepository(
         await save(next);
         return true;
       }),
+
+    importRecords: (incoming, mode) =>
+      serialize(async () => {
+        const next = mode === 'replace' ? [...incoming] : mergeRecords(await load(), incoming);
+        await save(next);
+        return next.length;
+      }),
   };
+}
+
+// 今の記録を残し、同じ id はファイルの内容にする。ファイル側に写真がなければ今の写真を残す
+function mergeRecords(current: MediaRecord[], incoming: readonly MediaRecord[]): MediaRecord[] {
+  const incomingById = new Map(incoming.map((r) => [r.id, r]));
+  const currentIds = new Set(current.map((r) => r.id));
+  const merged = current.map((r) => {
+    const replacement = incomingById.get(r.id);
+    return replacement ? { ...replacement, photoUri: replacement.photoUri ?? r.photoUri } : r;
+  });
+  return [...merged, ...incoming.filter((r) => !currentIds.has(r.id))];
 }

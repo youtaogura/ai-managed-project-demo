@@ -59,6 +59,10 @@ export function createFakeRepository(initial: MediaRecord[] = []) {
       records = records.filter((r) => r.id !== id);
       return records.length !== before;
     },
+    importRecords: async (incoming, mode) => {
+      records = mode === 'replace' ? [...incoming] : [...records, ...incoming];
+      return records.length;
+    },
   };
   return { repository, setRecords: (next: MediaRecord[]) => (records = next) };
 }

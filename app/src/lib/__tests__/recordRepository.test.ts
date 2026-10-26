@@ -1,3 +1,4 @@
+import { makeRecord } from '../../testUtils';
 import type { NewRecordInput } from '../../types/record';
 import { RECORDS_STORAGE_KEY, ValidationError, createRecordRepository } from '../recordRepository';
 import type { KeyValueStorage } from '../storage';
@@ -196,5 +197,67 @@ describe('RecordRepository', () => {
       expect((await repo.getAll())[0]).toEqual(added);
       expect(added.source).toEqual({ provider: 'ndl', ndlId: '1' });
     });
+  });
+});
+
+describe('RecordRepository.importRecords', () => {
+  const seed = (records: ReturnType<typeof makeRecord>[]) =>
+    createMemoryStorage({ [RECORDS_STORAGE_KEY]: JSON.stringify(records) });
+
+  it('merge: 今の記録を残し、同じ id はファイルの内容（日時も）になる', async () => {
+    const { storage } = seed([
+      makeRecord({ id: 'a', title: '古い' }),
+      makeRecord({ id: 'b', title: '残る' }),
+    ]);
+    const repo = setup(storage);
+    const count = await repo.importRecords(
+      [
+        makeRecord({ id: 'a', title: '新しい', updatedAt: '2025-05-05T00:00:00.000Z' }),
+        makeRecord({ id: 'c', title: '追加' }),
+      ],
+      'merge',
+    );
+    expect(count).toBe(3);
+    const all = await repo.getAll();
+    expect(all.map((r) => r.title)).toEqual(['新しい', '残る', '追加']);
+    expect(all[0]?.updatedAt).toBe('2025-05-05T00:00:00.000Z');
+  });
+
+  it('merge: ファイル側の photoUri が null なら今の写真を残す', async () => {
+    const { storage } = seed([makeRecord({ id: 'a', photoUri: 'file:///p.jpg' })]);
+    const repo = setup(storage);
+    await repo.importRecords([makeRecord({ id: 'a', photoUri: null, title: '新' })], 'merge');
+    const [rec] = await repo.getAll();
+    expect(rec).toMatchObject({ title: '新', photoUri: 'file:///p.jpg' });
+  });
+
+  it('replace: ファイルの記録だけになる', async () => {
+    const { storage } = seed([makeRecord({ id: 'a' })]);
+    const repo = setup(storage);
+    expect(await repo.importRecords([makeRecord({ id: 'z' })], 'replace')).toBe(1);
+    expect((await repo.getAll()).map((r) => r.id)).toEqual(['z']);
+  });
+
+  it('setItem が失敗したら reject し、保存済みの記録は変わらない。setItem は 1 回だけ', async () => {
+    const { storage, data } = seed([makeRecord({ id: 'a' })]);
+    const before = data.get(RECORDS_STORAGE_KEY);
+    const setItem = jest.fn(async () => {
+      throw new Error('fail');
+    });
+    const repo = setup({ ...storage, setItem });
+    await expect(repo.importRecords([makeRecord({ id: 'z' })], 'replace')).rejects.toThrow('fail');
+    expect(setItem).toHaveBeenCalledTimes(1);
+    expect(data.get(RECORDS_STORAGE_KEY)).toBe(before);
+  });
+
+  it('他の add と競合せず直列化される', async () => {
+    const { storage } = seed([]);
+    const repo = setup(storage);
+    await Promise.all([
+      repo.add(input),
+      repo.importRecords([makeRecord({ id: 'z' })], 'merge'),
+      repo.add(input),
+    ]);
+    expect(await repo.getAll()).toHaveLength(3);
   });
 });

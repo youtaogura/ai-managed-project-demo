@@ -11,6 +11,10 @@ import { SettingsRow } from '../components/SettingsRow';
 import { colors, space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useSettings } from '../hooks/useSettings';
+import { useLastExportedAt } from '../hooks/useLastExportedAt';
+import { createExportStore, type ExportStore } from '../lib/exportStore';
+import { formatDate } from '../lib/format';
+import { asyncKeyValueStorage } from '../lib/storage';
 import { toggleKind } from '../lib/enabledKinds';
 import { HERO_CRITERIA } from '../lib/heroCriteria';
 import { STATUS_DEFAULT_LABELS } from '../lib/statusDefault';
@@ -23,7 +27,21 @@ const KIND_OPTIONS: readonly ChipOption<MediaKind>[] = MEDIA_KINDS.map((value) =
 }));
 const KIND_COLUMNS = 3;
 
-export function SettingsScreen() {
+const defaultExportStore = createExportStore(asyncKeyValueStorage);
+
+type SettingsScreenProps = {
+  exportStore?: ExportStore;
+  /** 値が変わると「最後に書き出した日」を読み直す。 */
+  reloadKey?: number;
+  onOpenData?: () => void;
+};
+
+export function SettingsScreen({
+  exportStore = defaultExportStore,
+  reloadKey,
+  onOpenData = () => undefined,
+}: SettingsScreenProps) {
+  const { lastExportedAt } = useLastExportedAt(exportStore, reloadKey);
   const { settings, update } = useSettings();
   const bottomInset = useBottomInset();
   const [heroOpen, setHeroOpen] = useState(false);
@@ -76,6 +94,15 @@ export function SettingsScreen() {
             label="上に大きく出す作品"
             value={HERO_CRITERIA[settings.heroCriterion].label}
             onPress={() => setHeroOpen(true)}
+          />
+        </SettingsCard>
+        <SettingsCard title="データ">
+          <SettingsRow
+            label="データ"
+            value={`書き出し・読み込み · ${
+              lastExportedAt ? `最後に書き出した日 ${formatDate(lastExportedAt)}` : 'まだ書き出していません'
+            }`}
+            onPress={onOpenData}
           />
         </SettingsCard>
       </ScrollView>

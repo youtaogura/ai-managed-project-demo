@@ -10,6 +10,7 @@ import { BookLookupContextProvider } from '../hooks/useBookLookup';
 import { CoverResolverContextProvider } from '../hooks/useCoverResolver';
 import { BookSearchContextProvider } from '../hooks/useBookSearch';
 import { MediaSearchContextProvider } from '../hooks/useMediaSearch';
+import { FileServiceContextProvider } from '../hooks/useFileService';
 import { PhotoServiceContextProvider } from '../hooks/usePhotoService';
 import { SettingsContextProvider } from '../hooks/useSettings';
 import { RecordRepositoryProvider } from '../hooks/useRecordRepository';
@@ -30,12 +31,14 @@ function Providers() {
             <BookSearchContextProvider>
               <MediaSearchContextProvider>
                 <PhotoServiceContextProvider>
-                  <ThemeProvider value={navigationTheme}>
-                    <Stack screenOptions={stackScreenOptions}>
-                      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                    </Stack>
-                  </ThemeProvider>
-                  <StatusBar style="light" />
+                  <FileServiceContextProvider>
+                    <ThemeProvider value={navigationTheme}>
+                      <Stack screenOptions={stackScreenOptions}>
+                        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                      </Stack>
+                    </ThemeProvider>
+                    <StatusBar style="light" />
+                  </FileServiceContextProvider>
                 </PhotoServiceContextProvider>
               </MediaSearchContextProvider>
             </BookSearchContextProvider>
