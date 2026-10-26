@@ -71,9 +71,9 @@ describe('全画面でヘッダーが表示される', () => {
     expect(screen).toHavePathname(path);
   });
 
-  it('詳細はヘッダーを出さない', async () => {
+  it('読み返す画面はヘッダーを出さない', async () => {
     await renderRouter(routes, { initialUrl: '/records/r1' });
-    await waitFor(() => expect(screen.getByText('記録が見つかりません')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('本が見つかりません')).toBeTruthy());
     expect(hasHeaderTitle('記録の詳細')).toBe(false);
     expect(screen).toHavePathname('/records/r1');
   });

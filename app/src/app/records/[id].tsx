@@ -1,20 +1,18 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
-import { RecordDetailScreen } from '../../screens/RecordDetailScreen';
+import { RereadScreen } from '../../screens/RereadScreen';
 
-export default function RecordDetailRoute() {
+export default function RereadRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const goToList = () => router.replace('/');
   return (
     <>
       <Stack.Screen options={{ headerShown: false }} />
-      <RecordDetailScreen
+      <RereadScreen
         recordId={id}
         onEdit={(recordId) => router.push({ pathname: '/record/[id]', params: { id: recordId } })}
         onWrite={(recordId) => router.push(`/write/${recordId}`)}
-        onDeleted={goToList}
-        onBack={goToList}
+        onBack={() => router.replace('/')}
       />
     </>
   );
