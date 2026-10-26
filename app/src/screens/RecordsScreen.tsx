@@ -43,7 +43,7 @@ type RecordsScreenProps = {
   /** 値が変わると保存された並び順を読み直す（設定で変えたあと本棚に戻ったとき）。 */
   reloadKey?: number;
   onAdd?: () => void;
-  onOpen?: (id: string) => void;
+  onOpen?: (record: MediaRecord) => void;
 };
 
 export function RecordsScreen({
@@ -91,7 +91,7 @@ export function RecordsScreen({
     setSelectedShelfId(shelf.id);
   };
 
-  const open = (record: MediaRecord) => onOpen?.(record.id);
+  const open = (record: MediaRecord) => onOpen?.(record);
 
   const sheets = (
     <>

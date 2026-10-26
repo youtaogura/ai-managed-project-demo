@@ -38,7 +38,7 @@ const records: MediaRecord[] = [
 
 type Handlers = {
   onAdd?: () => void;
-  onOpen?: (id: string) => void;
+  onOpen?: (record: MediaRecord) => void;
 };
 
 function setup(
@@ -196,12 +196,12 @@ describe('RecordsScreen', () => {
     expect({ a: spineBox('アルファ'), c: spineBox('ガンマ') }).toEqual(before);
   });
 
-  it('背表紙をタップすると onOpen が id 付きで呼ばれる', async () => {
+  it('背表紙をタップすると onOpen が記録付きで呼ばれる', async () => {
     const onOpen = jest.fn();
     await setup(createFakeRepository(records).repository, undefined, { onOpen });
     await ready();
     await fireEvent.press(screen.getByLabelText('ベータ、読みたい'));
-    expect(onOpen).toHaveBeenCalledWith('b');
+    expect(onOpen).toHaveBeenCalledWith(expect.objectContaining({ id: 'b', status: 'planned' }));
   });
 
   it('コールバック未指定でもタップで落ちない', async () => {
