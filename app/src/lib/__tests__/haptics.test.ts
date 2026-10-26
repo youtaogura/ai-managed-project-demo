@@ -1,7 +1,7 @@
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';
 
-import { triggerRatingHaptic } from '../haptics';
+import { triggerImpactHaptic, triggerRatingHaptic } from '../haptics';
 
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(),
@@ -40,5 +40,18 @@ describe('triggerRatingHaptic', () => {
       throw new Error('boom');
     });
     expect(() => triggerRatingHaptic()).not.toThrow();
+  });
+});
+
+describe('triggerImpactHaptic', () => {
+  it('ネイティブでは Light で呼び、web では呼ばない', () => {
+    setOS('ios');
+    impact.mockResolvedValue(undefined);
+    triggerImpactHaptic();
+    expect(impact).toHaveBeenCalledWith('light');
+    impact.mockClear();
+    setOS('web');
+    triggerImpactHaptic();
+    expect(impact).not.toHaveBeenCalled();
   });
 });

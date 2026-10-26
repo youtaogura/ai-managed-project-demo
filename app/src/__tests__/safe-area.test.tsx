@@ -39,20 +39,24 @@ function topSpace(style: unknown): number {
   return (flat?.paddingTop ?? 0) + (flat?.marginTop ?? 0);
 }
 
-describe('上端インセットのある端末（ヘッダー付き画面）', () => {
-  it('記録一覧のコンテンツ先頭にインセット分の余白が加わらない', async () => {
+describe('上端インセットのある端末（タブの画面はヘッダーなし）', () => {
+  it('記録一覧の見出しの上に、インセット分の余白がちょうど 1 回だけ入る', async () => {
     await renderRouter(routes);
-    const empty = await screen.findByText('まだ記録がありません');
-    let node = empty.parent;
+    const title = await screen.findByText('最初の1作品を記録しよう');
+    let total = 0;
+    let node = title.parent;
     while (node) {
-      expect(topSpace(node.props.style)).toBeLessThan(TOP);
+      total += topSpace(node.props.style);
       node = node.parent;
     }
+    expect(total).toBe(TOP);
   });
 
-  it('「追加」ボタンが表示され、押すと記録の追加画面へ遷移する', async () => {
+  it('「記録する」から手で入力すると、記録の追加画面へ遷移する', async () => {
     await renderRouter(routes);
-    await fireEvent.press(await screen.findByRole('button', { name: '追加' }));
+    await screen.findByText('最初の1作品を記録しよう');
+    await fireEvent.press(screen.getAllByRole('button', { name: '記録する' }).slice(-1)[0]);
+    await fireEvent.press(await screen.findByRole('button', { name: '手で入力する' }));
     expect(await screen.findByLabelText('タイトル（必須）')).toBeTruthy();
     expect(screen).toHavePathname('/record/new');
   });

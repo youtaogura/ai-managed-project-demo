@@ -11,8 +11,7 @@ import { RecordRepositoryProvider } from '../hooks/useRecordRepository';
 import { BarcodeScanScreen } from '../screens/BarcodeScanScreen';
 import { RecordDetailScreen } from '../screens/RecordDetailScreen';
 import { TitleSearchScreen } from '../screens/TitleSearchScreen';
-import { space } from '../design/tokens';
-import { spacing } from '../theme';
+import { size, space } from '../design/tokens';
 import { createFakeRepository, createMockPhotoService, makeRecord } from '../testUtils';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -87,8 +86,8 @@ describe.each([
         </RecordRepositoryProvider>,
       ),
     );
-    await screen.findByText('吾輩は猫である');
-    expect(scrollPaddingBottom('吾輩は猫である')).toBe(spacing.md + extra);
+    await screen.findByText('ステータス');
+    expect(scrollPaddingBottom('ステータス')).toBe(size.buttonHeight + space[4] * 2 + space[6] + extra);
   });
 
   it('バーコード読み取りのオーバーレイ下端にインセットが加わる', async () => {

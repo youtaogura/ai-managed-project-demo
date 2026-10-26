@@ -50,17 +50,32 @@ function hasHeaderTitle(title: string): boolean {
   return containsTitle(screen.toJSON(), title) || screen.queryAllByText(title).length > 0;
 }
 
+describe('タブの画面はネイティブのヘッダーを出さず、画面内の見出しにする', () => {
+  it.each([
+    ['/', '記録'],
+    ['/analytics', '振り返り'],
+  ])('%s の見出しは「%s」', async (path, title) => {
+    await renderRouter(routes, { initialUrl: path });
+    await waitFor(() => expect(screen.getAllByText(title).length).toBeGreaterThan(0));
+    expect(screen).toHavePathname(path);
+  });
+});
+
 describe('全画面でヘッダーが表示される', () => {
   it.each([
-    ['/', '記録一覧'],
-    ['/analytics', '分析'],
-    ['/records/r1', '記録の詳細'],
     ['/record/new', '記録を追加'],
     ['/record/r1', '記録を編集'],
   ])('%s のヘッダータイトルは「%s」', async (path, title) => {
     await renderRouter(routes, { initialUrl: path });
     await waitFor(() => expect(hasHeaderTitle(title)).toBe(true));
     expect(screen).toHavePathname(path);
+  });
+
+  it('詳細はヘッダーを出さない', async () => {
+    await renderRouter(routes, { initialUrl: '/records/r1' });
+    await waitFor(() => expect(screen.getByText('記録が見つかりません')).toBeTruthy());
+    expect(hasHeaderTitle('記録の詳細')).toBe(false);
+    expect(screen).toHavePathname('/records/r1');
   });
 
   it('記録一覧から ISBN 入力画面へ、ネイティブヘッダーなしで画面内の上部バーで遷移する', async () => {
