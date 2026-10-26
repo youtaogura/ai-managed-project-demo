@@ -87,3 +87,22 @@ export function summarizeRatings(records: MediaRecord[]): RatingSummary {
 export function formatAverage(value: number | null): string {
   return value === null ? '—' : value.toFixed(1);
 }
+
+export function summarizeYear(result: MonthlyCompletionResult): number {
+  return result.months.reduce((sum, m) => sum + m.total, 0);
+}
+
+function slashMonth(month: string): string {
+  return month.replace('-', '/');
+}
+
+// 例: '2025/11 – 2026/10'（半角スペース + en dash）
+export function formatPeriod(months: MonthlyCompletion[]): string {
+  if (months.length === 0) return '';
+  return `${slashMonth(months[0].month)} – ${slashMonth(months[months.length - 1].month)}`;
+}
+
+// '2026-10' → '10月'
+export function monthLabel(month: string): string {
+  return `${Number(month.slice(5, 7))}月`;
+}

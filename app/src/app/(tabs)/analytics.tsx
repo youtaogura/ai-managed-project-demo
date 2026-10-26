@@ -1,22 +1,14 @@
-import { StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
 
-import { AppText } from '../../components/AppText';
-import { ScreenContainer } from '../../components/ScreenContainer';
-import { space } from '../../design/tokens';
-import { AnalyticsScreen } from '../../screens/AnalyticsScreen';
+import { ReviewScreen } from '../../screens/ReviewScreen';
 
-// ネイティブのヘッダーは出さず、画面内の大きな見出しにする（中身の刷新は別 Issue）
+// ルート名は analytics のまま（表示名は「振り返り」）。見出しは画面側が持つ
 export default function AnalyticsRoute() {
+  const router = useRouter();
   return (
-    <ScreenContainer>
-      <View style={styles.header}>
-        <AppText variant="screenTitle">振り返り</AppText>
-      </View>
-      <AnalyticsScreen />
-    </ScreenContainer>
+    <ReviewScreen
+      onAdd={() => router.push('/record/new')}
+      onOpenRecords={() => router.push('/')}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  header: { paddingHorizontal: space[5], paddingVertical: space[3] },
-});

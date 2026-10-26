@@ -1,48 +1,71 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import type { MonthlyCompletion } from '../lib/analytics';
+import { colors, space } from '../design/tokens';
+import { monthLabel, type MonthlyCompletion } from '../lib/analytics';
+import { KIND_SHADES } from '../lib/kindShades';
 import { KIND_LABELS } from '../lib/statusLabel';
-import { colors, kindColors, spacing } from '../theme';
 import { MEDIA_KINDS } from '../types/record';
+import { AppText } from './AppText';
 
 const CHART_HEIGHT = 120;
+const COUNT_HEIGHT = 14;
+const MIN_BAR = 2;
+const SWATCH = 8;
 
-type MonthlyBarChartProps = { months: MonthlyCompletion[] };
+type MonthlyBarChartProps = { months: MonthlyCompletion[]; currentMonth: string };
 
-export function MonthlyBarChart({ months }: MonthlyBarChartProps) {
+export function MonthlyBarChart({ months, currentMonth }: MonthlyBarChartProps) {
   const max = Math.max(0, ...months.map((m) => m.total));
   return (
     <View>
+      <View style={styles.chart}>
+        {months.map((m) => {
+          const label = monthLabel(m.month);
+          const barHeight = m.total === 0 ? 0 : Math.max(MIN_BAR, (m.total / max) * CHART_HEIGHT);
+          return (
+            <View
+              key={m.month}
+              accessible
+              accessibilityLabel={`${label} ${m.total} 作品`}
+              style={styles.column}
+            >
+              <View style={styles.barArea}>
+                {m.total > 0 ? (
+                  <AppText variant="micro" style={styles.total}>
+                    {String(m.total)}
+                  </AppText>
+                ) : null}
+                <View style={[styles.stack, { height: barHeight }]}>
+                  {MEDIA_KINDS.map((kind) =>
+                    m.byKind[kind] > 0 ? (
+                      <View
+                        key={kind}
+                        style={{ flex: m.byKind[kind], backgroundColor: KIND_SHADES[kind] }}
+                      />
+                    ) : null,
+                  )}
+                </View>
+              </View>
+              <AppText
+                variant="micro"
+                numberOfLines={1}
+                style={{
+                  color: m.month === currentMonth ? colors.textPrimary : colors.textSecondary,
+                }}
+              >
+                {label}
+              </AppText>
+            </View>
+          );
+        })}
+      </View>
       <View style={styles.legend}>
         {MEDIA_KINDS.map((kind) => (
           <View key={kind} style={styles.legendItem}>
-            <View style={[styles.swatch, { backgroundColor: kindColors[kind] }]} />
-            <Text style={styles.legendText}>{KIND_LABELS[kind]}</Text>
-          </View>
-        ))}
-      </View>
-      <View style={styles.chart}>
-        {months.map((m) => (
-          <View key={m.month} style={styles.column}>
-            <Text style={styles.total}>{m.total}</Text>
-            <View style={styles.barArea}>
-              <View style={styles.stack}>
-                {MEDIA_KINDS.map((kind) =>
-                  m.byKind[kind] > 0 ? (
-                    <View
-                      key={kind}
-                      style={{
-                        height: (m.byKind[kind] / max) * CHART_HEIGHT,
-                        backgroundColor: kindColors[kind],
-                      }}
-                    />
-                  ) : null,
-                )}
-              </View>
-            </View>
-            <Text style={styles.month} numberOfLines={1}>
-              {m.month}
-            </Text>
+            <View style={[styles.swatch, { backgroundColor: KIND_SHADES[kind] }]} />
+            <AppText variant="micro" style={styles.legendText}>
+              {KIND_LABELS[kind]}
+            </AppText>
           </View>
         ))}
       </View>
@@ -51,14 +74,23 @@ export function MonthlyBarChart({ months }: MonthlyBarChartProps) {
 }
 
 const styles = StyleSheet.create({
-  legend: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginBottom: spacing.sm },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  swatch: { width: 12, height: 12, borderRadius: 2 },
-  legendText: { fontSize: 12, color: colors.text },
   chart: { flexDirection: 'row', alignItems: 'flex-end', gap: 2 },
-  column: { flex: 1, alignItems: 'center' },
-  total: { fontSize: 11, color: colors.text },
-  barArea: { height: CHART_HEIGHT, justifyContent: 'flex-end', width: '100%' },
-  stack: { flexDirection: 'column-reverse', width: '100%' },
-  month: { fontSize: 8, color: colors.textMuted, marginTop: 2 },
+  column: { flex: 1, alignItems: 'center', gap: space[1] },
+  barArea: {
+    height: CHART_HEIGHT + COUNT_HEIGHT + 2,
+    justifyContent: 'flex-end',
+    width: '100%',
+    alignItems: 'center',
+  },
+  total: { color: colors.textSecondary, marginBottom: 2 },
+  stack: {
+    flexDirection: 'column-reverse',
+    width: '100%',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  legend: { flexDirection: 'row', flexWrap: 'wrap', gap: space[3], marginTop: space[3] },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: space[1] },
+  swatch: { width: SWATCH, height: SWATCH, borderRadius: 2 },
+  legendText: { color: colors.textSecondary },
 });

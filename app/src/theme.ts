@@ -1,5 +1,4 @@
 import { colors as tokens, space } from './design/tokens';
-import type { MediaKind } from './types/record';
 
 // 互換層。値は design/tokens.ts からのみ参照する
 export const colors = {
@@ -31,15 +30,6 @@ export const overlayColors = {
   text: tokens.textPrimary,
   background: tokens.scrim,
 } as const;
-
-// 種別の色分けは廃止（後続の画面 Issue で文字の表紙に置き換える）
-export const kindColors: Record<MediaKind, string> = {
-  book: tokens.accent,
-  manga: tokens.accent,
-  movie: tokens.accent,
-  drama: tokens.accent,
-  anime: tokens.accent,
-};
 
 export const starColors = {
   filled: tokens.accent,

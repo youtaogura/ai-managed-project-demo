@@ -1,4 +1,4 @@
-import { router, useScrollToTop } from 'expo-router';
+import { useScrollToTop } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -9,7 +9,7 @@ import {
   View,
 } from 'react-native';
 
-import { AddSheet, type AddTarget } from '../components/AddSheet';
+import { AddSheet } from '../components/AddSheet';
 import { AppText } from '../components/AppText';
 import { Button } from '../components/Button';
 import { CoverCard } from '../components/CoverCard';
@@ -18,6 +18,7 @@ import { ScreenContainer } from '../components/ScreenContainer';
 import { SortSheet } from '../components/SortSheet';
 import { YearCounter } from '../components/YearCounter';
 import { colors, space } from '../design/tokens';
+import { useAddSheet } from '../hooks/useAddSheet';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useMediaSearch } from '../hooks/useMediaSearch';
 import { useRecords } from '../hooks/useRecords';
@@ -33,12 +34,6 @@ const defaultSortOrderStore = createSortOrderStore(asyncKeyValueStorage);
 const COLUMNS = 4;
 const GRID_GAP = 10;
 const RECENT_LIMIT = 10;
-const ADD_ROUTES = {
-  scan: '/record/scan',
-  search: '/record/search',
-  isbn: '/record/isbn',
-  mediaSearch: '/record/media-search',
-} as const;
 
 type RecordsScreenProps = {
   sortOrderStore?: SortOrderStore;
@@ -54,7 +49,7 @@ export function RecordsScreen({
   const { records, loading } = useRecords();
   const mediaSearchEnabled = useMediaSearch() !== null;
   const [order, setOrder] = useSortOrder(sortOrderStore);
-  const [addOpen, setAddOpen] = useState(false);
+  const { addOpen, openAdd, closeAdd, select } = useAddSheet(onAdd);
   const [sortOpen, setSortOpen] = useState(false);
   const { width } = useWindowDimensions();
   const bottomInset = useBottomInset();
@@ -76,20 +71,13 @@ export function RecordsScreen({
   }
 
   const open = (record: MediaRecord) => onOpen?.(record.id);
-  const select = (target: AddTarget) => {
-    setAddOpen(false);
-    if (target === 'manual') onAdd?.();
-    else if (target === 'mediaManual') {
-      router.push({ pathname: '/record/new', params: { kind: 'movie' } });
-    } else router.push(ADD_ROUTES[target]);
-  };
   const cellWidth = (width - space[5] * 2 - GRID_GAP * (COLUMNS - 1)) / COLUMNS;
 
   const sheets = (
     <>
       <AddSheet
         visible={addOpen}
-        onClose={() => setAddOpen(false)}
+        onClose={closeAdd}
         onSelect={select}
         mediaSearchEnabled={mediaSearchEnabled}
       />
@@ -111,7 +99,7 @@ export function RecordsScreen({
         <EmptyState
           title="最初の1作品を記録しよう"
           description="読み終えた本や、見終えた映画を記録するとここに並んでいきます"
-          onAction={() => setAddOpen(true)}
+          onAction={() => openAdd()}
         />
         {sheets}
       </ScreenContainer>
@@ -126,7 +114,7 @@ export function RecordsScreen({
           <Button variant="icon" accessibilityLabel="並び替え" onPress={() => setSortOpen(true)}>
             <AppText variant="sectionTitle">⇅</AppText>
           </Button>
-          <Button variant="record" onPress={() => setAddOpen(true)} />
+          <Button variant="record" onPress={() => openAdd()} />
         </View>
       </View>
       <View style={styles.counter}>
