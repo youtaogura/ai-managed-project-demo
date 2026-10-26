@@ -35,3 +35,10 @@ export const kindColors: Record<MediaKind, string> = {
   drama: '#0ca678',
   anime: '#d6336c',
 };
+
+export const starColors = {
+  filled: '#f5a623',
+  empty: '#d9d9de',
+} as const;
+
+export const STAR_SIZE = 36;

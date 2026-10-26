@@ -4,6 +4,7 @@ import { Dimensions } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { BookLookupContextProvider } from '../hooks/useBookLookup';
+import { BookSearchContextProvider } from '../hooks/useBookSearch';
 import { PhotoServiceContextProvider } from '../hooks/usePhotoService';
 import { RecordRepositoryProvider } from '../hooks/useRecordRepository';
 import { parsePreviewInsets } from '../lib/previewInsets';
@@ -14,12 +15,14 @@ function Providers() {
   return (
     <RecordRepositoryProvider>
       <BookLookupContextProvider>
-        <PhotoServiceContextProvider>
-          <Stack screenOptions={{ headerShown: true }}>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          </Stack>
-          <StatusBar style="auto" />
-        </PhotoServiceContextProvider>
+        <BookSearchContextProvider>
+          <PhotoServiceContextProvider>
+            <Stack screenOptions={{ headerShown: true }}>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            </Stack>
+            <StatusBar style="auto" />
+          </PhotoServiceContextProvider>
+        </BookSearchContextProvider>
       </BookLookupContextProvider>
     </RecordRepositoryProvider>
   );
