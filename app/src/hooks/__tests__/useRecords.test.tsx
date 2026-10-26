@@ -1,0 +1,41 @@
+import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
+import { Text } from 'react-native';
+
+import { createFakeRepository, makeRecord } from '../../testUtils';
+import type { RecordRepository } from '../../lib/recordRepository';
+import { useRecords } from '../useRecords';
+
+function makeProbe(repository: RecordRepository) {
+  return function Probe() {
+    const { records, loading, reload } = useRecords(repository);
+    return (
+      <>
+        <Text>{loading ? 'loading' : `count:${records.length}`}</Text>
+        <Text onPress={() => void reload()}>reload</Text>
+      </>
+    );
+  };
+}
+
+describe('useRecords', () => {
+  it('読み込み後に件数を返し、reload で最新になる', async () => {
+    const { repository, setRecords } = createFakeRepository([makeRecord()]);
+    await renderRouter({ index: makeProbe(repository) });
+    await waitFor(() => expect(screen.getByText('count:1')).toBeTruthy());
+    setRecords([makeRecord({ id: 'a' }), makeRecord({ id: 'b' })]);
+    await fireEvent.press(screen.getByText('reload'));
+    await waitFor(() => expect(screen.getByText('count:2')).toBeTruthy());
+  });
+
+  it('reject されても空配列で落ちない', async () => {
+    const { repository } = createFakeRepository();
+    const failing: RecordRepository = {
+      ...repository,
+      getAll: async () => {
+        throw new Error('fail');
+      },
+    };
+    await renderRouter({ index: makeProbe(failing) });
+    await waitFor(() => expect(screen.getByText('count:0')).toBeTruthy());
+  });
+});

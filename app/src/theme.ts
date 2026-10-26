@@ -3,6 +3,9 @@ export const colors = {
   text: '#111',
   textMuted: '#555',
   tint: '#2f6fed',
+  border: '#ddd',
+  surface: '#f3f4f6',
+  danger: '#d92d20',
 } as const;
 
 export const spacing = {
