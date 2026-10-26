@@ -16,22 +16,55 @@ import { checkImageFreshness, describeStale } from './lib/freshness.mjs';
 import * as gh from './lib/github.mjs';
 import * as git from './lib/git.mjs';
 import { log, run, warn } from './lib/sh.mjs';
-import { byPriority, isEligible, runJob, stageForStatus } from './lib/stages.mjs';
+import {
+  byPriority,
+  describeDependencies,
+  isEligible,
+  needsDependencyCheck,
+  runJob,
+  stageForStatus,
+  unmetDependencies,
+} from './lib/stages.mjs';
 
 const running = new Map(); // issue number -> Promise
+const waitingLogged = new Map(); // issue number -> 前回ログに出した待ちの内容（同じ内容を毎回出さない）
+
+// Ready の Issue の、まだ完了していない前提の Issue（blocked by）。取得に失敗したら着手しない
+async function waitingOn(item) {
+  if (!needsDependencyCheck(item)) return [];
+  try {
+    return unmetDependencies(await gh.listBlockedBy(item.issue.number));
+  } catch (e) {
+    warn(`#${item.issue.number}: 依存関係を取得できないため、今回は着手しません`, e.message.split('\n')[0]);
+    return [{ number: 0, state: 'unknown' }];
+  }
+}
 
 async function pollOnce() {
   // Project の設定（Status の選択肢など）の変更に追従するため、ポーリングごとに取り直す
   await gh.getProject({ refresh: true });
   const items = (await gh.listItems()).filter(isEligible).sort(byPriority);
+  let startable = 0;
   for (const item of items) {
-    if (running.size >= config.maxConcurrency) break;
     const n = item.issue.number;
-    if (running.has(n)) continue;
+    if (running.has(n)) {
+      startable++;
+      continue;
+    }
+    const waiting = await waitingOn(item);
+    if (waiting.length) {
+      const desc = describeDependencies(waiting);
+      if (waitingLogged.get(n) !== desc) log(`#${n}: 前提の Issue の完了待ち: ${desc}`);
+      waitingLogged.set(n, desc);
+      continue;
+    }
+    waitingLogged.delete(n);
+    startable++;
+    if (running.size >= config.maxConcurrency) continue;
     const job = runJob(item).finally(() => running.delete(n));
     running.set(n, job);
   }
-  return items.length;
+  return startable;
 }
 
 async function loop() {
@@ -96,7 +129,11 @@ async function status() {
     const inCol = items.filter((i) => i.status === name);
     console.log(`\n[${name}] ${inCol.length}件`);
     for (const i of inCol) {
-      const stage = isEligible(i) ? `→ 次の工程: ${stageForStatus(i.status)}` : '';
+      let stage = isEligible(i) ? `→ 次の工程: ${stageForStatus(i.status)}` : '';
+      if (isEligible(i) && needsDependencyCheck(i)) {
+        const waiting = unmetDependencies(await gh.listBlockedBy(i.issue.number));
+        if (waiting.length) stage = `→ 前提の完了待ち: ${describeDependencies(waiting)}`;
+      }
       const labels = i.issue.labels.length ? ` (${i.issue.labels.join(', ')})` : '';
       console.log(`  #${i.issue.number} ${i.issue.title}${labels} ${stage}`);
     }

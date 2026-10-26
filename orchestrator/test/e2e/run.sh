@@ -52,8 +52,10 @@ cat > "$WORK/state.json" <<'EOF'
  {"itemId":"I7","number":7,"title":"必須チェックが出ないまま時間切れで停止","status":"Implement","state":"OPEN","labels":[]},
  {"itemId":"I8","number":8,"title":"同じファイルを追加する（後にマージされる方がコンフリクト）","status":"Implement","state":"OPEN","labels":[]},
  {"itemId":"I9","number":9,"title":"同じファイルを追加する（後にマージされる方がコンフリクト）","status":"Implement","state":"OPEN","labels":[]},
- {"itemId":"I10","number":10,"title":"マージ直前に main とコンフリクトしていたら差し戻して解消","status":"Release","state":"OPEN","labels":[]}
-],"prs":{"agent/issue-10":{"number":90,"open":true}},"log":[],"reviews":{}}
+ {"itemId":"I10","number":10,"title":"マージ直前に main とコンフリクトしていたら差し戻して解消","status":"Release","state":"OPEN","labels":[]},
+ {"itemId":"I11","number":11,"title":"前提（#1）の完了を待ってから着手","status":"Ready","state":"OPEN","labels":[]},
+ {"itemId":"I12","number":12,"title":"前提（#3, Backlog）が終わらないので着手しない","status":"Ready","state":"OPEN","labels":[]}
+],"deps":{"11":[1],"12":[3]},"prs":{"agent/issue-10":{"number":90,"open":true}},"log":[],"reviews":{}}
 EOF
 
 export PATH="$HERE/bin:$PATH"
@@ -118,6 +120,11 @@ const rc = execFileSync('git', ['show', 'main:app/src/lib/release-conflict.ts'],
 expect(rc.includes('fromMain') && rc.includes('fromIssue10'), '#10 の解消で main 側の変更も残る');
 expect(!s.log.some((l) => /^pr merge #\d+ failed$/.test(l)), 'コンフリクトしたままマージしようとしない');
 const orchLog = fs.readFileSync(`${work}/orchestrator.log`, 'utf8');
+const startOf = (n) => s.log.indexOf(`status #${n}: Ready -> Spec`);
+expect(startOf(11) > s.log.indexOf('close #1') && s.log.indexOf('close #1') >= 0, '#11 は前提の #1 がクローズされてから着手する');
+expect(item(11).status === 'Done' && item(11).state === 'CLOSED', '#11 は前提の完了後に Done になる');
+expect(item(12).status === 'Ready' && !s.log.some((l) => l.includes('#12')), '#12 は前提（#3）が終わらないので Ready のまま触られない');
+expect(/#12: 前提の Issue の完了待ち: #3/.test(orchLog), '#12 の待ちの理由がログに出る');
 expect(/main を取り込みました/.test(orchLog), 'main が先に進んだ PR は、main を取り込んで CI をやり直してからマージする');
 
 console.log(failed ? `\nNG: ${failed} 件失敗` : '\nOK: E2E リハーサル成功');

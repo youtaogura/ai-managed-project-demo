@@ -103,6 +103,13 @@ export async function listItems() {
   return items;
 }
 
+// Issue の「blocked by」（GitHub の Issue の依存関係）を { number, title, state, stateReason } の配列で返す
+export async function listBlockedBy(number) {
+  const res = await ghJson(['api', `repos/${config.repo}/issues/${number}/dependencies/blocked_by?per_page=100`]);
+  if (!Array.isArray(res)) return [];
+  return res.map((i) => ({ number: i.number, title: i.title, state: i.state, stateReason: i.state_reason ?? null }));
+}
+
 export async function setStatus(item, statusName) {
   let meta = await getProject();
   // 起動後に Project の Status の選択肢が変更されていることがあるので、見つからなければ取り直す
