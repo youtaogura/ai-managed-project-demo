@@ -4,6 +4,7 @@ import { Text } from 'react-native';
 import { createSettingsStore, type SettingsStore } from '../../lib/settingsStore';
 import { createMemoryStorage } from '../../testUtils';
 import { SettingsContextProvider, useSettings } from '../useSettings';
+import type { AppSettings } from '../../types/settings';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -39,7 +40,7 @@ describe('useSettings', () => {
   });
 
   it('読み込みが終わるまで子を描画しない', async () => {
-    let release: (v: { enabledKinds: ['movie'] }) => void = () => undefined;
+    let release: (v: AppSettings) => void = () => undefined;
     const store: SettingsStore = {
       load: () => new Promise((r) => (release = r)),
       save: async () => undefined,
@@ -50,7 +51,7 @@ describe('useSettings', () => {
       </SettingsContextProvider>,
     );
     expect(screen.queryByText('子')).toBeNull();
-    await act(async () => release({ enabledKinds: ['movie'] }));
+    await act(async () => release({ enabledKinds: ['movie'], heroCriterion: 'recent' }));
     expect(screen.getByText('子')).toBeTruthy();
   });
 
@@ -81,7 +82,7 @@ describe('useSettings', () => {
     const saved: string[][] = [];
     let calls = 0;
     const store: SettingsStore = {
-      load: async () => ({ enabledKinds: ['book'] }),
+      load: async () => ({ enabledKinds: ['book'], heroCriterion: 'recent' }),
       save: async (s) => {
         calls += 1;
         if (calls === 1) throw new Error('fail');

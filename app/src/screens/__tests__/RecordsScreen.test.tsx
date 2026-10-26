@@ -5,6 +5,7 @@ import { MediaSearchContextProvider } from '../../hooks/useMediaSearch';
 import type { MediaSearchProvider } from '../../lib/mediaSearch/MediaSearchProvider';
 import { withRepository, withSettings } from '../../testProviders';
 import { createSortOrderStore } from '../../lib/sortOrderStore';
+import { createSettingsStore, SETTINGS_STORAGE_KEY } from '../../lib/settingsStore';
 import { createFakeRepository, createMemoryStorage, makeRecord } from '../../testUtils';
 import type { MediaKind, MediaRecord } from '../../types/record';
 import type { RecordRepository } from '../../lib/recordRepository';
@@ -299,5 +300,50 @@ describe('RecordsScreen', () => {
     await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
     await fireEvent.press(screen.getByRole('button', { name: '閉じる' }));
     expect(screen.queryByText('何を記録しますか')).toBeNull();
+  });
+});
+
+describe('RecordsScreen（上に大きく出す作品）', () => {
+  const setupHero = (criterion: string, data: MediaRecord[]) =>
+    renderRouter({
+      index: () =>
+        withSettings(
+          createSettingsStore(
+            createMemoryStorage({
+              [SETTINGS_STORAGE_KEY]: JSON.stringify({ heroCriterion: criterion }),
+            }).storage,
+          ),
+          withRepository(
+            createFakeRepository(data).repository,
+            <RecordsScreen sortOrderStore={createSortOrderStore(createMemoryStorage().storage)} />,
+          ),
+        ),
+    });
+
+  it('初期値では「最近読み終えた・見終えた」を出す', async () => {
+    await setup(createFakeRepository(records).repository);
+    expect(await screen.findByText('最近読み終えた・見終えた')).toBeTruthy();
+  });
+
+  it('条件に合わせて見出しと作品が変わる', async () => {
+    await setupHero('planned', records);
+    expect(await screen.findByText('読みたい・見たい')).toBeTruthy();
+    expect(screen.queryByText('最近読み終えた・見終えた')).toBeNull();
+    // ベータ（planned）は hero と一覧の 2 か所に出る
+    expect(screen.getAllByLabelText('ベータ')).toHaveLength(2);
+    expect(screen.getAllByLabelText('アルファ')).toHaveLength(1);
+  });
+
+  it('条件に合う作品がないとき、見出しも段も出ない', async () => {
+    await setupHero('inProgress', records);
+    expect(await screen.findByText('すべての記録')).toBeTruthy();
+    expect(screen.queryByText('今読んでる・見てる')).toBeNull();
+  });
+
+  it('none では段を出さない', async () => {
+    await setupHero('none', records);
+    expect(await screen.findByText('すべての記録')).toBeTruthy();
+    expect(screen.queryByText('最近読み終えた・見終えた')).toBeNull();
+    expect(screen.getAllByLabelText('アルファ')).toHaveLength(1);
   });
 });
