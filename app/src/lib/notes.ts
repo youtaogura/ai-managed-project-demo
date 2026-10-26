@@ -21,22 +21,31 @@ function pageNumber(page: string | null): number | null {
   return match ? Number(match[0]) : null;
 }
 
+type Sortable = { page: string | null; createdAt: string };
+
+function sortByPage<T>(items: T[], pick: (item: T) => Sortable): T[] {
+  return items
+    .map((item, index) => ({ item, index, page: pageNumber(pick(item).page), createdAt: pick(item).createdAt }))
+    .sort((a, b) => {
+      if (a.page !== null && b.page !== null && a.page !== b.page) return a.page - b.page;
+      if ((a.page === null) !== (b.page === null)) return a.page === null ? 1 : -1;
+      if (a.createdAt !== b.createdAt) return a.createdAt < b.createdAt ? -1 : 1;
+      return a.index - b.index;
+    })
+    .map(({ item }) => item);
+}
+
+/** メモをページ順（ページなしは後ろ、同じなら作成順）に並べる。 */
+export function sortMemos(memos: MemoEntry[]): MemoEntry[] {
+  return sortByPage(memos, (m) => m);
+}
+
 export function buildNoteItems(record: Pick<MediaRecord, 'memos' | 'quotes'>): NoteItem[] {
   const items: NoteItem[] = [
     ...record.memos.map((entry): NoteItem => ({ kind: 'memo', entry })),
     ...record.quotes.map((entry): NoteItem => ({ kind: 'quote', entry })),
   ];
-  return items
-    .map((item, index) => ({ item, index, page: pageNumber(item.entry.page) }))
-    .sort((a, b) => {
-      if (a.page !== null && b.page !== null && a.page !== b.page) return a.page - b.page;
-      if ((a.page === null) !== (b.page === null)) return a.page === null ? 1 : -1;
-      if (a.item.entry.createdAt !== b.item.entry.createdAt) {
-        return a.item.entry.createdAt < b.item.entry.createdAt ? -1 : 1;
-      }
-      return a.index - b.index;
-    })
-    .map(({ item }) => item);
+  return sortByPage(items, (item) => item.entry);
 }
 
 export function normalizePage(input: string): string | null {

@@ -9,9 +9,9 @@ import { CoverResolverContextProvider } from '../hooks/useCoverResolver';
 import { BookSearchContextProvider } from '../hooks/useBookSearch';
 import { PhotoServiceContextProvider } from '../hooks/usePhotoService';
 import { BarcodeScanScreen } from '../screens/BarcodeScanScreen';
-import { RecordDetailScreen } from '../screens/RecordDetailScreen';
+import { RereadScreen } from '../screens/RereadScreen';
 import { TitleSearchScreen } from '../screens/TitleSearchScreen';
-import { size, space } from '../design/tokens';
+import { space } from '../design/tokens';
 import { withRepository } from '../testProviders';
 import { createFakeRepository, createMockPhotoService, makeRecord } from '../testUtils';
 
@@ -77,16 +77,16 @@ describe.each([
     expect(padding).toBe(space[3] + extra);
   });
 
-  it('記録の詳細の末尾余白にインセットが加わる', async () => {
+  it('読み返す画面の末尾余白にインセットが加わる', async () => {
     const { repository } = createFakeRepository([makeRecord({ id: 'x', title: '吾輩は猫である' })]);
     await render(
       withInsets(
         bottom,
-        withRepository(repository, <RecordDetailScreen recordId="x" />),
+        withRepository(repository, <RereadScreen recordId="x" />),
       ),
     );
-    await screen.findByText('ステータス');
-    expect(scrollPaddingBottom('ステータス')).toBe(size.buttonHeight + space[4] * 2 + space[6] + extra);
+    await screen.findByText('吾輩は猫である');
+    expect(scrollPaddingBottom('吾輩は猫である')).toBe(space[6] + extra);
   });
 
   it('バーコード読み取りのオーバーレイ下端にインセットが加わる', async () => {
