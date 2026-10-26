@@ -12,6 +12,7 @@ import path from 'node:path';
 import { parseArgs } from 'node:util';
 
 import { config } from './lib/config.mjs';
+import { checkImageFreshness, describeStale } from './lib/freshness.mjs';
 import * as gh from './lib/github.mjs';
 import * as git from './lib/git.mjs';
 import { log, run, warn } from './lib/sh.mjs';
@@ -20,6 +21,8 @@ import { byPriority, isEligible, runJob, stageForStatus } from './lib/stages.mjs
 const running = new Map(); // issue number -> Promise
 
 async function pollOnce() {
+  // Project の設定（Status の選択肢など）の変更に追従するため、ポーリングごとに取り直す
+  await gh.getProject({ refresh: true });
   const items = (await gh.listItems()).filter(isEligible).sort(byPriority);
   for (const item of items) {
     if (running.size >= config.maxConcurrency) break;
@@ -34,6 +37,7 @@ async function pollOnce() {
 async function loop() {
   log(`オーケストレーター起動: ${config.repo} / Project #${config.projectNumber} / 並列 ${config.maxConcurrency}${config.dryRun ? ' / DRY_RUN' : ''}`);
   await gh.ensureLabels();
+  await warnIfStale();
   let stopping = false;
   const stop = () => {
     if (stopping) process.exit(1);
@@ -57,8 +61,19 @@ async function loop() {
   log('停止しました');
 }
 
+async function warnIfStale() {
+  try {
+    await git.fetchOrigin();
+    const { checked, stale } = await checkImageFreshness();
+    if (checked && stale.length) warn(describeStale(stale));
+  } catch (e) {
+    warn('イメージの鮮度を確認できませんでした', e.message.split('\n')[0]);
+  }
+}
+
 async function once() {
   await gh.ensureLabels();
+  await warnIfStale();
   const count = await pollOnce();
   log(`着手可能 ${count} 件 / 実行 ${running.size} 件`);
   await Promise.allSettled(running.values());
@@ -147,6 +162,10 @@ async function doctor() {
         allowFail: true,
       });
       (push.ok ? pass : fail)(`push 権限${push.ok ? '' : `: ${push.stderr.trim().split('\n').pop()}`}`);
+      const { checked, stale } = await checkImageFreshness();
+      if (!checked) note('イメージの鮮度を確認できませんでした（origin/main に orchestrator/ がない）');
+      else if (stale.length) fail(describeStale(stale));
+      else pass(`イメージ内のオーケストレーターは ${config.baseBranch} と一致`);
     } catch (e) {
       fail(`fetch できません: ${e.message.split('\n')[0]}`);
     }

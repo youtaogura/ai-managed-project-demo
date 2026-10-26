@@ -104,7 +104,9 @@ export async function listItems() {
 }
 
 export async function setStatus(item, statusName) {
-  const meta = await getProject();
+  let meta = await getProject();
+  // 起動後に Project の Status の選択肢が変更されていることがあるので、見つからなければ取り直す
+  if (!meta.options[statusName]) meta = await getProject({ refresh: true });
   const optionId = meta.options[statusName];
   if (!optionId) throw new Error(`Status に "${statusName}" という選択肢がありません`);
   return mutate(`#${item.issue.number}: status ${item.status} -> ${statusName}`, async () => {
