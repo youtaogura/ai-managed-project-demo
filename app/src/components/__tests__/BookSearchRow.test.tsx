@@ -9,8 +9,9 @@ const full: BookCandidate = {
   publisher: '出版A',
   publishedYear: '2020',
   isbn: '9784065199817',
+  ndlId: null,
 };
-const bare: BookCandidate = { title: '本B', author: null, publisher: null, publishedYear: null, isbn: null };
+const bare: BookCandidate = { title: '本B', author: null, publisher: null, publishedYear: null, isbn: null, ndlId: null };
 
 describe('BookSearchRow', () => {
   it('タイトル・作者・「出版社 · 出版年」・› を出し、押すと onPress', async () => {

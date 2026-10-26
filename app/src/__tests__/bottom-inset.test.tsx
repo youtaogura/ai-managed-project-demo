@@ -106,7 +106,7 @@ describe.each([
   it('タイトル検索の固定フッター下端にインセットが加わる', async () => {
     const search = jest.fn(async () => ({
       status: 'ok' as const,
-      candidates: [{ title: '本A', author: null, publisher: null, publishedYear: null, isbn: null }],
+      candidates: [{ title: '本A', author: null, publisher: null, publishedYear: null, isbn: null, ndlId: null }],
     }));
     await render(
       withInsets(

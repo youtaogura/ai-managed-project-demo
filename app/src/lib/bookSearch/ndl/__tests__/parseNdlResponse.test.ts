@@ -19,6 +19,7 @@ describe('parseNdlResponse', () => {
         publisher: '出版1',
         publishedYear: '2019',
         isbn: '9784065199817',
+        ndlId: '123',
       },
       {
         title: '本2',
@@ -26,8 +27,16 @@ describe('parseNdlResponse', () => {
         publisher: null,
         publishedYear: '2018',
         isbn: '9784065199817',
+        ndlId: null,
       },
     ]);
+  });
+
+  it('ndlId は NDLBibID 型の最初の非空テキスト。なければ null', () => {
+    const xml = wrap(`<item><title>a</title></item>
+<item><title>b</title><dc:identifier xsi:type="dcndl:NDLBibID"> </dc:identifier><dc:identifier xsi:type="dcndl:NDLBibID">999</dc:identifier></item>
+<item><title>c</title><dc:identifier xsi:type="dcndl:ISBN">9784065199817</dc:identifier></item>`);
+    expect(parseNdlResponse(xml).map((c) => c.ndlId)).toEqual([null, '999', null]);
   });
 
   it('1 件でも配列になる', () => {

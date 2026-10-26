@@ -55,6 +55,15 @@ function extractIsbn(identifiers: unknown): string | null {
   return null;
 }
 
+function extractNdlId(identifiers: unknown): string | null {
+  for (const entry of toArray(identifiers)) {
+    if (!isRecord(entry) || entry['@_xsi:type'] !== 'dcndl:NDLBibID') continue;
+    const text = textOf(entry);
+    if (text !== null) return text;
+  }
+  return null;
+}
+
 function extractYear(item: Record<string, unknown>): string | null {
   for (const key of ['dc:date', 'pubDate']) {
     const text = firstText(item[key]);
@@ -74,6 +83,7 @@ function toCandidate(item: unknown): BookCandidate | null {
     publisher: firstText(item['dc:publisher']),
     publishedYear: extractYear(item),
     isbn: extractIsbn(item['dc:identifier']),
+    ndlId: extractNdlId(item['dc:identifier']),
   };
 }
 
