@@ -12,7 +12,10 @@ import { fileURLToPath } from 'node:url';
 
 // 人間だけが変更してよいパス（リポジトリルートからの相対）。orchestrator/policy.json で管理する
 const POLICY_FILE = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'policy.json');
-export const PROTECTED_PATHS = JSON.parse(readFileSync(POLICY_FILE, 'utf8')).protectedPaths;
+const POLICY = JSON.parse(readFileSync(POLICY_FILE, 'utf8'));
+export const PROTECTED_PATHS = POLICY.protectedPaths;
+// 保護対象のパターンに当たっても、エージェントが変更してよいファイル（例: .env.example）
+export const PROTECTED_EXCEPTIONS = POLICY.protectedExceptions ?? [];
 
 const BASH_RULES = [
   { re: /\bsudo\b/, why: 'sudo は使用できません。' },
@@ -90,6 +93,7 @@ export function checkFilePath(filePath, cwd) {
     return `作業ディレクトリ (${root}) の外のファイルは編集できません: ${abs}`;
   }
   const rel = root ? path.relative(root, abs) : abs;
+  if (PROTECTED_EXCEPTIONS.includes(rel)) return null;
   for (const p of PROTECTED_PATHS) {
     if (p.endsWith('/') ? rel.startsWith(p) : rel === p || rel.startsWith(p + '.')) {
       return `${rel} は人間だけが変更できる保護対象です。必要なら PR 本文の判断ログに提案として書いてください。`;

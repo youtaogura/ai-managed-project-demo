@@ -8,6 +8,7 @@ import {
   createReport,
   fileAt,
   isAgentBranch,
+  isProtectedPath,
   issueNumberFromBranch,
   loadPolicy,
   matchesPath,
@@ -53,7 +54,7 @@ if (!isAgentBranch(ref, policy)) {
   const files = changedFiles(base);
   for (const f of files) {
     for (const p of [f.path, f.oldPath].filter(Boolean)) {
-      if (policy.protectedPaths.some((pp) => matchesPath(p, pp))) {
+      if (isProtectedPath(p, policy)) {
         report.error(`保護対象のファイルが変更されています: \`${p}\``);
       } else if (!policy.agentAllowedPaths.some((ap) => matchesPath(p, ap))) {
         report.error(`エージェントが変更できる範囲（${policy.agentAllowedPaths.join(', ')}）の外です: \`${p}\``);

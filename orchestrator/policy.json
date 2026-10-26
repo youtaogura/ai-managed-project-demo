@@ -15,7 +15,8 @@
     "docs/design-system/",
     "app/src/design/tokens.ts"
   ],
-  "agentAllowedPaths": ["app/", "docs/specs/"],
+  "protectedExceptions": [".env.example"],
+  "agentAllowedPaths": ["app/", "docs/specs/", ".env.example"],
   "agentBranchPrefix": "agent/issue-",
   "requiredChecks": ["lint-typecheck", "test-coverage", "build", "dependencies", "tooling", "pr-policy"],
   "coverage": {

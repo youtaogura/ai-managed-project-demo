@@ -74,6 +74,7 @@ export const config = {
 
   // エージェントの PR が触れてはいけないパス（マージ前に検査）
   protectedPaths: policy.protectedPaths,
+  protectedExceptions: policy.protectedExceptions ?? [],
 
   promptsDir: path.join(here, '..', 'prompts'),
 };
