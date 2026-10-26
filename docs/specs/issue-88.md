@@ -110,3 +110,6 @@ React の state と context のみ。ライブラリ追加なし。データ構�
 - **`KeyboardAvoidingView`**（実装時の判断）: 既存コードに使用例がなかったため、iOS のみ `behavior="padding"` で `NoteSheet` の中身を包み、`ScrollView` に入れた。
 - **ページ表示**: 数字で始まるページだけ「p.」を付け、「あとがき」などはそのまま出す（`formatPage`）。
 - **メモ↔引用のタブ**: `Chip` 部品は `radio` ロールのため使えず、同じ見た目の Pressable（`accessibilityRole="tab"`）を `NoteSheet` に置いた。
+- **数値の寄せ方**（レビュー対応）: 本文欄の角丸は `radius.card`、左右の余白は `space[3]`（12）に寄せた。引用の線と文字の間隔 14 は `Quote.tsx` の `LINE_GAP` を export して共有する。
+- **トークン追加の提案**: タブの角丸 10（`Chip` の定数と同値）と引用の線の間隔 14 はトークンにない値。`radius` と `space` に追加するか、14 を 12/16 に寄せるかを人間に提案する。
+- **削除確認の文言**: 編集中にメモ↔引用を切り替えても、削除の対象は元の記録なので、文言は元の種類（`editing.kind`）にそろえる。

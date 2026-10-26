@@ -10,13 +10,13 @@ import {
 } from 'react-native';
 
 import { resolveFontFamily } from '../design/fonts';
-import { colors, size, space, typography } from '../design/tokens';
+import { colors, radius, size, space, typography } from '../design/tokens';
 import { useNoteDraftStore } from '../hooks/useNoteDraftStore';
 import { isDraftEmpty, isNoteSubmittable, PAGE_MAX_LENGTH, type NoteDraft, type NoteKind } from '../lib/notes';
 import { AppText } from './AppText';
 import { BottomSheet } from './BottomSheet';
 import { Button } from './Button';
-import { QUOTE_LINE_WIDTH } from './Quote';
+import { LINE_GAP, QUOTE_LINE_WIDTH } from './Quote';
 import { TextField } from './TextField';
 
 const ERROR_SAVE = '保存できませんでした。もう一度お試しください';
@@ -25,7 +25,6 @@ const KIND_LABEL: Record<NoteKind, string> = { memo: 'メモ', quote: '引用' }
 const KINDS: readonly NoteKind[] = ['memo', 'quote'];
 const CHIP_RADIUS = 10;
 const BODY_MIN_HEIGHT = 120;
-const QUOTE_GAP = 14;
 
 const EMPTY_DRAFT: NoteDraft = { kind: 'memo', page: '', text: '', comment: '' };
 
@@ -135,7 +134,7 @@ function Form({ recordId, editing, onSubmit, onDelete, onClose, closeRef }: Form
   if (confirming) {
     return (
       <View style={styles.form}>
-        <AppText variant="sectionTitle">{`この${KIND_LABEL[draft.kind]}を削除しますか？`}</AppText>
+        <AppText variant="sectionTitle">{`この${KIND_LABEL[editing?.kind ?? draft.kind]}を削除しますか？`}</AppText>
         {error ? (
           <AppText variant="body" style={{ color: colors.danger }}>
             {error}
@@ -258,15 +257,15 @@ const styles = StyleSheet.create({
   },
   heading: { marginBottom: space[1] },
   bodyRow: { flexDirection: 'row' },
-  line: { width: QUOTE_LINE_WIDTH, backgroundColor: colors.ribbon, marginRight: QUOTE_GAP },
+  line: { width: QUOTE_LINE_WIDTH, backgroundColor: colors.ribbon, marginRight: LINE_GAP },
   body: {
     flex: 1,
     minHeight: BODY_MIN_HEIGHT,
     backgroundColor: colors.surface2,
     borderWidth: 1,
     borderColor: colors.line,
-    borderRadius: 12,
-    paddingHorizontal: 14,
+    borderRadius: radius.card,
+    paddingHorizontal: space[3],
     paddingTop: space[3],
     color: colors.textPrimary,
   },

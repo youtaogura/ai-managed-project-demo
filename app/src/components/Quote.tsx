@@ -6,7 +6,7 @@ import type { QuoteEntry } from '../types/record';
 import { AppText } from './AppText';
 
 export const QUOTE_LINE_WIDTH = 2;
-const LINE_GAP = 14;
+export const LINE_GAP = 14;
 
 type QuoteProps = {
   quote: QuoteEntry;
