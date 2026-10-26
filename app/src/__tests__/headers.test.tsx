@@ -52,7 +52,6 @@ describe('全画面でヘッダーが表示される', () => {
   it.each([
     ['/', '記録一覧'],
     ['/analytics', '分析'],
-    ['/records/r1', '記録の詳細'],
     ['/record/new', '記録を追加'],
     ['/record/isbn', 'ISBN で探す'],
     ['/record/scan', 'バーコードを読み取る'],
@@ -61,6 +60,13 @@ describe('全画面でヘッダーが表示される', () => {
     await renderRouter(routes, { initialUrl: path });
     await waitFor(() => expect(hasHeaderTitle(title)).toBe(true));
     expect(screen).toHavePathname(path);
+  });
+
+  it('詳細はヘッダーを出さない', async () => {
+    await renderRouter(routes, { initialUrl: '/records/r1' });
+    await waitFor(() => expect(screen.getByText('記録が見つかりません')).toBeTruthy());
+    expect(hasHeaderTitle('記録の詳細')).toBe(false);
+    expect(screen).toHavePathname('/records/r1');
   });
 
   it('記録一覧の「ISBN で探す」から ISBN 入力画面へヘッダー付きで遷移する', async () => {

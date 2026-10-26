@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
-import { Alert, type AlertButton, Text } from 'react-native';
+import { Text } from 'react-native';
 
 import RootLayout from '../app/_layout';
 import TabsLayout from '../app/(tabs)/_layout';
@@ -62,12 +62,10 @@ describe('記録のルート配線', () => {
   });
 
   it('削除すると一覧へ戻り、記録が消えている', async () => {
-    const spy = jest.spyOn(Alert, 'alert');
     await renderRouter(routes, { initialUrl: '/records/r1' });
-    await waitFor(() => expect(screen.getByText('削除')).toBeTruthy());
-    await fireEvent.press(screen.getByText('削除'));
-    const buttons = spy.mock.calls[0]?.[2] as AlertButton[];
-    buttons.find((b) => b.text === '削除')?.onPress?.();
+    await waitFor(() => expect(screen.getByText('この記録を削除')).toBeTruthy());
+    await fireEvent.press(screen.getByText('この記録を削除'));
+    await fireEvent.press(await screen.findByText('削除する'));
     await waitFor(() => expect(screen.getByText('まだ記録がありません')).toBeTruthy());
     expect(screen).toHavePathname('/');
   });

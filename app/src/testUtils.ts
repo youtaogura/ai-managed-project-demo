@@ -45,8 +45,12 @@ export function createFakeRepository(initial: MediaRecord[] = []) {
     add: async () => {
       throw new Error('unused');
     },
-    update: async () => {
-      throw new Error('unused');
+    update: async (id, input) => {
+      const current = records.find((r) => r.id === id);
+      if (!current) return null;
+      const next = { ...current, ...input, updatedAt: '2024-06-01T00:00:00.000Z' };
+      records = records.map((r) => (r.id === id ? next : r));
+      return next;
     },
     delete: async (id) => {
       const before = records.length;
