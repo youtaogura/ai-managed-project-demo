@@ -43,5 +43,7 @@ export function createStarterId(): string {
 
 /** 設定画面の行の値 */
 export function starterSummary(settings: StarterSettings): string {
-  return settings.enabled ? `オン · 一度に ${settings.count} つ` : 'オフ';
+  if (!settings.enabled) return 'オフ';
+  const pool = settings.items.filter((item) => item.enabled).length;
+  return `オン · 一度に ${settings.count} つ · ${pool} 個から`;
 }

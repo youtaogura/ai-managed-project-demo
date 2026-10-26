@@ -1,29 +1,34 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet } from 'react-native';
 
 import { AppText } from '../components/AppText';
+import { SortSheet } from '../components/SortSheet';
 import { StatusDefaultSheet } from '../components/StatusDefaultSheet';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { SettingsCard } from '../components/SettingsCard';
 import { SettingsRow } from '../components/SettingsRow';
 import { space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
+import { useSortOrder } from '../hooks/useSortOrder';
 import { useShelfRepository } from '../hooks/useShelfRepository';
 import { useSettings } from '../hooks/useSettings';
 import { useStarterSettings } from '../hooks/useStarterSettings';
 import { starterSummary } from '../lib/starterItems';
-import { formatVersion, getAppInfo } from '../lib/appInfo';
 import { useLastExportedAt } from '../hooks/useLastExportedAt';
 import { createExportStore, type ExportStore } from '../lib/exportStore';
 import { formatDate } from '../lib/format';
 import { asyncKeyValueStorage } from '../lib/storage';
+import { SORT_ORDER_LABELS } from '../lib/sortOrderLabel';
+import { createSortOrderStore, type SortOrderStore } from '../lib/sortOrderStore';
 import { STATUS_DEFAULT_LABELS } from '../lib/statusDefault';
 
 
 const defaultExportStore = createExportStore(asyncKeyValueStorage);
+const defaultSortOrderStore = createSortOrderStore(asyncKeyValueStorage);
 
 type SettingsScreenProps = {
   exportStore?: ExportStore;
+  sortOrderStore?: SortOrderStore;
   /** 値が変わると「最後に書き出した日」と本棚の数を読み直す。 */
   reloadKey?: number;
   onOpenData?: () => void;
@@ -34,6 +39,7 @@ type SettingsScreenProps = {
 
 export function SettingsScreen({
   exportStore = defaultExportStore,
+  sortOrderStore = defaultSortOrderStore,
   reloadKey,
   onOpenData = () => undefined,
   onOpenAbout = () => undefined,
@@ -58,6 +64,8 @@ export function SettingsScreen({
       active = false;
     };
   }, [shelfRepository, reloadKey]);
+  const [sortOrder, setSortOrder] = useSortOrder(sortOrderStore, reloadKey);
+  const [sortOpen, setSortOpen] = useState(false);
   const bottomInset = useBottomInset();
   const [statusOpen, setStatusOpen] = useState(false);
 
@@ -69,14 +77,13 @@ export function SettingsScreen({
         <AppText variant="screenTitle" style={styles.title}>
           設定
         </AppText>
-        <SettingsCard title="記録するとき">
+        <SettingsCard title="読み終えたら">
+          <SettingsRow label="書き出し" value={starterSummary(starterSettings)} onPress={onOpenStarters} />
           <SettingsRow
             label="ステータスの初期値"
             value={STATUS_DEFAULT_LABELS[settings.defaultStatus]}
             onPress={() => setStatusOpen(true)}
           />
-          <View style={styles.gap} />
-          <SettingsRow label="書き出し" value={starterSummary(starterSettings)} onPress={onOpenStarters} />
         </SettingsCard>
         <SettingsCard title="本棚">
           <SettingsRow
@@ -84,8 +91,13 @@ export function SettingsScreen({
             value={shelfCount === 0 ? 'まだありません' : `${shelfCount} つ`}
             onPress={onOpenShelves}
           />
+          <SettingsRow
+            label="並び順"
+            value={SORT_ORDER_LABELS[sortOrder]}
+            onPress={() => setSortOpen(true)}
+          />
         </SettingsCard>
-        <SettingsCard title="データ">
+        <SettingsCard>
           <SettingsRow
             label="データ"
             value={`書き出し・読み込み · ${
@@ -93,15 +105,15 @@ export function SettingsScreen({
             }`}
             onPress={onOpenData}
           />
-        </SettingsCard>
-        <SettingsCard title="このアプリ">
-          <SettingsRow
-            label="このアプリについて"
-            value={formatVersion(getAppInfo().version, null)}
-            onPress={onOpenAbout}
-          />
+          <SettingsRow label="このアプリについて" onPress={onOpenAbout} />
         </SettingsCard>
       </ScrollView>
+      <SortSheet
+        visible={sortOpen}
+        value={sortOrder}
+        onClose={() => setSortOpen(false)}
+        onChange={setSortOrder}
+      />
       <StatusDefaultSheet
         visible={statusOpen}
         value={settings.defaultStatus}
@@ -118,5 +130,4 @@ export function SettingsScreen({
 const styles = StyleSheet.create({
   content: { paddingHorizontal: space[5], gap: space[5] },
   title: { paddingVertical: space[3] },
-  gap: { height: space[2] },
 });

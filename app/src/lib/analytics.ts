@@ -40,38 +40,12 @@ export function aggregateMonthlyCompletions(
   return { months, undatedCompleted };
 }
 
-export type RatingBucket = 1 | 2 | 3 | 4 | 5;
-export type RatingSummary = {
-  distribution: Record<RatingBucket, number>;
-  count: number;
-  average: number | null;
-};
-
-function average(sum: number, count: number): number {
+export function average(sum: number, count: number): number {
   return Math.round((sum * 10) / count) / 10;
-}
-
-export function summarizeRatings(records: MediaRecord[]): RatingSummary {
-  const distribution: Record<RatingBucket, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-  let count = 0;
-  let sum = 0;
-  for (const record of records) {
-    const rating = record.rating;
-    if (rating === null || rating < 1) continue;
-    const bucket = Math.min(5, Math.floor(rating)) as RatingBucket;
-    distribution[bucket] += 1;
-    count += 1;
-    sum += rating;
-  }
-  return { distribution, count, average: count === 0 ? null : average(sum, count) };
 }
 
 export function formatAverage(value: number | null): string {
   return value === null ? '—' : value.toFixed(1);
-}
-
-export function summarizeYear(result: MonthlyCompletionResult): number {
-  return result.months.reduce((sum, m) => sum + m.total, 0);
 }
 
 function slashMonth(month: string): string {

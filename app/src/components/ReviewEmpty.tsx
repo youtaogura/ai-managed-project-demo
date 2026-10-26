@@ -4,7 +4,7 @@ import { colors, radius, space } from '../design/tokens';
 import { AppText } from './AppText';
 import { Button } from './Button';
 
-// 点線の空の棒グラフ（高さ違いの 12 本）
+// 点線の空の積み上げ（高さ違いの 12 本）
 const GHOST_HEIGHTS = [28, 44, 36, 60, 48, 76, 52, 40, 68, 56, 84, 64];
 const GHOST_WIDTH = 16;
 
@@ -18,11 +18,11 @@ export function ReviewEmpty({ onAdd }: ReviewEmptyProps) {
           <View key={i} style={[styles.ghost, { height }]} />
         ))}
       </View>
-      <AppText variant="sectionTitle">記録がたまると、ここに振り返りが表示されます</AppText>
+      <AppText variant="sectionTitle">読んだ本がたまると、ここに積み上がります</AppText>
       <AppText variant="label" style={styles.description}>
-        読み終えた本を記録すると、月ごとの完了数やレーティングの傾向がわかります
+        読み終えた本を記録すると、月ごとに背表紙の色で積み上がっていきます
       </AppText>
-      <Button variant="primary" label="記録する" onPress={onAdd} />
+      <Button variant="primary" label="本を追加する" onPress={onAdd} />
     </View>
   );
 }
