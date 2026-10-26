@@ -17,6 +17,8 @@
   ],
   "agentAllowedPaths": ["app/", "docs/specs/"],
   "agentBranchPrefix": "agent/issue-",
+  "$comment_testRemovalLabel": "PR にこのラベルがあれば、テストの削除・テストケース数の減少を許可する。人間だけが付ける（ガードがエージェントの操作をブロックする）",
+  "testRemovalLabel": "allow-test-removal",
   "requiredChecks": ["lint-typecheck", "test-coverage", "build", "dependencies", "tooling", "pr-policy"],
   "coverage": {
     "diffMinPercent": 80
