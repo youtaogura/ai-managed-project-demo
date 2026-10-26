@@ -23,7 +23,6 @@ const ERROR_SAVE = '保存できませんでした。もう一度お試しくだ
 const ERROR_DELETE = '削除できませんでした。もう一度お試しください';
 const KIND_LABEL: Record<NoteKind, string> = { memo: 'メモ', quote: '引用' };
 const KINDS: readonly NoteKind[] = ['memo', 'quote'];
-const CHIP_RADIUS = 10;
 const BODY_MIN_HEIGHT = 120;
 
 const EMPTY_DRAFT: NoteDraft = { kind: 'memo', page: '', text: '', comment: '' };
@@ -251,7 +250,7 @@ const styles = StyleSheet.create({
     flex: 1,
     height: size.touchMin,
     borderWidth: 1,
-    borderRadius: CHIP_RADIUS,
+    borderRadius: radius.button,
     alignItems: 'center',
     justifyContent: 'center',
   },
