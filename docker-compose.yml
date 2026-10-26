@@ -1,0 +1,37 @@
+services:
+  orchestrator:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        AGENT_UID: ${AGENT_UID:-1000}
+        AGENT_GID: ${AGENT_GID:-1000}
+    image: ai-managed-orchestrator:local
+    env_file: .env
+    volumes:
+      # エージェント専用クローン（普段の作業コピーはマウントしないこと）
+      - ${AGENT_REPO_PATH:?.env に AGENT_REPO_PATH を設定してください}:/workspace/repo
+      # worktree と pnpm ストア（同じボリュームに置いてハードリンクを効かせる）
+      - agent-data:/data
+      # Claude Code の設定・履歴など agent ユーザーのホーム
+      - agent-home:/home/agent
+      # 実行ログ（ホスト側で閲覧用。ここにあるファイルをホストで実行しないこと）
+      - ${AGENT_LOG_PATH:-./agent-logs}:/logs
+    # --- ホスト保護 ---
+    # Docker ソケットは絶対にマウントしない
+    read_only: true
+    tmpfs:
+      - /tmp:size=1g
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: ${AGENT_MEM_LIMIT:-6g}
+    cpus: ${AGENT_CPUS:-4}
+    pids_limit: 2048
+    init: false # tini をイメージ側で使用
+    restart: unless-stopped
+
+volumes:
+  agent-data:
+  agent-home:

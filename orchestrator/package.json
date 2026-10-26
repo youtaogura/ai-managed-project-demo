@@ -1,0 +1,13 @@
+{
+  "name": "ai-managed-orchestrator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "GitHub Project を監視して Claude Code の各工程を実行するオーケストレーター（外部依存なし）",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test"
+  }
+}

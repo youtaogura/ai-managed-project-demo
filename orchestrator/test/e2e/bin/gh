@@ -1,0 +1,72 @@
+#!/usr/bin/env node
+// テスト用の偽 gh。状態は $FAKE_STATE（JSON）に保存する。
+const fs = require('fs');
+const { execFileSync } = require('child_process');
+const file = process.env.FAKE_STATE;
+const st = JSON.parse(fs.readFileSync(file, 'utf8'));
+const save = () => fs.writeFileSync(file, JSON.stringify(st, null, 2));
+const a = process.argv.slice(2);
+const out = (o) => process.stdout.write(typeof o === 'string' ? o : JSON.stringify(o));
+const stdin = () => { try { return fs.readFileSync(0, 'utf8'); } catch { return ''; } };
+const opt = (name) => { const i = a.indexOf(name); return i >= 0 ? a[i + 1] : undefined; };
+const record = (msg) => { st.log.push(msg); save(); };
+const STATUSES = ['Backlog', 'Ready', 'Spec', 'Implement', 'Review', 'Release', 'Done', 'Blocked'];
+
+const [c1, c2] = a;
+if (c1 === 'auth') { out('Logged in (fake)\n'); process.exit(0); }
+if (c1 === 'label') { process.exit(0); }
+
+if (c1 === 'api' && c2 === 'graphql') {
+  const q = a.find((x) => x.startsWith('query=')).slice(6);
+  if (q.includes('projectV2(number')) {
+    return out({ data: { user: { projectV2: { id: 'P1', title: 'Fake Project', fields: { nodes: [
+      {}, { id: 'F1', name: 'Status', options: STATUSES.map((s) => ({ id: `opt-${s}`, name: s })) } ] } } } } });
+  }
+  if (q.includes('items(first')) {
+    return out({ data: { node: { items: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: st.items.map((i) => ({
+      id: i.itemId, fieldValueByName: { name: i.status },
+      content: { number: i.number, title: i.title, state: i.state, repository: { nameWithOwner: 'youtaogura/ai-managed-project-demo' },
+        labels: { nodes: i.labels.map((name) => ({ name })) } } })) } } } });
+  }
+  if (q.includes('updateProjectV2ItemFieldValue')) {
+    const item = a.find((x) => x.startsWith('item=')).slice(5);
+    const option = a.find((x) => x.startsWith('option=')).slice(7).replace('opt-', '');
+    const it = st.items.find((i) => i.itemId === item);
+    record(`status #${it.number}: ${it.status} -> ${option}`);
+    it.status = option; save();
+    return out({ data: {} });
+  }
+  throw new Error('unknown graphql');
+}
+
+if (c1 === 'issue') {
+  const n = Number(a[2]);
+  const it = st.items.find((i) => i.number === n);
+  if (c2 === 'edit' && opt('--add-label')) { it.labels.push(opt('--add-label')); record(`label #${n} +${opt('--add-label')}`); }
+  if (c2 === 'comment') record(`comment #${n}: ${stdin().split('\n')[0]}`);
+  if (c2 === 'close') { it.state = 'CLOSED'; record(`close #${n}`); }
+  process.exit(0);
+}
+
+if (c1 === 'pr') {
+  if (c2 === 'list') {
+    const pr = st.prs[opt('--head')];
+    return out(pr && pr.open ? [{ number: pr.number, url: `https://example/pr/${pr.number}`, title: 'x' }] : []);
+  }
+  if (c2 === 'create') {
+    const head = opt('--head');
+    st.prs[head] = { number: 100 + Object.keys(st.prs).length, open: true }; record(`pr create ${head}`);
+    return out(`https://example/pr/${st.prs[head].number}\n`);
+  }
+  const n = Number(a[2]);
+  const [branch] = Object.entries(st.prs).find(([, p]) => p.number === n) || [];
+  if (c2 === 'view') {
+    const files = execFileSync('git', ['diff', '--name-only', 'origin/main', `origin/${branch}`], { cwd: process.env.REPO_DIR }).toString().trim().split('\n');
+    return out({ files: files.filter(Boolean).map((path) => ({ path })) });
+  }
+  if (c2 === 'checks') return out([{ name: 'app', bucket: 'pass' }]);
+  if (c2 === 'merge') { st.prs[branch].open = false; record(`pr merge #${n}`); process.exit(0); }
+  if (c2 === 'comment' || c2 === 'review') { record(`pr ${c2} #${n}: ${(stdin() || '').split('\n')[0]}`); process.exit(0); }
+}
+console.error('fake gh: unsupported', a.join(' '));
+process.exit(1);

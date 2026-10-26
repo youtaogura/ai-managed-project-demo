@@ -1,0 +1,38 @@
+name: 機能追加
+description: AI エージェントに実装してもらう機能
+labels: []
+body:
+  - type: textarea
+    id: background
+    attributes:
+      label: 背景・目的
+      description: なぜこの機能が必要か。誰のどんな困りごとを解決するか
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: やりたいこと
+      description: 画面や操作のイメージ。わかる範囲で
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: 受け入れ条件
+      description: これが満たされれば完了、という条件（箇条書き）
+      placeholder: |
+        - ToDo を入力して追加ボタンを押すと一覧に表示される
+        - 空文字では追加できない
+    validations:
+      required: true
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: やらないこと
+      description: 今回は対象外にすること（任意）
+  - type: textarea
+    id: notes
+    attributes:
+      label: 補足
+      description: 参考資料、デザイン、制約など（任意）
