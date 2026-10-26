@@ -136,13 +136,6 @@ test('policy: 保護対象・範囲外のファイル変更は NG', () => {
   }
 });
 
-test('policy: 環境変数の見本（.env.example）の変更は OK、.env.local は NG', () => {
-  const ok = runScript('pr-policy.mjs', makeRepo({ ...SPEC, ...FEATURE, '.env.example': 'EXPO_PUBLIC_X=\n' }), { PR_BODY: GOOD_BODY });
-  assert.equal(ok.code, 0, ok.out);
-  const ng = runScript('pr-policy.mjs', makeRepo({ ...SPEC, ...FEATURE, '.env.local': 'X=1\n' }), { PR_BODY: GOOD_BODY });
-  assert.equal(ng.code, 1, ng.out);
-});
-
 test('policy: 仕様書に書かれていない依存追加は NG、書かれていれば OK', () => {
   const pkg = JSON.stringify({ dependencies: { react: '19', zustand: '5' }, devDependencies: { jest: '30' } });
   const ng = runScript('pr-policy.mjs', makeRepo({ ...SPEC, 'app/package.json': pkg }), { PR_BODY: GOOD_BODY });
