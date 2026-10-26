@@ -71,6 +71,9 @@ const enter = (text: string) =>
   fireEvent.changeText(screen.getByLabelText('タイトルのキーワード'), text);
 const press = (name: string | RegExp) => fireEvent.press(screen.getByRole('button', { name }));
 
+// CI のカバレッジ計測下では初回描画が 5 秒を超えることがあるため
+jest.setTimeout(30000);
+
 beforeEach(() => jest.clearAllMocks());
 
 describe('TitleSearchScreen の書影補完', () => {
