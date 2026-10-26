@@ -46,6 +46,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "jest",
+    "licenses:gen": "node scripts/gen-licenses.mjs",
     "check": "pnpm lint && pnpm typecheck && pnpm test"
   },
   "private": true

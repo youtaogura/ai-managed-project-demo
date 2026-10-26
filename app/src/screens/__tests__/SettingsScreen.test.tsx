@@ -148,3 +148,20 @@ describe('SettingsScreen（ステータスの初期値）', () => {
     ).toBeTruthy();
   });
 });
+
+describe('SettingsScreen（このアプリについて）', () => {
+  it('行にバージョンを出し、タップで onOpenAbout が呼ばれる', async () => {
+    const onOpenAbout = jest.fn();
+    await render(
+      withSettings(
+        createSettingsStore(createMemoryStorage().storage),
+        <SettingsScreen
+          exportStore={createExportStore(createMemoryStorage().storage)}
+          onOpenAbout={onOpenAbout}
+        />,
+      ),
+    );
+    await fireEvent.press(await screen.findByRole('button', { name: /^このアプリについて、/ }));
+    expect(onOpenAbout).toHaveBeenCalledTimes(1);
+  });
+});

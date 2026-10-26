@@ -11,6 +11,7 @@ import { SettingsRow } from '../components/SettingsRow';
 import { colors, space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useSettings } from '../hooks/useSettings';
+import { formatVersion, getAppInfo } from '../lib/appInfo';
 import { useLastExportedAt } from '../hooks/useLastExportedAt';
 import { createExportStore, type ExportStore } from '../lib/exportStore';
 import { formatDate } from '../lib/format';
@@ -34,12 +35,14 @@ type SettingsScreenProps = {
   /** 値が変わると「最後に書き出した日」を読み直す。 */
   reloadKey?: number;
   onOpenData?: () => void;
+  onOpenAbout?: () => void;
 };
 
 export function SettingsScreen({
   exportStore = defaultExportStore,
   reloadKey,
   onOpenData = () => undefined,
+  onOpenAbout = () => undefined,
 }: SettingsScreenProps) {
   const { lastExportedAt } = useLastExportedAt(exportStore, reloadKey);
   const { settings, update } = useSettings();
@@ -103,6 +106,13 @@ export function SettingsScreen({
               lastExportedAt ? `最後に書き出した日 ${formatDate(lastExportedAt)}` : 'まだ書き出していません'
             }`}
             onPress={onOpenData}
+          />
+        </SettingsCard>
+        <SettingsCard title="このアプリ">
+          <SettingsRow
+            label="このアプリについて"
+            value={formatVersion(getAppInfo().version, null)}
+            onPress={onOpenAbout}
           />
         </SettingsCard>
       </ScrollView>

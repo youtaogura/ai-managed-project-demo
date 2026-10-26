@@ -260,4 +260,35 @@ describe('RecordRepository.importRecords', () => {
     ]);
     expect(await repo.getAll()).toHaveLength(3);
   });
+
+  describe('deleteAll', () => {
+    it('削除した記録を返し、保存は 1 回の setItem で空にする', async () => {
+      const { storage, data } = createMemoryStorage();
+      const repo = createRecordRepository(storage);
+      await repo.add(input);
+      await repo.add(input);
+      const setItem = jest.spyOn(storage, 'setItem');
+      const deleted = await repo.deleteAll();
+      expect(deleted).toHaveLength(2);
+      expect(setItem).toHaveBeenCalledTimes(1);
+      expect(data.get(RECORDS_STORAGE_KEY)).toBe('[]');
+      expect(await repo.getAll()).toEqual([]);
+    });
+
+    it('直前の add を待ってから削除する（直列化）', async () => {
+      const repo = createRecordRepository(createMemoryStorage().storage);
+      const [, deleted] = await Promise.all([repo.add(input), repo.deleteAll()]);
+      expect(deleted).toHaveLength(1);
+      expect(await repo.getAll()).toEqual([]);
+    });
+
+    it('setItem が失敗したら reject し、記録は変わらない', async () => {
+      const { storage } = createMemoryStorage();
+      const repo = createRecordRepository(storage);
+      await repo.add(input);
+      jest.spyOn(storage, 'setItem').mockRejectedValueOnce(new Error('disk'));
+      await expect(repo.deleteAll()).rejects.toThrow('disk');
+      expect(await repo.getAll()).toHaveLength(1);
+    });
+  });
 });
