@@ -48,10 +48,19 @@ function hasHeaderTitle(title: string): boolean {
   return containsTitle(screen.toJSON(), title) || screen.queryAllByText(title).length > 0;
 }
 
+describe('タブの画面はネイティブのヘッダーを出さず、画面内の見出しにする', () => {
+  it.each([
+    ['/', '記録'],
+    ['/analytics', '振り返り'],
+  ])('%s の見出しは「%s」', async (path, title) => {
+    await renderRouter(routes, { initialUrl: path });
+    await waitFor(() => expect(screen.getAllByText(title).length).toBeGreaterThan(0));
+    expect(screen).toHavePathname(path);
+  });
+});
+
 describe('全画面でヘッダーが表示される', () => {
   it.each([
-    ['/', '記録一覧'],
-    ['/analytics', '分析'],
     ['/record/new', '記録を追加'],
     ['/record/isbn', 'ISBN で探す'],
     ['/record/scan', 'バーコードを読み取る'],

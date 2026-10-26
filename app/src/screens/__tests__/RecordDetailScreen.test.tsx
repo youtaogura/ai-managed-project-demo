@@ -1,15 +1,14 @@
 import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 import type { ReactElement } from 'react';
 import { Linking, ScrollView } from 'react-native';
-
-type TestInstance = ReturnType<typeof screen.getByText>;
-
 import { triggerImpactHaptic } from '../../lib/haptics';
 import type { PhotoService } from '../../lib/photo/PhotoService';
 import type { RecordRepository } from '../../lib/recordRepository';
 import { withRepository } from '../../testProviders';
 import { createFakeRepository, createMockPhotoService, makeRecord } from '../../testUtils';
 import { RecordDetailScreen } from '../RecordDetailScreen';
+
+type TestInstance = ReturnType<typeof screen.getByText>;
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
