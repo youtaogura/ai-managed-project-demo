@@ -16,6 +16,17 @@ GitHub Project (Status)          オーケストレーター（Docker コンテ�
  Blocked   … 質問待ち・失敗（人間が対応）
 ```
 
+### Ready に置くタイミングと順番
+
+内容が OK になった Issue は、前提の Issue が終わっていなくても **すぐ Ready に置いてよい**。
+
+- 前提の Issue は、GitHub の Issue の依存関係（Issue の右側の **Relationships → Mark as blocked by**）で登録する
+- オーケストレーターは、Ready の Issue に「完了」でクローズされていない前提（blocked by）があれば着手せず、前提が終わり次第着手する。待っている理由はログと `status` に出る
+- `not planned` でクローズされた前提は満たしたとみなさない（依存関係を見直すまで待つ）
+- 同じ工程の中では、**Issue 番号の小さい（先に起票された）ものから**着手する。工程の間では、後工程（Release → Review → Implement → Spec）を優先する
+- 依存関係を確認するのは Ready から着手するときだけ。着手済みの Issue に後から前提を足しても止まらない
+- 依存関係のない Issue どうしが同じファイルを変えた場合は、後からマージされる方がコンフリクトを解消してから進む
+
 ## 構成
 
 | パス | 内容 |

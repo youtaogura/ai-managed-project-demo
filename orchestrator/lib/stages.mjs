@@ -26,9 +26,25 @@ export function isEligible(item) {
   return !item.issue.labels.some((l) => blocking.includes(l));
 }
 
-// 後工程を優先して、仕掛かり中のものから片付ける
+// 後工程を優先して、仕掛かり中のものから片付ける。同じ工程なら Issue 番号の小さい（先に起票された）ものから
 const PRIORITY = { release: 0, review: 1, implement: 2, spec: 3 };
-export const byPriority = (a, b) => PRIORITY[stageForStatus(a.status)] - PRIORITY[stageForStatus(b.status)];
+export const byPriority = (a, b) =>
+  PRIORITY[stageForStatus(a.status)] - PRIORITY[stageForStatus(b.status)] || a.issue.number - b.issue.number;
+
+// 依存関係（blocked by）を確認するのは Ready から着手するときだけ。着手済みのものは止めない
+export const needsDependencyCheck = (item) => item.status === S.ready;
+
+// まだ完了していない前提の Issue。「完了」としてクローズされたものだけを満たしたとみなす
+// （not planned でクローズされた前提は、人間が依存関係を見直すまで待つ）
+export function unmetDependencies(blockers) {
+  return blockers.filter((b) => !(String(b.state).toLowerCase() === 'closed' && (b.stateReason ?? 'completed') === 'completed'));
+}
+
+export function describeDependencies(blockers) {
+  return blockers
+    .map((b) => `#${b.number}${String(b.state).toLowerCase() === 'closed' ? `（${b.stateReason ?? 'closed'}）` : ''}`)
+    .join(' ');
+}
 
 const specPath = (issue) => `docs/specs/issue-${issue}.md`;
 const footer = (res) => (res?.log ? `\n\n<sub>ログ: \`${path.basename(res.log)}.*\`</sub>` : '');
