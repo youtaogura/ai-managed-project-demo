@@ -9,6 +9,7 @@ Shelf Theater は、読んだ本・漫画と、見た映画・ドラマ・アニ
 - **このフォルダがデザインシステムの正本。** 人間だけが変更する（`orchestrator/policy.json` の保護対象）。変更は PR で行う。
 - トークンの値は `tokens.json`。アプリのコードは、ここから生成した `app/src/design/tokens.ts` を使う。`tokens.json` を変えたら `node .github/scripts/gen-design-tokens.mjs` で生成し直し、両方を同じ PR に含める（CI が一致を検査する）。
 - 部品ごとの決まりは `components/<部品名>/README.md`。
+- 画面ごとのデザイン（画像と説明）は `screens/README.md`。
 - 見た目の確認用に、claude.ai のデザインシステム「Shelf Theater」（部品のライブプレビュー付き）がある。正本を変えたら、そちらも更新する。
 - 方向性を決めたときのデザイン案（案 A〜C と B の配色案）は、claude.ai のデザインキャンバス「記録アプリ デザイン3案（一覧・詳細）」にある。採用したのは **B-1 モノクロ**。
 
