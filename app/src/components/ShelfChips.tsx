@@ -4,16 +4,19 @@ import { colors, radius, size, space } from '../design/tokens';
 import { AppText } from './AppText';
 
 const CHIP_HEIGHT = 36;
+const CHIP_MAX_WIDTH = 160;
 
 type ShelfChipsProps = {
-  /** 作った本棚。#86 でつなぐ。渡されれば「すべての本」の後ろに出す。 */
   shelves?: readonly { id: string; name: string }[];
+  /** 選択中の本棚。null は「すべての本」 */
+  selectedId?: string | null;
+  onSelect?: (id: string | null) => void;
   onCreateShelf?: () => void;
 };
 
 const hitSlop = { top: (size.touchMin - CHIP_HEIGHT) / 2, bottom: (size.touchMin - CHIP_HEIGHT) / 2 };
 
-export function ShelfChips({ shelves = [], onCreateShelf }: ShelfChipsProps) {
+export function ShelfChips({ shelves = [], selectedId = null, onSelect, onCreateShelf }: ShelfChipsProps) {
   return (
     <ScrollView
       horizontal
@@ -23,26 +26,40 @@ export function ShelfChips({ shelves = [], onCreateShelf }: ShelfChipsProps) {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="すべての本"
-        accessibilityState={{ selected: true }}
+        accessibilityState={{ selected: selectedId === null }}
         hitSlop={hitSlop}
-        style={[styles.chip, styles.selected]}
+        onPress={() => onSelect?.(null)}
+        style={[styles.chip, selectedId === null ? styles.selected : styles.outline]}
       >
-        <AppText variant="value" style={{ color: colors.accentInk }}>
+        <AppText
+          variant="value"
+          style={{ color: selectedId === null ? colors.accentInk : colors.textPrimary }}
+        >
           すべての本
         </AppText>
       </Pressable>
-      {shelves.map((shelf) => (
-        <Pressable
-          key={shelf.id}
-          accessibilityRole="button"
-          accessibilityLabel={shelf.name}
-          accessibilityState={{ selected: false }}
-          hitSlop={hitSlop}
-          style={[styles.chip, styles.outline]}
-        >
-          <AppText variant="value">{shelf.name}</AppText>
-        </Pressable>
-      ))}
+      {shelves.map((shelf) => {
+        const selected = shelf.id === selectedId;
+        return (
+          <Pressable
+            key={shelf.id}
+            accessibilityRole="button"
+            accessibilityLabel={shelf.name}
+            accessibilityState={{ selected }}
+            hitSlop={hitSlop}
+            onPress={() => onSelect?.(shelf.id)}
+            style={[styles.chip, styles.named, selected ? styles.selected : styles.outline]}
+          >
+            <AppText
+              variant="value"
+              numberOfLines={1}
+              style={{ color: selected ? colors.accentInk : colors.textPrimary }}
+            >
+              {shelf.name}
+            </AppText>
+          </Pressable>
+        );
+      })}
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="本棚を作る"
@@ -67,6 +84,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  named: { maxWidth: CHIP_MAX_WIDTH },
   selected: { backgroundColor: colors.accent },
   outline: { borderWidth: 1, borderColor: colors.lineStrong },
   dashed: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.lineStrong },

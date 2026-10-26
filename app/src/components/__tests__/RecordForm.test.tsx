@@ -1,13 +1,13 @@
-import { act, fireEvent, render as rtlRender, screen } from '@testing-library/react-native';
+import { act, fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react-native';
 import type { ReactElement } from 'react';
 import { StyleSheet } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
 import { colors, size, space } from '../../design/tokens';
-import { PhotoServiceContextProvider } from '../../hooks/usePhotoService';
 import type { PhotoService } from '../../lib/photo/PhotoService';
-import { createMockPhotoService } from '../../testUtils';
-import type { Shelf } from '../../types/shelf';
+import { withRepository } from '../../testProviders';
+import { createFakeRepository, createMemoryStorage, createMockPhotoService, makeRecord } from '../../testUtils';
+import { createShelfRepository } from '../../lib/shelfRepository';
 import { RecordForm } from '../RecordForm';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -15,7 +15,7 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 );
 
 const render = (ui: ReactElement, service: PhotoService = createMockPhotoService()) =>
-  rtlRender(<PhotoServiceContextProvider service={service}>{ui}</PhotoServiceContextProvider>);
+  rtlRender(withRepository(createFakeRepository().repository, ui, service));
 
 // 初回レンダリングが CI の遅い環境で 5 秒を超えることがあるため延長する
 jest.setTimeout(30000);
@@ -33,11 +33,6 @@ const press = (name: string) => fireEvent.press(screen.getByRole('button', { nam
 const type = (label: string, text: string) => fireEvent.changeText(screen.getByLabelText(label), text);
 const flat = (node: { props: { style?: unknown } }) =>
   StyleSheet.flatten(node.props.style as never) as Record<string, unknown>;
-
-const shelves: Shelf[] = [
-  { id: 's1', name: '小説', order: 0 },
-  { id: 's2', name: '積読', order: 1 },
-];
 
 describe('RecordForm', () => {
   it('タイトルが空（空白のみ）だと保存せずエラーを表示し、入力すると消える', async () => {
@@ -274,53 +269,6 @@ describe('RecordForm', () => {
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ isbn: 'I', coverUrl: 'http://c' }));
   });
 
-  describe('本棚', () => {
-    it('本棚の数だけチップ（checkbox）が出て、複数選択して保存できる', async () => {
-      const onSubmit = jest.fn().mockResolvedValue(undefined);
-      await render(<RecordForm onSubmit={onSubmit} shelves={shelves} initialValues={{ title: 'a' }} />);
-      expect(screen.getAllByRole('checkbox')).toHaveLength(2);
-      await fireEvent.press(screen.getByRole('checkbox', { name: '小説' }));
-      await fireEvent.press(screen.getByRole('checkbox', { name: '積読' }));
-      expect(screen.getByRole('checkbox', { name: '小説' })).toBeSelected();
-      await fireEvent.press(screen.getByRole('checkbox', { name: '小説' }));
-      expect(screen.getByRole('checkbox', { name: '小説' })).not.toBeSelected();
-      await press('棚に並べる');
-      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ shelfIds: ['s2'] }));
-    });
-
-    it('編集では元の shelfIds が選択済みで、存在しない ID は落ちずに保存時に外れる', async () => {
-      const onSubmit = jest.fn().mockResolvedValue(undefined);
-      await render(
-        <RecordForm
-          onSubmit={onSubmit}
-          shelves={shelves}
-          initialValues={{ title: 'a', shelfIds: ['s1', 'gone'] }}
-        />,
-      );
-      expect(screen.getByRole('checkbox', { name: '小説' })).toBeSelected();
-      expect(screen.getByRole('checkbox', { name: '積読' })).not.toBeSelected();
-      await press('棚に並べる');
-      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ shelfIds: ['s1'] }));
-    });
-
-    it('0 件のときは「本棚はまだありません」と注記を出す', async () => {
-      await render(<RecordForm onSubmit={jest.fn()} />);
-      expect(screen.getByText('本棚はまだありません')).toBeTruthy();
-      expect(screen.queryByRole('checkbox')).toBeNull();
-      expect(screen.getByText('「すべての本」にはいつも入ります')).toBeTruthy();
-    });
-
-    it('「＋ 本棚を作る」は onCreateShelf があるときだけ出て、押すと呼ばれる', async () => {
-      const view = await render(<RecordForm onSubmit={jest.fn()} />);
-      expect(screen.queryByText('＋ 本棚を作る')).toBeNull();
-      await view.unmount();
-      const onCreateShelf = jest.fn();
-      await render(<RecordForm onSubmit={jest.fn()} onCreateShelf={onCreateShelf} />);
-      await press('本棚を作る');
-      expect(onCreateShelf).toHaveBeenCalledTimes(1);
-    });
-  });
-
   it('保存失敗でメッセージを表示し入力値を保持する', async () => {
     const onSubmit = jest.fn().mockRejectedValue(new Error('x'));
     await render(<RecordForm onSubmit={onSubmit} initialValues={{ title: 'keep' }} />);
@@ -378,9 +326,7 @@ describe('RecordForm', () => {
   it('フッターの下端にセーフエリアの余白が入る', async () => {
     await rtlRender(
       <SafeAreaInsetsContext.Provider value={{ top: 0, left: 0, right: 0, bottom: 34 }}>
-        <PhotoServiceContextProvider service={createMockPhotoService()}>
-          <RecordForm onSubmit={jest.fn()} />
-        </PhotoServiceContextProvider>
+        {withRepository(createFakeRepository().repository, <RecordForm onSubmit={jest.fn()} />)}
       </SafeAreaInsetsContext.Provider>,
     );
     let node = screen.getByRole('button', { name: '棚に並べる' }).parent;
@@ -438,5 +384,54 @@ describe('RecordForm', () => {
       await act(async () => press('削除する'));
       expect(service.remove).toHaveBeenCalledWith('file:///p.jpg');
     });
+  });
+});
+
+describe('RecordForm の本棚', () => {
+  async function setupShelves(props: Partial<React.ComponentProps<typeof RecordForm>> = {}) {
+    const shelfRepository = createShelfRepository(createMemoryStorage().storage);
+    await shelfRepository.importShelves(
+      [
+        { id: 'a', name: 'SF', order: 0 },
+        { id: 'b', name: '哲学', order: 1 },
+      ],
+      'replace',
+    );
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    await rtlRender(
+      withRepository(
+        createFakeRepository([makeRecord({ id: 'r1', shelfIds: ['a'] }), makeRecord({ id: 'r2', shelfIds: ['a', 'b'] })])
+          .repository,
+        <RecordForm onSubmit={onSubmit} initialValues={{ title: '本' }} {...props} />,
+        undefined,
+        undefined,
+        shelfRepository,
+      ),
+    );
+    return { onSubmit };
+  }
+
+  it('入れていないときは「まだ入れていません」を出す', async () => {
+    await setupShelves();
+    expect(screen.getByRole('button', { name: '本棚、まだ入れていません' })).toBeTruthy();
+  });
+
+  it('編集のとき初期値の本棚名を「、」でつなぎ、存在しない ID は出さない', async () => {
+    await setupShelves({ initialValues: { title: '本', shelfIds: ['b', 'gone', 'a'] } });
+    expect(await screen.findByRole('button', { name: '本棚、SF、哲学' })).toBeTruthy();
+  });
+
+  it('シートで選ぶと行が変わり、保存で shelfIds が入る。存在しない ID はチェックに入れない', async () => {
+    const { onSubmit } = await setupShelves({ initialValues: { title: '本', shelfIds: ['gone'] } });
+    await fireEvent.press(await screen.findByRole('button', { name: /^本棚、/ }));
+    expect(await screen.findByText('本棚を選ぶ')).toBeTruthy();
+    expect(screen.getByText('2 冊')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '本棚に入れない' })).toBeTruthy();
+    await fireEvent.press(screen.getByRole('checkbox', { name: '哲学' }));
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'SF' }));
+    await fireEvent.press(screen.getByRole('button', { name: '2 つの本棚に入れる' }));
+    expect(await screen.findByRole('button', { name: '本棚、SF、哲学' })).toBeTruthy();
+    await press('棚に並べる');
+    await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ shelfIds: ['a', 'b'] })));
   });
 });

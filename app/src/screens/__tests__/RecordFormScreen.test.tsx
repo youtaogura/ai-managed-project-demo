@@ -176,27 +176,29 @@ describe('RecordFormScreen（背表紙の色と本棚）', () => {
     expect((await repository.getAll())[0]?.spineColor).toBe('spine-2');
   });
 
-  it('本棚をチップで選んで保存でき、編集では選択済みで開く', async () => {
+  it('本棚をシートで選んで保存でき、編集では選択済みで開く', async () => {
     const memory = createMemoryStorage();
     const shelfRepository = createShelfRepository(memory.storage);
     const shelf = await shelfRepository.create('小説');
     const repository = memoryRepository();
     await render(withRepository(repository, <RecordFormScreen initialValues={{ title: 'N' }} />, undefined, undefined, shelfRepository));
+    await fireEvent.press(await screen.findByRole('button', { name: /^本棚、/ }));
     await fireEvent.press(await screen.findByRole('checkbox', { name: '小説' }));
+    await fireEvent.press(screen.getByRole('button', { name: '1 つの本棚に入れる' }));
     await press('棚に並べる');
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
     const [saved] = await repository.getAll();
     expect(saved?.shelfIds).toEqual([shelf.id]);
     await cleanup();
     await render(withRepository(repository, <RecordFormScreen recordId={saved?.id} />, undefined, undefined, shelfRepository));
-    expect(await screen.findByRole('checkbox', { name: '小説' })).toBeSelected();
+    expect(await screen.findByRole('button', { name: '本棚、小説' })).toBeTruthy();
   });
 
   it('本棚の読み込みに失敗したら本棚なしで開く', async () => {
     const shelfRepository = createShelfRepository(createMemoryStorage().storage);
     jest.spyOn(shelfRepository, 'getAll').mockRejectedValue(new Error('x'));
     await render(withRepository(memoryRepository(), <RecordFormScreen initialValues={{ title: 'N' }} />, undefined, undefined, shelfRepository));
-    expect(await screen.findByText('本棚はまだありません')).toBeTruthy();
+    expect(await screen.findByRole('button', { name: '本棚、まだ入れていません' })).toBeTruthy();
   });
 });
 

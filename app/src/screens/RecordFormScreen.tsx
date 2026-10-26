@@ -8,13 +8,11 @@ import { colors, space } from '../design/tokens';
 import { useCoverResolver } from '../hooks/useCoverResolver';
 import { useSettings } from '../hooks/useSettings';
 import { useRecordRepository } from '../hooks/useRecordRepository';
-import { useShelfRepository } from '../hooks/useShelfRepository';
 import { spineColorForIndex } from '../lib/spineColor';
 import { applyDefaultStatus } from '../lib/statusDefault';
 import { todayString } from '../lib/recordForm';
 import { needsCover } from '../lib/coverLookup/needsCover';
 import type { MediaRecord, NewRecordInput } from '../types/record';
-import type { Shelf } from '../types/shelf';
 
 type RecordFormScreenProps = {
   recordId?: string;
@@ -27,8 +25,6 @@ type LoadState =
 
 export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenProps) {
   const repository = useRecordRepository();
-  const shelfRepository = useShelfRepository();
-  const [shelves, setShelves] = useState<Shelf[]>([]);
   const { settings } = useSettings();
   const resolveCover = useCoverResolver();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
@@ -54,21 +50,6 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
     };
   }, [repository, recordId]);
 
-  useEffect(() => {
-    let active = true;
-    shelfRepository
-      .getAll()
-      .then((all) => {
-        if (active) setShelves(all);
-      })
-      .catch(() => {
-        if (active) setShelves([]);
-      });
-    return () => {
-      active = false;
-    };
-  }, [shelfRepository]);
-
   const fillCover = async (input: NewRecordInput): Promise<NewRecordInput> => {
     if (!needsCover(input)) return input;
     try {
@@ -91,7 +72,6 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
     return (
       <RecordForm
         initialSpineColor={spineColorForIndex(state.recordCount)}
-        shelves={shelves}
         initialValues={applyDefaultStatus(
           initialValues ?? {},
           settings.defaultStatus,
@@ -121,7 +101,6 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
     <RecordForm
       initialValues={record}
       recordId={record.id}
-      shelves={shelves}
       submitLabel="保存する"
       onSubmit={async (input) => {
         const updated = await repository.update(record.id, await fillCover(input));
