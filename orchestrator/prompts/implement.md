@@ -15,6 +15,7 @@
    - CI: `gh pr checks <番号> --json name,bucket,link` で失敗したチェックを確認し、
      `link` の URL 中の run id を使って `gh run view <run-id> --log-failed` で失敗ログを読む
 3. 受け入れ条件ごとにテストを書き（`@testing-library/react-native` + Jest）、実装する。
+   - UI を作る・変える場合は、先に `docs/design-system/README.md` と使う部品の README を読み、色・文字・余白は `app/src/design/tokens.ts` の値を使う（CLAUDE.md「デザインシステム」）。
    - ライブラリを追加するときは `cd {{APP_DIR}} && npx expo install <pkg>` を使う（失敗する場合は `pnpm add`）。
 4. `cd {{APP_DIR}} && pnpm check` がすべて通るまで修正する。通らないまま PR を出さない。
 5. 意味のある単位でコミットし（Conventional Commits 形式、日本語可）、`git push -u origin {{BRANCH}}` する。
