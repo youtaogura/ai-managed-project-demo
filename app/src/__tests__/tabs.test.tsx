@@ -8,6 +8,7 @@ import IsbnLookupRoute from '../app/record/isbn';
 import TitleSearchRoute from '../app/record/search';
 import TabsLayout from '../app/(tabs)/_layout';
 import AnalyticsRoute from '../app/(tabs)/analytics';
+import SettingsRoute from '../app/(tabs)/settings';
 import RecordsRoute from '../app/(tabs)/index';
 import EditRecordRoute from '../app/record/[id]';
 import NewRecordRoute from '../app/record/new';
@@ -24,6 +25,7 @@ const routes = {
   '(tabs)/_layout': TabsLayout,
   '(tabs)/index': RecordsRoute,
   '(tabs)/analytics': AnalyticsRoute,
+  '(tabs)/settings': SettingsRoute,
   'record/isbn': IsbnLookupRoute,
   'record/search': TitleSearchRoute,
   'record/new': NewRecordRoute,
@@ -49,6 +51,30 @@ describe('タブ構成', () => {
     expect(await screen.findByText('記録がたまると、ここに振り返りが表示されます')).toBeTruthy();
     await fireEvent.press(screen.getByRole('tab', { name: '記録' }));
     expect(await screen.findByText('最初の1作品を記録しよう')).toBeTruthy();
+  });
+});
+
+describe('設定タブ', () => {
+  afterEach(async () => {
+    await AsyncStorage.clear();
+  });
+
+  it('3 つ目のタブとして並び、押すと設定画面が開く', async () => {
+    await renderRouter(routes);
+    await screen.findByText('最初の1作品を記録しよう');
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
+    await fireEvent.press(screen.getByRole('tab', { name: '設定' }));
+    expect(await screen.findByText('使う種別')).toBeTruthy();
+    expect(screen.getByRole('tab', { name: '設定' }).props.accessibilityState.selected).toBe(true);
+  });
+
+  it('種別を外すと、フォームの選択肢から消える', async () => {
+    await renderRouter(routes);
+    await fireEvent.press(await screen.findByRole('tab', { name: '設定' }));
+    await fireEvent.press(await screen.findByRole('checkbox', { name: '漫画' }));
+    await act(async () => router.push('/record/new'));
+    expect(await screen.findByRole('radio', { name: '本' })).toBeTruthy();
+    expect(screen.queryByRole('radio', { name: '漫画' })).toBeNull();
   });
 });
 
@@ -126,7 +152,10 @@ describe('ISBN で探して追加', () => {
     await renderRouter(routes);
     await fireEvent.press((await screen.findAllByRole('button', { name: '記録する' }))[0]);
     await fireEvent.press(await screen.findByRole('button', { name: 'ISBN を入力する' }));
-    await fireEvent.changeText(await screen.findByLabelText('ISBN（10 桁または 13 桁）'), '978-4-06-519981-7');
+    await fireEvent.changeText(
+      await screen.findByLabelText('ISBN（10 桁または 13 桁）'),
+      '978-4-06-519981-7',
+    );
     await fireEvent.press(screen.getByRole('button', { name: '探す' }));
     expect(await screen.findByDisplayValue('取得した本')).toBeTruthy();
     expect(screen.getByDisplayValue('著者A')).toBeTruthy();
@@ -200,7 +229,9 @@ describe('振り返りタブの遷移', () => {
   it('空表示の「記録する」→「手で入力する」で記録の追加画面へ移る', async () => {
     await renderRouter(routes);
     await fireEvent.press(screen.getByRole('tab', { name: '振り返り' }));
-    await fireEvent.press((await screen.findAllByRole('button', { name: '記録する' })).slice(-1)[0]);
+    await fireEvent.press(
+      (await screen.findAllByRole('button', { name: '記録する' })).slice(-1)[0],
+    );
     await fireEvent.press(await screen.findByRole('button', { name: '本を手で入力する' }));
     await waitFor(() => expect(screen).toHavePathname('/record/new'));
   });
@@ -211,9 +242,22 @@ describe('振り返りタブの遷移', () => {
       RECORDS_STORAGE_KEY,
       JSON.stringify([
         {
-          id: 'u1', kind: 'book', title: '未入力の本', creator: null, publisher: null, isbn: null,
-          coverUrl: null, photoUri: null, startDate: null, endDate: null, status: 'completed',
-          review: null, rating: null, createdAt: now, updatedAt: now, source: { provider: 'manual' },
+          id: 'u1',
+          kind: 'book',
+          title: '未入力の本',
+          creator: null,
+          publisher: null,
+          isbn: null,
+          coverUrl: null,
+          photoUri: null,
+          startDate: null,
+          endDate: null,
+          status: 'completed',
+          review: null,
+          rating: null,
+          createdAt: now,
+          updatedAt: now,
+          source: { provider: 'manual' },
         },
       ]),
     );

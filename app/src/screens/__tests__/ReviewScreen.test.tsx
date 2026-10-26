@@ -3,9 +3,9 @@ import { StyleSheet } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
 import { colors, space } from '../../design/tokens';
-import { withRepository } from '../../testProviders';
+import { withRepository, withSettings } from '../../testProviders';
 import { createFakeRepository, makeRecord } from '../../testUtils';
-import type { MediaRecord } from '../../types/record';
+import type { MediaKind, MediaRecord } from '../../types/record';
 import { ReviewScreen } from '../ReviewScreen';
 
 const mockPush = jest.fn();
@@ -40,6 +40,40 @@ const sample = [
   done('2', { kind: 'movie', endDate: '2026-10-03', rating: 3 }),
   done('3', { kind: 'movie', endDate: null }),
 ];
+
+describe('ReviewScreen（使う種別）', () => {
+  beforeEach(() => {
+    jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
+    jest.setSystemTime(new Date(2026, 9, 15));
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const setupKinds = (kinds: MediaKind[], records: MediaRecord[]) =>
+    render(
+      withSettings(
+        kinds,
+        withRepository(createFakeRepository(records).repository, <ReviewScreen />),
+      ),
+    );
+
+  it('使わない種別の記録は集計に入らず、種別ごとの表示は使う種別だけ', async () => {
+    await setupKinds(['book'], sample);
+    expect(await screen.findByText('平均レーティング')).toBeTruthy();
+    expect(screen.getAllByText('4.0').length).toBeGreaterThan(0);
+    expect(screen.queryByText('3.5')).toBeNull();
+    expect(screen.getByLabelText('10月 1 作品')).toBeTruthy();
+    expect(screen.getAllByText('本').length).toBeGreaterThan(0);
+    expect(screen.queryByText('映画')).toBeNull();
+    expect(screen.queryByText('アニメ')).toBeNull();
+  });
+
+  it('使う種別の記録が 0 件なら「記録なし」の状態を出す', async () => {
+    await setupKinds(['anime'], sample);
+    expect(await screen.findByText('記録がたまると、ここに振り返りが表示されます')).toBeTruthy();
+  });
+});
 
 describe('ReviewScreen', () => {
   beforeEach(() => {

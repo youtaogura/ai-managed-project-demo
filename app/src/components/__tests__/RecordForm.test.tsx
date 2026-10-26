@@ -1,4 +1,10 @@
-import { act, fireEvent, render as rtlRender, screen } from '@testing-library/react-native';
+import {
+  act,
+  fireEvent,
+  render as rtlRender,
+  screen,
+  waitFor,
+} from '@testing-library/react-native';
 import type { ReactElement } from 'react';
 import { Linking, StyleSheet } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
@@ -6,8 +12,14 @@ import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { space } from '../../design/tokens';
 import { PhotoServiceContextProvider } from '../../hooks/usePhotoService';
 import type { PhotoService } from '../../lib/photo/PhotoService';
+import { withSettings } from '../../testProviders';
+import type { MediaKind, NewRecordInput } from '../../types/record';
 import { createMockPhotoService } from '../../testUtils';
 import { RecordForm } from '../RecordForm';
+
+jest.mock('@react-native-async-storage/async-storage', () =>
+  jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
 
 const render = (ui: ReactElement, service: PhotoService = createMockPhotoService()) =>
   rtlRender(<PhotoServiceContextProvider service={service}>{ui}</PhotoServiceContextProvider>);
@@ -290,7 +302,11 @@ describe('RecordForm', () => {
   it('保存後に onSaved が呼ばれる', async () => {
     const onSaved = jest.fn();
     await render(
-      <RecordForm onSubmit={jest.fn().mockResolvedValue(undefined)} onSaved={onSaved} initialValues={{ title: 'a' }} />,
+      <RecordForm
+        onSubmit={jest.fn().mockResolvedValue(undefined)}
+        onSaved={onSaved}
+        initialValues={{ title: 'a' }}
+      />,
     );
     await press('記録する');
     expect(onSaved).toHaveBeenCalledTimes(1);
@@ -321,7 +337,14 @@ describe('RecordForm', () => {
 
   describe('削除', () => {
     const open = async (onDelete: () => Promise<void>, onDeleted?: () => void) => {
-      await render(<RecordForm onSubmit={jest.fn()} onDelete={onDelete} onDeleted={onDeleted} initialValues={{ title: '吾輩' }} />);
+      await render(
+        <RecordForm
+          onSubmit={jest.fn()}
+          onDelete={onDelete}
+          onDeleted={onDeleted}
+          initialValues={{ title: '吾輩' }}
+        />,
+      );
       await press('この記録を削除');
     };
 
@@ -329,7 +352,9 @@ describe('RecordForm', () => {
       const onDelete = jest.fn().mockResolvedValue(undefined);
       const onDeleted = jest.fn();
       await open(onDelete, onDeleted);
-      expect(screen.getByText('「吾輩」の記録と、付けた写真が削除されます。元に戻せません。')).toBeTruthy();
+      expect(
+        screen.getByText('「吾輩」の記録と、付けた写真が削除されます。元に戻せません。'),
+      ).toBeTruthy();
       await act(async () => press('削除する'));
       expect(onDelete).toHaveBeenCalledTimes(1);
       expect(onDeleted).toHaveBeenCalledTimes(1);
@@ -368,7 +393,9 @@ describe('RecordForm', () => {
     });
 
     it('写真があるときは説明を出さない', async () => {
-      await render(<RecordForm onSubmit={jest.fn()} initialValues={{ photoUri: 'file:///p.jpg' }} />);
+      await render(
+        <RecordForm onSubmit={jest.fn()} initialValues={{ photoUri: 'file:///p.jpg' }} />,
+      );
       expect(screen.queryByText(/書影を取得しました|ポスターがない/)).toBeNull();
     });
   });
@@ -376,8 +403,7 @@ describe('RecordForm', () => {
   describe('写真', () => {
     const SAVED = 'file:///documents/photos/new.jpg';
     const OLD = 'file:///documents/photos/old.jpg';
-    const picked = (uri = 'file:///tmp/pick.jpg') =>
-      ({ status: 'picked', uri }) as const;
+    const picked = (uri = 'file:///tmp/pick.jpg') => ({ status: 'picked', uri }) as const;
     const thumbnailUri = () => screen.getByLabelText('a').props.source.uri;
     const choose = (name: string) => act(async () => press(name));
 
@@ -508,7 +534,10 @@ describe('RecordForm', () => {
         save: jest.fn().mockResolvedValue(SAVED),
       });
       const view = await render(
-        <RecordForm onSubmit={jest.fn().mockResolvedValue(undefined)} initialValues={{ title: 'a' }} />,
+        <RecordForm
+          onSubmit={jest.fn().mockResolvedValue(undefined)}
+          initialValues={{ title: 'a' }}
+        />,
         service,
       );
       await choose('ライブラリから選択');
@@ -582,5 +611,41 @@ describe('RecordForm', () => {
       expect(thumbnailUri()).toBe(SAVED);
       expect(screen.queryByText('設定を開く')).toBeNull();
     });
+  });
+});
+
+describe('RecordForm（使う種別）', () => {
+  const renderWith = (
+    kinds: MediaKind[],
+    initial?: Partial<NewRecordInput>,
+    onSubmit = jest.fn(),
+  ) => render(withSettings(kinds, <RecordForm initialValues={initial} onSubmit={onSubmit} />));
+
+  it('種別の選択肢は使う種別だけ', async () => {
+    await renderWith(['book', 'anime']);
+    expect(await screen.findByRole('radio', { name: '本' })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'アニメ' })).toBeTruthy();
+    expect(screen.queryByRole('radio', { name: '漫画' })).toBeNull();
+    expect(screen.queryByRole('radio', { name: '映画' })).toBeNull();
+  });
+
+  it('使う種別が 1 つなら種別の選択 UI を出さず、その種別で保存される', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    await renderWith(['movie'], { kind: 'movie' }, onSubmit);
+    await screen.findByLabelText('タイトル（必須）');
+    expect(screen.queryByText('種別')).toBeNull();
+    expect(screen.queryByRole('radio', { name: '映画' })).toBeNull();
+    await type('タイトル（必須）', '作品');
+    await press('記録する');
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][0].kind).toBe('movie');
+  });
+
+  it('編集中の記録が使わない種別でも、元の種別が選択肢に残る', async () => {
+    await renderWith(['movie'], { kind: 'book', title: '本' });
+    expect(await screen.findByRole('radio', { name: '本' })).toBeTruthy();
+    await fireEvent.press(screen.getByRole('radio', { name: '映画' }));
+    expect(screen.getByRole('radio', { name: '本' })).toBeTruthy();
+    expect(screen.queryByRole('radio', { name: '漫画' })).toBeNull();
   });
 });

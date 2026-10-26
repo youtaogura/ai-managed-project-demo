@@ -11,13 +11,14 @@ import { resolveFontFamily } from '../design/fonts';
 import { colors, radius, size, space, typography } from '../design/tokens';
 import { useMediaSearch } from '../hooks/useMediaSearch';
 import { useBottomInset } from '../hooks/useBottomInset';
+import { useSettings } from '../hooks/useSettings';
 import { mediaCandidateToParams, mediaTitleOnlyParams } from '../lib/mediaCandidateParams';
 import type { MediaCandidate, MediaSearchKind } from '../types/mediaSearch';
 import { ERROR_KEYWORD_EMPTY, MESSAGE_EMPTY, MESSAGE_SEARCH_ERROR } from './TitleSearchScreen';
 
 type Status = 'idle' | 'searching' | 'invalid' | 'results' | 'empty' | 'error';
 
-const KIND_OPTIONS: readonly ChipOption<MediaSearchKind>[] = [
+const ALL_KIND_OPTIONS: readonly ChipOption<MediaSearchKind>[] = [
   { value: 'movie', label: '映画' },
   { value: 'drama', label: 'ドラマ' },
   { value: 'anime', label: 'アニメ' },
@@ -26,9 +27,14 @@ const KIND_OPTIONS: readonly ChipOption<MediaSearchKind>[] = [
 export function MediaSearchScreen() {
   const bottomInset = useBottomInset();
   const searchProvider = useMediaSearch();
-  const [kind, setKind] = useState<MediaSearchKind>('movie');
+  const { settings } = useSettings();
+  // 使う種別だけ出す。映画・ドラマ・アニメのどれも使わない場合は全部出す（通常は到達しない）
+  const enabledOptions = ALL_KIND_OPTIONS.filter((o) => settings.enabledKinds.includes(o.value));
+  const kindOptions = enabledOptions.length > 0 ? enabledOptions : ALL_KIND_OPTIONS;
+  const firstKind = kindOptions[0].value;
+  const [kind, setKind] = useState<MediaSearchKind>(firstKind);
   // 結果を取得したときの種別（行の表示と記録の kind に使う）
-  const [searchedKind, setSearchedKind] = useState<MediaSearchKind>('movie');
+  const [searchedKind, setSearchedKind] = useState<MediaSearchKind>(firstKind);
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [candidates, setCandidates] = useState<MediaCandidate[]>([]);
@@ -134,15 +140,17 @@ export function MediaSearchScreen() {
             style={styles.searchButton}
           />
         </View>
-        <View style={styles.kinds}>
-          <ChipGroup
-            label="種別"
-            options={KIND_OPTIONS}
-            value={kind}
-            onChange={onChangeKind}
-            compact
-          />
-        </View>
+        {kindOptions.length > 1 ? (
+          <View style={styles.kinds}>
+            <ChipGroup
+              label="種別"
+              options={kindOptions}
+              value={kind}
+              onChange={onChangeKind}
+              compact
+            />
+          </View>
+        ) : null}
       </ScreenHeaderBar>
       <View style={styles.body}>
         {status === 'invalid' ? (

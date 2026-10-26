@@ -1,0 +1,68 @@
+import { ScrollView, StyleSheet } from 'react-native';
+
+import { AppText } from '../components/AppText';
+import { ChipMultiGroup, type ChipOption } from '../components/Chip';
+import { ScreenContainer } from '../components/ScreenContainer';
+import { SettingsCard } from '../components/SettingsCard';
+import { colors, space } from '../design/tokens';
+import { useBottomInset } from '../hooks/useBottomInset';
+import { useSettings } from '../hooks/useSettings';
+import { toggleKind } from '../lib/enabledKinds';
+import { KIND_LABELS } from '../lib/statusLabel';
+import { MEDIA_KINDS, type MediaKind } from '../types/record';
+
+const KIND_OPTIONS: readonly ChipOption<MediaKind>[] = MEDIA_KINDS.map((value) => ({
+  value,
+  label: KIND_LABELS[value],
+}));
+const KIND_COLUMNS = 3;
+
+export function SettingsScreen() {
+  const { settings, update } = useSettings();
+  const bottomInset = useBottomInset();
+
+  const onToggle = (kind: MediaKind) => {
+    const next = toggleKind(settings.enabledKinds, kind);
+    // 最後の 1 つは外せない（状態も保存も変えない）
+    if (
+      next.length === settings.enabledKinds.length &&
+      next.every((k, i) => k === settings.enabledKinds[i])
+    ) {
+      return;
+    }
+    update({ enabledKinds: next });
+  };
+
+  return (
+    <ScreenContainer>
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: space[6] + bottomInset }]}
+      >
+        <AppText variant="screenTitle" style={styles.title}>
+          設定
+        </AppText>
+        <SettingsCard title="使う種別">
+          <ChipMultiGroup
+            label="使う種別"
+            options={KIND_OPTIONS}
+            values={settings.enabledKinds}
+            onChange={onToggle}
+            columns={KIND_COLUMNS}
+          />
+          <AppText variant="micro" style={styles.note}>
+            使わない種別は、入力欄・一覧・振り返りに出なくなります。記録は消えず、戻せば元どおり表示されます。
+          </AppText>
+          <AppText variant="micro" style={styles.note}>
+            最低 1 つは選んでおく必要があります
+          </AppText>
+        </SettingsCard>
+      </ScrollView>
+    </ScreenContainer>
+  );
+}
+
+const styles = StyleSheet.create({
+  content: { paddingHorizontal: space[5], gap: space[5] },
+  title: { paddingVertical: space[3] },
+  note: { color: colors.textTertiary, marginTop: space[1] },
+});

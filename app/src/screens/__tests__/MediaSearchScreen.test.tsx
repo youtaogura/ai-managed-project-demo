@@ -1,10 +1,16 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 
 import { MediaSearchContextProvider } from '../../hooks/useMediaSearch';
 import type { MediaSearchProvider } from '../../lib/mediaSearch/MediaSearchProvider';
 import type { MediaCandidate, MediaSearchKind, MediaSearchResult } from '../../types/mediaSearch';
+import { withSettings } from '../../testProviders';
+import type { MediaKind } from '../../types/record';
 import { MediaSearchScreen } from '../MediaSearchScreen';
+
+jest.mock('@react-native-async-storage/async-storage', () =>
+  jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
 
 jest.mock('expo-router', () => ({
   router: { replace: jest.fn(), push: jest.fn(), back: jest.fn() },
@@ -40,14 +46,16 @@ function deferred<T>(): Deferred<T> {
 
 async function setup(
   search: (keyword: string, kind: MediaSearchKind) => Promise<MediaSearchResult>,
+  kinds?: MediaKind[],
 ) {
   const searchFn = jest.fn(search);
   const provider: MediaSearchProvider = { attribution: 'テスト利用表記', search: searchFn };
-  await render(
+  const screenElement = (
     <MediaSearchContextProvider provider={provider}>
       <MediaSearchScreen />
-    </MediaSearchContextProvider>,
+    </MediaSearchContextProvider>
   );
+  await render(kinds ? withSettings(kinds, screenElement) : screenElement);
   return { searchFn };
 }
 
@@ -59,6 +67,35 @@ const press = (name: string | RegExp) => fireEvent.press(screen.getByRole('butto
 jest.setTimeout(30000);
 
 beforeEach(() => jest.clearAllMocks());
+
+describe('MediaSearchScreen（使う種別）', () => {
+  it('種別チップは使う種別だけで、初期の種別は使う種別の先頭', async () => {
+    const { searchFn } = await setup(async () => ok(), ['book', 'drama', 'anime']);
+    expect(await screen.findByRole('radio', { name: 'ドラマ' })).toBeTruthy();
+    expect(screen.getByRole('radio', { name: 'ドラマ' }).props.accessibilityState.checked).toBe(
+      true,
+    );
+    expect(screen.getByRole('radio', { name: 'アニメ' })).toBeTruthy();
+    expect(screen.queryByRole('radio', { name: '映画' })).toBeNull();
+    await enter('x');
+    await press('検索');
+    await waitFor(() => expect(searchFn).toHaveBeenCalledWith('x', 'drama'));
+  });
+
+  it('1 つだけのときはチップを出さず、その種別で検索する', async () => {
+    const { searchFn } = await setup(async () => ok(), ['anime']);
+    expect(await screen.findByLabelText('タイトルのキーワード')).toBeTruthy();
+    expect(screen.queryByRole('radio')).toBeNull();
+    await enter('x');
+    await press('検索');
+    await waitFor(() => expect(searchFn).toHaveBeenCalledWith('x', 'anime'));
+  });
+
+  it('映画・ドラマ・アニメのどれも使わない設定でも、全部の種別を出す', async () => {
+    await setup(async () => ok(), ['book']);
+    expect(await screen.findByRole('radio', { name: '映画' })).toBeTruthy();
+  });
+});
 
 describe('MediaSearchScreen', () => {
   it('入力欄・種別・検索ボタン・利用表記を表示し、初期の種別は映画', async () => {
