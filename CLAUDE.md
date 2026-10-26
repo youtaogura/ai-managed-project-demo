@@ -50,7 +50,7 @@ npx expo install <pkg>   # ライブラリ追加（SDK 互換バージョンを�
 
 ## デザインシステム
 
-UI を作る・変えるときは、**`docs/design-system/README.md`（ブランドブック）と、使う部品の `docs/design-system/components/<部品名>/README.md` を最初に読む**こと。
+UI を作る・変えるときは、**`docs/design-system/README.md`（ブランドブック）と、使う部品の `docs/design-system/components/<部品名>/README.md`、作る画面のデザイン `docs/design-system/screens/README.md`（画像付き）を最初に読む**こと。
 
 - 黒い地に、アクセントは白だけ（色は書影・ポスターだけが持つ）。有彩色のアクセントや新しい色を足さない
 - 値は `app/src/design/tokens.ts`（`colors` `typography` `space` `radius` `size` `shadows`）から使う。色・余白・角丸の数値を画面に直接書かない
