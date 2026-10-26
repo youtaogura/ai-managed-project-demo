@@ -15,7 +15,6 @@ import { useBottomInset } from '../hooks/useBottomInset';
 import { usePhotoPicker } from '../hooks/usePhotoPicker';
 import { usePhotoService } from '../hooks/usePhotoService';
 import { useRecordRepository } from '../hooks/useRecordRepository';
-import { coverCreditLabel } from '../lib/coverLookup/coverCredit';
 import { needsCover } from '../lib/coverLookup/needsCover';
 import { triggerImpactHaptic } from '../lib/haptics';
 import { getHeroBackground } from '../lib/heroColor';
@@ -177,7 +176,6 @@ export function RecordDetailScreen({
   const labels = infoCellLabels(record.kind);
   const byline = [record.creator, KIND_LABELS[record.kind]].filter(Boolean).join(' · ');
   const photoMessage = photoError ?? picker.error?.message ?? null;
-  const credit = coverCreditLabel(record.coverUrl);
 
   return (
     <View style={styles.container}>
@@ -221,11 +219,6 @@ export function RecordDetailScreen({
           <View onLayout={(e) => setInfoY(e.nativeEvent.layout.y)}>
             <RecordInfoSection record={record} onDelete={openDelete} />
           </View>
-          {credit ? (
-            <AppText variant="micro" style={{ color: colors.textSecondary }}>
-              {credit}
-            </AppText>
-          ) : null}
         </View>
       </ScrollView>
       <View style={[styles.bar, { paddingBottom: BAR_PADDING + bottomInset }]}>

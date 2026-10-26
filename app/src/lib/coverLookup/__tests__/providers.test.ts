@@ -1,87 +1,79 @@
-import { GoogleBooksCoverProvider } from '../GoogleBooksCoverProvider';
-import { NdlCoverProvider } from '../NdlCoverProvider';
+import type { BookLookupResult } from '../../../types/book';
+import type { BookLookupProvider } from '../../bookLookup/BookLookupProvider';
+import { createDefaultCoverResolver } from '../index';
+import { OpenBdCoverProvider } from '../OpenBdCoverProvider';
 
 const ISBN = '9784065199817';
 const signal = new AbortController().signal;
-const res = (status: number, body?: unknown) =>
-  ({
-    ok: status >= 200 && status < 300,
-    status,
-    json: async () => {
-      if (body === undefined) throw new Error('bad json');
-      return body;
-    },
-  }) as unknown as Response;
-
-describe('NdlCoverProvider', () => {
-  it('HEAD が 200 なら URL を返す', async () => {
-    const fetchFn = jest.fn(async () => res(200));
-    const url = await new NdlCoverProvider({ fetchFn }).findCoverUrl(ISBN, signal);
-    expect(url).toBe(`https://ndlsearch.ndl.go.jp/thumbnail/${ISBN}.jpg`);
-    expect(fetchFn).toHaveBeenCalledWith(url, { method: 'HEAD', signal });
-  });
-
-  it('404 や通信失敗は null', async () => {
-    expect(await new NdlCoverProvider({ fetchFn: async () => res(404) }).findCoverUrl(ISBN, signal)).toBeNull();
-    const failing = async (): Promise<Response> => {
-      throw new Error('network');
-    };
-    expect(await new NdlCoverProvider({ fetchFn: failing }).findCoverUrl(ISBN, signal)).toBeNull();
-  });
-
-  it('fetchFn 省略時は globalThis.fetch を使う', async () => {
-    const spy = jest.spyOn(globalThis, 'fetch').mockResolvedValue(res(200));
-    expect(await new NdlCoverProvider().findCoverUrl(ISBN, signal)).not.toBeNull();
-    spy.mockRestore();
-  });
-});
-
-describe('GoogleBooksCoverProvider', () => {
-  const find = (response: Response | Error) =>
-    new GoogleBooksCoverProvider({
-      fetchFn: async () => {
-        if (response instanceof Error) throw response;
-        return response;
+const book = (coverUrl: string | null) => ({ isbn: ISBN, title: 'T', author: null, publisher: null, coverUrl });
+const find = (result: BookLookupResult | Error) =>
+  new OpenBdCoverProvider({
+    lookup: {
+      lookupByIsbn: async () => {
+        if (result instanceof Error) throw result;
+        return result;
       },
-    }).findCoverUrl(ISBN, signal);
-  const withLinks = (imageLinks: unknown) => res(200, { items: [{ volumeInfo: { imageLinks } }] });
+    },
+  }).findCoverUrl(ISBN, signal);
 
-  it('thumbnail を https にして返す', async () => {
-    expect(await find(withLinks({ thumbnail: 'http://books.google.com/x?id=1&edge=curl' }))).toBe(
-      'https://books.google.com/x?id=1&edge=curl',
+describe('OpenBdCoverProvider', () => {
+  it('書影 URL を返す', async () => {
+    expect(await find({ status: 'found', book: book('https://cover.openbd.jp/x.jpg') })).toBe(
+      'https://cover.openbd.jp/x.jpg',
     );
   });
 
-  it('thumbnail がなければ smallThumbnail', async () => {
-    expect(await find(withLinks({ smallThumbnail: 'https://s/x' }))).toBe('https://s/x');
-  });
-
-  it('isbn 検索 URL を呼ぶ', async () => {
-    const fetchFn = jest.fn(async () => res(200, {}));
-    await new GoogleBooksCoverProvider({ fetchFn }).findCoverUrl(ISBN, signal);
-    expect(fetchFn).toHaveBeenCalledWith(
-      `https://www.googleapis.com/books/v1/volumes?q=isbn:${ISBN}&maxResults=1`,
-      { signal },
+  it('http:// は https:// にする', async () => {
+    expect(await find({ status: 'found', book: book('http://cover.openbd.jp/x.jpg') })).toBe(
+      'https://cover.openbd.jp/x.jpg',
     );
   });
 
   it.each([
-    ['items なし', res(200, {})],
-    ['items が空', res(200, { items: [] })],
-    ['volumeInfo なし', res(200, { items: [{}] })],
-    ['imageLinks なし', res(200, { items: [{ volumeInfo: {} }] })],
-    ['画像 URL が空', withLinks({ thumbnail: ' ' })],
-    ['不正な JSON', res(200)],
-    ['HTTP エラー', res(429, {})],
-    ['通信失敗', new Error('network')],
-  ])('%s は null', async (_name, response) => {
-    expect(await find(response)).toBeNull();
+    ['書影なし', { status: 'found', book: book(null) } as BookLookupResult],
+    ['not_found', { status: 'not_found' } as BookLookupResult],
+    ['error', { status: 'error' } as BookLookupResult],
+    ['例外', new Error('x')],
+  ])('%s は null', async (_name, result) => {
+    expect(await find(result)).toBeNull();
   });
 
-  it('fetchFn 省略時は globalThis.fetch を使う', async () => {
-    const spy = jest.spyOn(globalThis, 'fetch').mockResolvedValue(res(200, {}));
-    expect(await new GoogleBooksCoverProvider().findCoverUrl(ISBN, signal)).toBeNull();
+  it('中断済みなら問い合わせず null', async () => {
+    const lookupByIsbn = jest.fn();
+    const lookup = { lookupByIsbn } as unknown as BookLookupProvider;
+    const controller = new AbortController();
+    controller.abort();
+    expect(await new OpenBdCoverProvider({ lookup }).findCoverUrl(ISBN, controller.signal)).toBeNull();
+    expect(lookupByIsbn).not.toHaveBeenCalled();
+  });
+
+  it('lookup を省略しても作れる', () => {
+    expect(new OpenBdCoverProvider().name).toBe('openbd');
+  });
+});
+
+describe('createDefaultCoverResolver', () => {
+  afterEach(() => jest.restoreAllMocks());
+
+  it('openBD にだけ問い合わせる', async () => {
+    const spy = jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => [{ summary: { title: 'T', cover: 'https://cover.openbd.jp/x.jpg' } }],
+    } as unknown as Response);
+    expect(await createDefaultCoverResolver()(ISBN)).toBe('https://cover.openbd.jp/x.jpg');
     expect(spy).toHaveBeenCalled();
-    spy.mockRestore();
+    for (const [url] of spy.mock.calls) {
+      expect(new URL(String(url)).host).toBe('api.openbd.jp');
+    }
+  });
+
+  it('書影がなければ null', async () => {
+    jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => [null],
+    } as unknown as Response);
+    expect(await createDefaultCoverResolver()(ISBN)).toBeNull();
   });
 });
