@@ -1,5 +1,5 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useRef, useState, type ComponentRef } from 'react';
+import { useCallback, useEffect, useRef, useState, type ComponentRef } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppText } from '../components/AppText';
@@ -10,10 +10,13 @@ import { InfoCell, InfoCellRow } from '../components/InfoCell';
 import { RatingStars } from '../components/RatingStars';
 import { RecordInfoSection } from '../components/RecordInfoSection';
 import { colors, radius, shadows, size, space } from '../design/tokens';
+import { useCoverResolver } from '../hooks/useCoverResolver';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { usePhotoPicker } from '../hooks/usePhotoPicker';
 import { usePhotoService } from '../hooks/usePhotoService';
 import { useRecordRepository } from '../hooks/useRecordRepository';
+import { coverCreditLabel } from '../lib/coverLookup/coverCredit';
+import { needsCover } from '../lib/coverLookup/needsCover';
 import { triggerImpactHaptic } from '../lib/haptics';
 import { getHeroBackground } from '../lib/heroColor';
 import { infoCellLabels } from '../lib/infoCellLabels';
@@ -33,9 +36,13 @@ const REVIEW_LINES = 3;
 const HERO_TOP = space[4] + space[6];
 const BAR_PADDING = space[4];
 
-function toInput(record: MediaRecord, photoUri: string | null): NewRecordInput {
+function toInput(
+  record: MediaRecord,
+  photoUri: string | null,
+  coverUrl: string | null = record.coverUrl,
+): NewRecordInput {
   const { id: _id, createdAt: _createdAt, updatedAt: _updatedAt, ...input } = record;
-  return { ...input, photoUri };
+  return { ...input, photoUri, coverUrl };
 }
 
 export function RecordDetailScreen({
@@ -47,6 +54,7 @@ export function RecordDetailScreen({
   const bottomInset = useBottomInset();
   const repository = useRecordRepository();
   const photoService = usePhotoService();
+  const resolveCover = useCoverResolver();
   const [record, setRecord] = useState<MediaRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -74,6 +82,36 @@ export function RecordDetailScreen({
       };
     }, [repository, recordId]),
   );
+
+  // 書影の自動取得は、画面を開いている間に記録ごと 1 回まで
+  const coverAttempted = useRef<string | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!record || !needsCover(record) || coverAttempted.current === record.id) return;
+    coverAttempted.current = record.id;
+    const { id, isbn } = record;
+    const fetchCover = async () => {
+      try {
+        const coverUrl = await resolveCover(isbn ?? '');
+        if (coverUrl === null || !mounted.current) return;
+        // 取得中に写真などが付いていたら上書きしない
+        const latest = (await repository.getAll()).find((r) => r.id === id);
+        if (!latest || !mounted.current || !needsCover(latest)) return;
+        const updated = await repository.update(id, toInput(latest, null, coverUrl));
+        if (updated && mounted.current) setRecord(updated);
+      } catch {
+        // 取得・保存に失敗しても何も表示しない（文字の表紙のまま）
+      }
+    };
+    void fetchCover();
+  }, [record, repository, resolveCover]);
 
   const savePhoto = async (uri: string | null) => {
     if (!record) return;
@@ -139,6 +177,7 @@ export function RecordDetailScreen({
   const labels = infoCellLabels(record.kind);
   const byline = [record.creator, KIND_LABELS[record.kind]].filter(Boolean).join(' · ');
   const photoMessage = photoError ?? picker.error?.message ?? null;
+  const credit = coverCreditLabel(record.coverUrl);
 
   return (
     <View style={styles.container}>
@@ -182,6 +221,11 @@ export function RecordDetailScreen({
           <View onLayout={(e) => setInfoY(e.nativeEvent.layout.y)}>
             <RecordInfoSection record={record} onDelete={openDelete} />
           </View>
+          {credit ? (
+            <AppText variant="micro" style={{ color: colors.textSecondary }}>
+              {credit}
+            </AppText>
+          ) : null}
         </View>
       </ScrollView>
       <View style={[styles.bar, { paddingBottom: BAR_PADDING + bottomInset }]}>

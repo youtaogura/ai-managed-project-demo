@@ -5,6 +5,7 @@ import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
 import { RecordForm } from '../components/RecordForm';
 import { BookLookupContextProvider } from '../hooks/useBookLookup';
+import { CoverResolverContextProvider } from '../hooks/useCoverResolver';
 import { BookSearchContextProvider } from '../hooks/useBookSearch';
 import { PhotoServiceContextProvider } from '../hooks/usePhotoService';
 import { RecordRepositoryProvider } from '../hooks/useRecordRepository';
@@ -83,7 +84,9 @@ describe.each([
       withInsets(
         bottom,
         <RecordRepositoryProvider repository={repository}>
-          <RecordDetailScreen recordId="x" />
+          <CoverResolverContextProvider resolver={async () => null}>
+            <RecordDetailScreen recordId="x" />
+          </CoverResolverContextProvider>
         </RecordRepositoryProvider>,
       ),
     );
@@ -96,7 +99,9 @@ describe.each([
       withInsets(
         bottom,
         <BookLookupContextProvider provider={{ lookupByIsbn: jest.fn() }}>
-          <BarcodeScanScreen />
+          <CoverResolverContextProvider resolver={async () => null}>
+            <BarcodeScanScreen />
+          </CoverResolverContextProvider>
         </BookLookupContextProvider>,
       ),
     );
@@ -114,7 +119,9 @@ describe.each([
         bottom,
         <BookLookupContextProvider provider={{ lookupByIsbn: jest.fn() }}>
           <BookSearchContextProvider provider={{ attribution: '表記', search }}>
-            <TitleSearchScreen />
+            <CoverResolverContextProvider resolver={async () => null}>
+              <TitleSearchScreen />
+            </CoverResolverContextProvider>
           </BookSearchContextProvider>
         </BookLookupContextProvider>,
       ),

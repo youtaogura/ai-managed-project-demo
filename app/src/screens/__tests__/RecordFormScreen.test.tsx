@@ -179,3 +179,73 @@ describe('RecordFormScreen（編集）', () => {
     expect(router.replace).not.toHaveBeenCalled();
   });
 });
+
+describe('RecordFormScreen の書影取得', () => {
+  const ISBN = '9784065199817';
+  const resolverFor = (value: string | null | Error) =>
+    jest.fn(async (_isbn: string) => {
+      if (value instanceof Error) throw value;
+      return value;
+    });
+  const renderNew = async (
+    resolver: ReturnType<typeof resolverFor>,
+    initialValues: React.ComponentProps<typeof RecordFormScreen>['initialValues'],
+  ) => {
+    const repository = memoryRepository();
+    await render(
+      withRepository(repository, <RecordFormScreen initialValues={initialValues} />, undefined, resolver),
+    );
+    await press('記録する');
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
+    return repository;
+  };
+
+  it('本で ISBN があり書影も写真もなければ、取得して coverUrl に保存する', async () => {
+    const resolver = resolverFor('https://cover/x.jpg');
+    const repository = await renderNew(resolver, { title: 'a', isbn: ISBN });
+    expect(resolver).toHaveBeenCalledWith(ISBN);
+    expect((await repository.getAll())[0]?.coverUrl).toBe('https://cover/x.jpg');
+  });
+
+  it('フォームで ISBN を手入力しても書影が付く', async () => {
+    const resolver = resolverFor('https://cover/y.jpg');
+    const repository = memoryRepository();
+    await render(withRepository(repository, <RecordFormScreen />, undefined, resolver));
+    await fireEvent.changeText(screen.getByLabelText('タイトル（必須）'), 'a');
+    await fireEvent.changeText(screen.getByLabelText('ISBN'), ISBN);
+    await press('記録する');
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
+    expect((await repository.getAll())[0]?.coverUrl).toBe('https://cover/y.jpg');
+  });
+
+  it.each([
+    ['書影 URL がある', { title: 'a', isbn: ISBN, coverUrl: 'https://own' }],
+    ['写真がある', { title: 'a', isbn: ISBN, photoUri: 'file://p' }],
+    ['映画で ISBN が保存されない', { title: 'a', kind: 'movie' as const, isbn: ISBN }],
+    ['ISBN がない', { title: 'a' }],
+  ])('%s ときは取得しない', async (_name, initial) => {
+    const resolver = resolverFor('https://cover/x.jpg');
+    await renderNew(resolver, initial);
+    expect(resolver).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['null', null],
+    ['例外', new Error('x')],
+  ])('取得が %s でも coverUrl: null のまま保存できる', async (_name, value) => {
+    const repository = await renderNew(resolverFor(value), { title: 'a', isbn: ISBN });
+    expect((await repository.getAll())[0]?.coverUrl).toBeNull();
+    expect(screen.queryByText('保存に失敗しました')).toBeNull();
+  });
+
+  it('編集でも、書影も写真もない本は保存時に取得する', async () => {
+    const repository = memoryRepository();
+    const record = await repository.add({ ...baseInput, isbn: ISBN, coverUrl: null, photoUri: null });
+    const resolver = resolverFor('https://cover/z.jpg');
+    await render(withRepository(repository, <RecordFormScreen recordId={record.id} />, undefined, resolver));
+    await screen.findByLabelText('タイトル（必須）');
+    await press('保存する');
+    await waitFor(() => expect(router.back).toHaveBeenCalled());
+    expect((await repository.getAll())[0]?.coverUrl).toBe('https://cover/z.jpg');
+  });
+});

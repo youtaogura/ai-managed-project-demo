@@ -5,7 +5,9 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { AppText } from '../components/AppText';
 import { RecordForm } from '../components/RecordForm';
 import { colors, space } from '../design/tokens';
+import { useCoverResolver } from '../hooks/useCoverResolver';
 import { useRecordRepository } from '../hooks/useRecordRepository';
+import { needsCover } from '../lib/coverLookup/needsCover';
 import type { MediaRecord, NewRecordInput } from '../types/record';
 
 type RecordFormScreenProps = {
@@ -17,6 +19,7 @@ type LoadState = { status: 'loading' } | { status: 'ready'; record: MediaRecord 
 
 export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenProps) {
   const repository = useRecordRepository();
+  const resolveCover = useCoverResolver();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const addedId = useRef<string | null>(null);
 
@@ -40,12 +43,22 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
     };
   }, [repository, recordId]);
 
+  const fillCover = async (input: NewRecordInput): Promise<NewRecordInput> => {
+    if (!needsCover(input)) return input;
+    try {
+      const coverUrl = await resolveCover(input.isbn ?? '');
+      return coverUrl === null ? input : { ...input, coverUrl };
+    } catch {
+      return input;
+    }
+  };
+
   if (recordId === undefined) {
     return (
       <RecordForm
         initialValues={initialValues}
         onSubmit={async (input) => {
-          const added = await repository.add(input);
+          const added = await repository.add(await fillCover(input));
           addedId.current = added.id;
         }}
         onSaved={() => {
@@ -77,7 +90,7 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
       initialValues={record}
       submitLabel="保存する"
       onSubmit={async (input) => {
-        const updated = await repository.update(record.id, input);
+        const updated = await repository.update(record.id, await fillCover(input));
         if (!updated) throw new Error('not found');
       }}
       onSaved={() => router.back()}

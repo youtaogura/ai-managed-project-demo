@@ -4,6 +4,7 @@ import { Linking, Platform, StyleSheet } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { BookLookupContextProvider } from '../../hooks/useBookLookup';
+import { CoverResolverContextProvider } from '../../hooks/useCoverResolver';
 import type { BookLookupProvider } from '../../lib/bookLookup/BookLookupProvider';
 import type { BookLookupResult } from '../../types/book';
 import { BarcodeScanScreen } from '../BarcodeScanScreen';
@@ -33,13 +34,18 @@ jest.mock('expo-router', () => ({
 const ISBN = '9784065199817';
 const book = { isbn: ISBN, title: 'T', author: 'A', publisher: 'P', coverUrl: 'U' };
 
-async function setup(results: Promise<BookLookupResult>[] = []) {
+async function setup(
+  results: Promise<BookLookupResult>[] = [],
+  resolveCover: jest.Mock<Promise<string | null>, [string]> = jest.fn(async (_isbn: string) => null),
+) {
   const lookupByIsbn = jest.fn();
   results.forEach((r) => lookupByIsbn.mockReturnValueOnce(r));
   const provider: BookLookupProvider = { lookupByIsbn };
   const view = await render(
     <BookLookupContextProvider provider={provider}>
-      <BarcodeScanScreen />
+      <CoverResolverContextProvider resolver={resolveCover}>
+        <BarcodeScanScreen />
+      </CoverResolverContextProvider>
     </BookLookupContextProvider>,
   );
   return { lookupByIsbn, view };
@@ -53,6 +59,32 @@ beforeEach(() => {
   jest.clearAllMocks();
   mockCameraProps = null;
   mockPermission = { granted: true, canAskAgain: true };
+});
+
+describe('BarcodeScanScreen の書影補完', () => {
+  it('書影がなければ取得した URL を params に入れ、あれば取得しない', async () => {
+    const resolveCover = jest.fn(async (_isbn: string) => 'https://cover/x.jpg');
+    await setup(
+      [
+        Promise.resolve({ status: 'found', book: { ...book, coverUrl: null } }),
+        Promise.resolve({ status: 'found', book }),
+      ],
+      resolveCover,
+    );
+    await scan('9784065199817');
+    expect(resolveCover).toHaveBeenCalledWith(ISBN);
+    expect(router.replace).toHaveBeenCalledWith({
+      pathname: '/record/new',
+      params: expect.objectContaining({ coverUrl: 'https://cover/x.jpg' }),
+    });
+  });
+
+  it('書影があれば取得しない', async () => {
+    const resolveCover = jest.fn(async (_isbn: string) => 'https://cover/x.jpg');
+    await setup([Promise.resolve({ status: 'found', book })], resolveCover);
+    await scan('9784065199817');
+    expect(resolveCover).not.toHaveBeenCalled();
+  });
 });
 
 describe('BarcodeScanScreen', () => {
@@ -192,7 +224,9 @@ describe('BarcodeScanScreen', () => {
     await render(
       <SafeAreaProvider initialMetrics={metrics}>
         <BookLookupContextProvider provider={{ lookupByIsbn: jest.fn() }}>
-          <BarcodeScanScreen />
+          <CoverResolverContextProvider resolver={async () => null}>
+            <BarcodeScanScreen />
+          </CoverResolverContextProvider>
         </BookLookupContextProvider>
       </SafeAreaProvider>,
     );

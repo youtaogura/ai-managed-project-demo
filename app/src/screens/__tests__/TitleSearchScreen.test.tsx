@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 
 import { BookLookupContextProvider } from '../../hooks/useBookLookup';
 import { BookSearchContextProvider } from '../../hooks/useBookSearch';
+import { CoverResolverContextProvider } from '../../hooks/useCoverResolver';
 import type { BookLookupProvider } from '../../lib/bookLookup/BookLookupProvider';
 import type { BookSearchProvider } from '../../lib/bookSearch/BookSearchProvider';
 import type { BookLookupResult } from '../../types/book';
@@ -47,6 +48,7 @@ function deferred<T>(): Deferred<T> {
 async function setup(
   search: (keyword: string) => Promise<BookSearchResult>,
   lookup: (isbn: string) => Promise<BookLookupResult> = async () => ({ status: 'not_found' }),
+  resolveCover: jest.Mock<Promise<string | null>, [string]> = jest.fn(async (_isbn: string) => null),
 ) {
   const searchFn = jest.fn(search);
   const lookupFn = jest.fn(lookup);
@@ -54,9 +56,11 @@ async function setup(
   const lookupProvider: BookLookupProvider = { lookupByIsbn: lookupFn };
   const view = await render(
     <BookLookupContextProvider provider={lookupProvider}>
-      <BookSearchContextProvider provider={searchProvider}>
-        <TitleSearchScreen />
-      </BookSearchContextProvider>
+      <CoverResolverContextProvider resolver={resolveCover}>
+        <BookSearchContextProvider provider={searchProvider}>
+          <TitleSearchScreen />
+        </BookSearchContextProvider>
+      </CoverResolverContextProvider>
     </BookLookupContextProvider>,
   );
   return { searchFn, lookupFn, view };
@@ -68,6 +72,34 @@ const enter = (text: string) =>
 const press = (name: string | RegExp) => fireEvent.press(screen.getByRole('button', { name }));
 
 beforeEach(() => jest.clearAllMocks());
+
+describe('TitleSearchScreen の書影補完', () => {
+  it('openBD に書影がなければ取得した URL を params に入れ、あれば取得しない', async () => {
+    const resolveCover = jest.fn(async (_isbn: string) => 'https://cover/x.jpg');
+    await setup(async () => ok(withIsbn), async () => ({ status: 'found', book }), resolveCover);
+    await enter('本');
+    await press(/検索/);
+    await press(/本A/);
+    expect(resolveCover).toHaveBeenCalledWith('9784065199817');
+    expect(router.replace).toHaveBeenCalledWith({
+      pathname: '/record/new',
+      params: expect.objectContaining({ coverUrl: 'https://cover/x.jpg' }),
+    });
+  });
+
+  it('書影があれば取得しない', async () => {
+    const resolveCover = jest.fn(async (_isbn: string) => 'https://cover/x.jpg');
+    await setup(
+      async () => ok(withIsbn),
+      async () => ({ status: 'found', book: { ...book, coverUrl: 'https://o/c.jpg' } }),
+      resolveCover,
+    );
+    await enter('本');
+    await press(/検索/);
+    await press(/本A/);
+    expect(resolveCover).not.toHaveBeenCalled();
+  });
+});
 
 describe('TitleSearchScreen', () => {
   it('入力欄・検索ボタン・利用表記を表示し、入力中は Provider を呼ばない', async () => {

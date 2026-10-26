@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { navigationTheme, stackScreenOptions } from '../design/navigationTheme';
 import { BookLookupContextProvider } from '../hooks/useBookLookup';
+import { CoverResolverContextProvider } from '../hooks/useCoverResolver';
 import { BookSearchContextProvider } from '../hooks/useBookSearch';
 import { PhotoServiceContextProvider } from '../hooks/usePhotoService';
 import { RecordRepositoryProvider } from '../hooks/useRecordRepository';
@@ -22,16 +23,18 @@ function Providers() {
   return (
     <RecordRepositoryProvider>
       <BookLookupContextProvider>
-        <BookSearchContextProvider>
-          <PhotoServiceContextProvider>
-            <ThemeProvider value={navigationTheme}>
-              <Stack screenOptions={stackScreenOptions}>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              </Stack>
-            </ThemeProvider>
-            <StatusBar style="light" />
-          </PhotoServiceContextProvider>
-        </BookSearchContextProvider>
+        <CoverResolverContextProvider>
+          <BookSearchContextProvider>
+            <PhotoServiceContextProvider>
+              <ThemeProvider value={navigationTheme}>
+                <Stack screenOptions={stackScreenOptions}>
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                </Stack>
+              </ThemeProvider>
+              <StatusBar style="light" />
+            </PhotoServiceContextProvider>
+          </BookSearchContextProvider>
+        </CoverResolverContextProvider>
       </BookLookupContextProvider>
     </RecordRepositoryProvider>
   );

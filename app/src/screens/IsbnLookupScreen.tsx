@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useBookLookup } from '../hooks/useBookLookup';
+import { useCoverResolver } from '../hooks/useCoverResolver';
+import { withCover } from '../lib/coverLookup/withCover';
 import { toIsbn13 } from '../lib/isbn';
 import { bookInfoToParams, isbnOnlyParams } from '../lib/isbnLookupParams';
 import { colors, formColors, spacing } from '../theme';
@@ -15,6 +17,7 @@ type Status = 'idle' | 'loading' | 'invalid' | 'not_found' | 'error';
 
 export function IsbnLookupScreen() {
   const provider = useBookLookup();
+  const resolveCover = useCoverResolver();
   const [text, setText] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const running = useRef(false);
@@ -42,9 +45,11 @@ export function IsbnLookupScreen() {
       const result = await provider.lookupByIsbn(isbn13);
       if (!active.current) return;
       if (result.status === 'found') {
+        const book = await withCover(result.book, resolveCover);
+        if (!active.current) return;
         router.replace({
           pathname: '/record/new',
-          params: bookInfoToParams(result.book),
+          params: bookInfoToParams(book),
         });
         return;
       }

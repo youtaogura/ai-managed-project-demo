@@ -5,7 +5,9 @@ import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, Text, View
 
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useBookLookup } from '../hooks/useBookLookup';
+import { useCoverResolver } from '../hooks/useCoverResolver';
 import { isbnFromBarcode } from '../lib/barcode';
+import { withCover } from '../lib/coverLookup/withCover';
 import { bookInfoToParams, isbnOnlyParams } from '../lib/isbnLookupParams';
 import { colors, overlayColors, spacing } from '../theme';
 
@@ -36,6 +38,7 @@ function NativeBarcodeScan() {
   const bottomInset = useBottomInset();
   const [permission, requestPermission] = useCameraPermissions();
   const provider = useBookLookup();
+  const resolveCover = useCoverResolver();
   const [state, setState] = useState<ScanState>('scanning');
   const [isbn, setIsbn] = useState<string | null>(null);
   const handled = useRef(false);
@@ -54,7 +57,9 @@ function NativeBarcodeScan() {
     const result = await provider.lookupByIsbn(isbn13);
     if (!active.current) return;
     if (result.status === 'found') {
-      router.replace({ pathname: '/record/new', params: bookInfoToParams(result.book) });
+      const book = await withCover(result.book, resolveCover);
+      if (!active.current) return;
+      router.replace({ pathname: '/record/new', params: bookInfoToParams(book) });
     } else {
       setState(result.status);
     }
