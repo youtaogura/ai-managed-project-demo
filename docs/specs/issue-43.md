@@ -74,7 +74,7 @@
 - `app/src/components/ReviewEmpty.tsx`（新規）: 点線の空の棒グラフ + 文言 + `Button variant="primary"`
 - `app/src/hooks/useAddSheet.ts`（新規）: `RecordsScreen` の `addOpen` と `select`（`ADD_ROUTES` で `router.push`、`manual` は `onAdd`）を切り出す。`RecordsScreen` もこれを使う（挙動は変えない）
 - `app/src/app/(tabs)/analytics.tsx`: `ReviewScreen` を描画。`onAdd` は `/record/new`、`onOpenRecords` は `/`（タブの記録）へ
-- 削除: `screens/AnalyticsScreen.tsx` と `screens/__tests__/AnalyticsScreen.test.tsx`、`src/theme.ts` の `kindColors`（他に参照がなければ。残す場合は理由を判断ログへ）
+- 削除: `screens/AnalyticsScreen.tsx`、`src/theme.ts` の `kindColors`（他に参照がなければ。残す場合は理由を判断ログへ）。`screens/__tests__/AnalyticsScreen.test.tsx` は CI の改ざん検知がテストファイルの削除を許さないため削除せず、analytics ルートが振り返り画面を表示することを確認するテストに書き換える
 
 ### 種別ごとの灰色（トークンがない間の代替）
 `MEDIA_KINDS` の順に `textPrimary` / `textSecondary` / `textTertiary` / `lineStrong` / `surface2`。コンポーネント内の定数（`KIND_SHADES`）として `design/tokens.ts` の値から作る。16 進数は書かない。
