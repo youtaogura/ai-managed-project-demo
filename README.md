@@ -159,6 +159,9 @@ docker compose down          # 実行中の工程の終了を待ってから停�
 - **質問への回答**: Blocked の Issue にエージェントの質問コメントが付いています。Issue に回答を書き、`needs-clarification` ラベルを外して、Status を再開したい列（通常は止まった工程）に戻します。
 - **失敗時**: `agent-failed` ラベルとオーケストレーターのコメントを確認し、ログ（`agent-logs/`）を見て対処後、ラベルを外して列を戻します。
 - **差し戻し**: レビュー指摘・CI 失敗で Implement に戻ります。`MAX_REWORK` 回を超えると Blocked。
+- **main とのコンフリクト**: 並行して実装した PR 同士のコンフリクトは止めずに解消させます。
+  - Release でマージ前に `git merge-tree` で確認し、コンフリクトがあれば PR にコメントして Implement に戻します。実装エージェントは `main` を merge し、コミットログ・相手の PR の判断ログ・仕様書を辿って、先にマージされた側の振る舞いを優先して解消します。解消後は Review からやり直し。`MAX_CONFLICT_RESOLVE` 回（レビュー・CI の差し戻しとは別に数える）を超えると Blocked。
+  - コンフリクトがなくても `main` が先に進んでいれば、オーケストレーターが `main` を取り込んで push し、CI をやり直してからマージします（古い `main` に対する CI 結果ではマージしない）。
 - **コスト・暴走の抑制**: `MAX_TURNS`、`JOB_TIMEOUT_MIN`、`MAX_CONCURRENCY`、`MAX_BUDGET_USD`（API キー利用時）。
 - **リリース**: CI 通過を確認して squash マージし、Issue をクローズ。`EXPO_TOKEN` があり `app/` で `eas init` 済みなら、Android の内部配布ビルド（`preview`）を依頼します。
 

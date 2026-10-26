@@ -1,3 +1,4 @@
+import { createDefaultBookLookupProvider } from '..';
 import { OpenBdProvider } from '../OpenBdProvider';
 
 const ISBN = '9784065199817';
@@ -91,5 +92,9 @@ describe('OpenBdProvider', () => {
     } finally {
       globalThis.fetch = original;
     }
+  });
+
+  it('既定の Provider を作れる', () => {
+    expect(createDefaultBookLookupProvider()).toBeInstanceOf(OpenBdProvider);
   });
 });

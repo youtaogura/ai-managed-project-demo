@@ -1,4 +1,4 @@
-import { normalizeIsbn, toIsbn13 } from '../isbn';
+import { isValidEan13, normalizeIsbn, toIsbn13 } from '../isbn';
 
 describe('normalizeIsbn', () => {
   it('ハイフン・空白・全角を正規化する', () => {
@@ -27,5 +27,11 @@ describe('toIsbn13', () => {
     expect(toIsbn13('4065199810')).toBeNull();
     expect(toIsbn13('1234567890123')).toBeNull();
     expect(toIsbn13('X065199819')).toBeNull();
+  });
+
+  it('isValidEan13', () => {
+    expect(isValidEan13('9784065199817')).toBe(true);
+    expect(isValidEan13('9784065199818')).toBe(false);
+    expect(isValidEan13('978406519981')).toBe(false);
   });
 });

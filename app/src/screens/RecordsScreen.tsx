@@ -22,9 +22,16 @@ export function RecordsScreen() {
       <Pressable
         accessibilityRole="button"
         onPress={() => router.push('/record/isbn')}
-        style={styles.isbn}
+        style={styles.add}
       >
-        <Text style={styles.isbnText}>ISBN で探して追加</Text>
+        <Text style={styles.addText}>ISBN で探して追加</Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push('/record/scan')}
+        style={styles.add}
+      >
+        <Text style={styles.addText}>バーコードで読み取って追加</Text>
       </Pressable>
       {sorted.length === 0 ? (
         loading ? null : (
@@ -64,14 +71,11 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   add: {
     margin: spacing.md,
-    marginBottom: 0,
     padding: spacing.md,
     borderRadius: 8,
     alignItems: 'center',
     backgroundColor: colors.tint,
   },
-  isbn: { margin: spacing.md, padding: spacing.md, alignItems: 'center' },
-  isbnText: { color: colors.tint, fontSize: 16, fontWeight: '600' },
   addText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   row: {
     padding: spacing.md,
