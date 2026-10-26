@@ -48,10 +48,19 @@ function hasHeaderTitle(title: string): boolean {
   return containsTitle(screen.toJSON(), title) || screen.queryAllByText(title).length > 0;
 }
 
+describe('タブの画面はネイティブのヘッダーを出さず、画面内の見出しにする', () => {
+  it.each([
+    ['/', '記録'],
+    ['/analytics', '振り返り'],
+  ])('%s の見出しは「%s」', async (path, title) => {
+    await renderRouter(routes, { initialUrl: path });
+    await waitFor(() => expect(screen.getAllByText(title).length).toBeGreaterThan(0));
+    expect(screen).toHavePathname(path);
+  });
+});
+
 describe('全画面でヘッダーが表示される', () => {
   it.each([
-    ['/', '記録一覧'],
-    ['/analytics', '分析'],
     ['/records/r1', '記録の詳細'],
     ['/record/new', '記録を追加'],
     ['/record/isbn', 'ISBN で探す'],
@@ -63,7 +72,7 @@ describe('全画面でヘッダーが表示される', () => {
     expect(screen).toHavePathname(path);
   });
 
-  it('記録一覧の「ISBN で探す」から ISBN 入力画面へヘッダー付きで遷移する', async () => {
+  it('ISBN 入力画面へヘッダー付きで遷移する', async () => {
     await renderRouter(routes);
     await act(async () => router.push('/record/isbn'));
     await waitFor(() => expect(hasHeaderTitle('ISBN で探す')).toBe(true));

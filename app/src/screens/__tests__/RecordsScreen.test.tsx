@@ -49,135 +49,170 @@ function setup(
         repository,
         <RecordsScreen sortOrderStore={createSortOrderStore(storage)} {...handlers} />,
       ),
+    'record/new': () => <Text>ダミー手入力画面</Text>,
     'record/isbn': () => <Text>ダミーISBN画面</Text>,
     'record/search': () => <Text>ダミー検索画面</Text>,
     'record/scan': () => <Text>ダミー読取画面</Text>,
   });
 }
 
+const now = new Date();
+const pad = (n: number) => String(n).padStart(2, '0');
+const thisMonth = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+const thisYear = `${now.getFullYear()}`;
+
+// 表示順を、書影（accessibilityLabel がタイトル）の並びで取る
 const titles = () =>
-  screen.getAllByText(/^(アルファ|ベータ|ガンマ)$/).map((n) => n.props.children as string);
+  screen
+    .getAllByRole('button', { name: /^(アルファ|ベータ|ガンマ)$/ })
+    .map((n) => n.props.accessibilityLabel as string);
 
 describe('RecordsScreen', () => {
   it('読み込み中はインジケーターを表示し、完了後に切り替わる', async () => {
     const { repository } = createFakeRepository(records);
     await setup(repository);
-    await waitFor(() => expect(screen.getByText('アルファ')).toBeTruthy());
+    await waitFor(() => expect(screen.getAllByLabelText('アルファ').length).toBeGreaterThan(0));
     expect(screen.queryByLabelText('読み込み中')).toBeNull();
   });
 
-  it('各行にタイトル・種別・ステータス・期間・レーティングを表示する', async () => {
+  it('見出し「記録」と並び替え・記録するボタンを表示する', async () => {
     await setup(createFakeRepository(records).repository);
-    await waitFor(() => expect(screen.getByText('アルファ')).toBeTruthy());
-    expect(screen.getByText('本 ・ 読み終わった')).toBeTruthy();
-    expect(screen.getByText('2024-01-05 〜 2024-02-10')).toBeTruthy();
-    expect(screen.getByText('★ 4.0')).toBeTruthy();
-    expect(screen.getByText('2024-03-01 〜')).toBeTruthy();
-    expect(screen.getByText('〜 2024-05-01')).toBeTruthy();
-    expect(screen.getByText('映画 ・ 見たい')).toBeTruthy();
-    expect(screen.getByText('未評価')).toBeTruthy();
-    expect(screen.getByText('📖')).toBeTruthy();
+    expect(await screen.findByText('記録')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '並び替え' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '記録する' })).toBeTruthy();
   });
 
-  it('既定は終了日の新しい順で、並び替えると即座に変わる', async () => {
-    await setup(createFakeRepository(records).repository);
-    await waitFor(() => expect(screen.getByText('アルファ')).toBeTruthy());
-    expect(titles()).toEqual(['ガンマ', 'アルファ', 'ベータ']);
-    expect(screen.getByText('並び替え: 終了日が新しい順')).toBeTruthy();
-
-    await fireEvent.press(screen.getByLabelText('並び替え'));
-    await fireEvent.press(screen.getByText('評価が高い順'));
-    expect(titles()).toEqual(['アルファ', 'ガンマ', 'ベータ']);
-    expect(screen.getByText('並び替え: 評価が高い順')).toBeTruthy();
+  it('今年・今月に終了日のある記録の数を表示する', async () => {
+    const dated = [
+      makeRecord({ id: 'y1', title: 'A', endDate: `${thisMonth}-01` }),
+      makeRecord({ id: 'y2', title: 'B', endDate: `${thisYear}-01-01` }),
+      makeRecord({ id: 'o1', title: 'C', endDate: '1999-05-05' }),
+      makeRecord({ id: 'n1', title: 'D', endDate: null }),
+    ];
+    await setup(createFakeRepository(dated).repository);
+    const expectedMonth = thisMonth.endsWith('-01') ? 2 : 1;
+    expect(await screen.findByLabelText(`今年 2 作品 · 今月 ${expectedMonth}`)).toBeTruthy();
   });
 
-  it('選択シートを閉じられる', async () => {
+  it('「最近読み終えた・見終えた」に終了日の新しい順で最大10件並ぶ', async () => {
+    const many = Array.from({ length: 12 }, (_, i) =>
+      makeRecord({ id: `m${i}`, title: `作品${pad(i)}`, endDate: `2020-01-${pad(i + 1)}` }),
+    );
+    await setup(createFakeRepository(many).repository);
+    expect(await screen.findByText('最近読み終えた・見終えた')).toBeTruthy();
+    // hero は終了日を表示する。2020-01-12 が最新、2020-01-03 が 10 件目
+    expect(screen.getByText('2020-01-12')).toBeTruthy();
+    expect(screen.getByText('2020-01-03')).toBeTruthy();
+    expect(screen.queryByText('2020-01-02')).toBeNull();
+    expect(screen.queryByText('2020-01-01')).toBeNull();
+  });
+
+  it('終了日のある記録がなければ「最近読み終えた・見終えた」は出ない', async () => {
+    await setup(
+      createFakeRepository([makeRecord({ id: 'p', title: 'ベータ', endDate: null })]).repository,
+    );
+    expect(await screen.findByText('すべての記録')).toBeTruthy();
+    expect(screen.queryByText('最近読み終えた・見終えた')).toBeNull();
+  });
+
+  it('既定は終了日の新しい順で、並び順を見出しの右に出す', async () => {
     await setup(createFakeRepository(records).repository);
-    await waitFor(() => expect(screen.getByText('アルファ')).toBeTruthy());
-    await fireEvent.press(screen.getByLabelText('並び替え'));
-    expect(screen.getByText('タイトル順')).toBeTruthy();
-    await fireEvent(screen.getByTestId('sort-modal'), 'requestClose');
-    expect(screen.queryByText('タイトル順')).toBeNull();
+    await screen.findByText('すべての記録');
+    expect(screen.getByText('終了日が新しい順')).toBeTruthy();
+    const grid = titles();
+    expect(grid.slice(-3)).toEqual(['ガンマ', 'アルファ', 'ベータ']);
+  });
+
+  it('並び替えシートで選ぶと一覧が変わり、シートが閉じる', async () => {
+    await setup(createFakeRepository(records).repository);
+    await screen.findByText('すべての記録');
+    await fireEvent.press(screen.getByRole('button', { name: '並び替え' }));
+    expect(screen.getByText('レーティング')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('radio', { name: '低い順' }));
+    expect(screen.getByText('評価が低い順')).toBeTruthy();
+    expect(titles().slice(-3)).toEqual(['ガンマ', 'アルファ', 'ベータ']);
+    expect(screen.queryByText('レーティング')).toBeNull();
   });
 
   it('並び順は再マウント後も維持される', async () => {
     const { storage } = createMemoryStorage();
     const { repository } = createFakeRepository(records);
     await setup(repository, storage);
-    await waitFor(() => expect(screen.getByText('アルファ')).toBeTruthy());
-    await fireEvent.press(screen.getByLabelText('並び替え'));
-    await fireEvent.press(screen.getByText('評価が高い順'));
+    await screen.findByText('すべての記録');
+    await fireEvent.press(screen.getByRole('button', { name: '並び替え' }));
+    await fireEvent.press(screen.getByRole('radio', { name: '高い順' }));
     await screen.unmount();
 
     await setup(repository, storage);
-    await waitFor(() => expect(screen.getByText('並び替え: 評価が高い順')).toBeTruthy());
-    expect(titles()).toEqual(['アルファ', 'ガンマ', 'ベータ']);
+    await waitFor(() => expect(screen.getByText('評価が高い順')).toBeTruthy());
+    expect(titles().slice(-3)).toEqual(['アルファ', 'ガンマ', 'ベータ']);
   });
 
-  it('行をタップすると onOpen が id 付きで呼ばれる', async () => {
+  it('書影をタップすると onOpen が id 付きで呼ばれる', async () => {
     const onOpen = jest.fn();
-    await setup(createFakeRepository(records).repository, undefined, {
-      onOpen,
-    });
-    await waitFor(() => expect(screen.getByText('ベータ')).toBeTruthy());
-    await fireEvent.press(screen.getByText('ベータ'));
+    await setup(createFakeRepository(records).repository, undefined, { onOpen });
+    await screen.findByText('すべての記録');
+    await fireEvent.press(screen.getAllByLabelText('ベータ')[0]);
     expect(onOpen).toHaveBeenCalledWith('b');
-  });
-
-  it('0 件のときは空状態と追加ボタンを表示し、押すと onAdd が呼ばれる', async () => {
-    const onAdd = jest.fn();
-    await setup(createFakeRepository().repository, undefined, { onAdd });
-    await waitFor(() => expect(screen.getByText('まだ記録がありません')).toBeTruthy());
-    expect(screen.getByText('記録を追加するとここに表示されます')).toBeTruthy();
-    await fireEvent.press(screen.getByText('記録を追加する'));
-    expect(onAdd).toHaveBeenCalledTimes(1);
   });
 
   it('コールバック未指定でもタップで落ちない', async () => {
     await setup(createFakeRepository(records).repository);
-    await waitFor(() => expect(screen.getByText('ベータ')).toBeTruthy());
-    await fireEvent.press(screen.getByText('ベータ'));
+    await screen.findByText('すべての記録');
+    await fireEvent.press(screen.getAllByLabelText('ベータ')[0]);
   });
 
-  it('ISBN・バーコードのボタンで各画面へ遷移する', async () => {
-    await setup(createFakeRepository(records).repository);
-    await waitFor(() => expect(screen.getByText('ベータ')).toBeTruthy());
-    await fireEvent.press(screen.getByRole('button', { name: 'ISBN で探して追加' }));
-    await waitFor(() => expect(screen).toHavePathname('/record/isbn'));
-  });
-
-  it('タイトルで探して追加のボタンから検索画面へ遷移する', async () => {
-    await setup(createFakeRepository(records).repository);
-    await waitFor(() => expect(screen.getByText('ベータ')).toBeTruthy());
-    await fireEvent.press(screen.getByRole('button', { name: 'タイトルで探して追加' }));
-    await waitFor(() => expect(screen).toHavePathname('/record/search'));
-  });
-
-  it('0 件でもバーコードのボタンから読み取り画面へ遷移する', async () => {
+  it('0 件のときは空の表示が出て、「記録する」で追加シートが開く', async () => {
     await setup(createFakeRepository().repository);
-    await waitFor(() => expect(screen.getByText('まだ記録がありません')).toBeTruthy());
-    await fireEvent.press(screen.getByRole('button', { name: 'バーコードで読み取って追加' }));
-    await waitFor(() => expect(screen).toHavePathname('/record/scan'));
+    expect(await screen.findByText('最初の1作品を記録しよう')).toBeTruthy();
+    expect(screen.queryByText('何を記録しますか')).toBeNull();
+    await fireEvent.press(screen.getAllByRole('button', { name: '記録する' }).slice(-1)[0]);
+    expect(screen.getByText('何を記録しますか')).toBeTruthy();
   });
 
-  it('記録があるとき「手入力で追加」を表示し、押すと onAdd が呼ばれる', async () => {
+  it('＋ボタンで追加シートが開き、旧デザインの追加ボタンはない', async () => {
+    await setup(createFakeRepository(records).repository);
+    await screen.findByText('すべての記録');
+    expect(screen.queryByRole('button', { name: '手入力で追加' })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
+    expect(screen.getByText('何を記録しますか')).toBeTruthy();
+  });
+
+  it.each([
+    ['バーコードを読み取る', '/record/scan'],
+    ['タイトルで探す', '/record/search'],
+    ['ISBN を入力する', '/record/isbn'],
+  ])('追加シートの「%s」で %s へ遷移する', async (label, path) => {
+    await setup(createFakeRepository(records).repository);
+    await screen.findByText('すべての記録');
+    await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
+    await fireEvent.press(screen.getByRole('button', { name: label }));
+    await waitFor(() => expect(screen).toHavePathname(path));
+  });
+
+  it('追加シートの「手で入力する」で onAdd が呼ばれ、シートが閉じる', async () => {
     const onAdd = jest.fn();
     await setup(createFakeRepository(records).repository, undefined, { onAdd });
-    await waitFor(() => expect(screen.getByText('アルファ')).toBeTruthy());
-    await fireEvent.press(screen.getByRole('button', { name: '手入力で追加' }));
+    await screen.findByText('すべての記録');
+    await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
+    await fireEvent.press(screen.getByRole('button', { name: '手で入力する' }));
     expect(onAdd).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('何を記録しますか')).toBeNull();
   });
 
-  it('記録が 0 件でも「手入力で追加」を表示する', async () => {
-    await setup(createFakeRepository([]).repository);
-    expect(await screen.findByText('まだ記録がありません')).toBeTruthy();
-    expect(screen.getByRole('button', { name: '手入力で追加' })).toBeTruthy();
-  });
-
-  it('onAdd 未指定でも「手入力で追加」を押して落ちない', async () => {
+  it('onAdd 未指定でも「手で入力する」を押して落ちない', async () => {
     await setup(createFakeRepository(records).repository);
-    await waitFor(() => expect(screen.getByText('アルファ')).toBeTruthy());
-    await fireEvent.press(screen.getByRole('button', { name: '手入力で追加' }));
-    expect(screen.getByText('アルファ')).toBeTruthy();
+    await screen.findByText('すべての記録');
+    await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
+    await fireEvent.press(screen.getByRole('button', { name: '手で入力する' }));
+    expect(screen.getAllByLabelText('ベータ').length).toBeGreaterThan(0);
+  });
+
+  it('追加シートを閉じるボタンで閉じられる', async () => {
+    await setup(createFakeRepository(records).repository);
+    await screen.findByText('すべての記録');
+    await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
+    await fireEvent.press(screen.getByRole('button', { name: '閉じる' }));
+    expect(screen.queryByText('何を記録しますか')).toBeNull();
   });
 });
