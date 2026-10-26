@@ -3,6 +3,7 @@ import type { Shelf } from '../types/shelf';
 import { normalizeShelves, parseShelves } from './shelfGuard';
 import type { KeyValueStorage } from './storage';
 import { ValidationError } from './recordRepository';
+import { validateShelfName } from './shelfName';
 
 export const SHELVES_STORAGE_KEY = 'shelves.v1';
 
@@ -24,10 +25,10 @@ export type ShelfRepository = {
 
 const defaultGenerateId = () => `shelf-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
-function validName(name: string): string {
-  const trimmed = name.trim();
-  if (trimmed === '') throw new ValidationError('本棚の名前を入力してください');
-  return trimmed;
+function validName(name: string, shelves: readonly Shelf[], exceptId?: string): string {
+  const result = validateShelfName(name, shelves, exceptId);
+  if (!result.ok) throw new ValidationError(result.error);
+  return result.name;
 }
 
 export function createShelfRepository(storage: KeyValueStorage, options: ShelfRepositoryOptions = {}): ShelfRepository {
@@ -59,10 +60,10 @@ export function createShelfRepository(storage: KeyValueStorage, options: ShelfRe
   return {
     getAll: () => load(),
 
-    create: async (name) => {
-      const trimmed = validName(name);
-      return await serialize(async () => {
+    create: (name) =>
+      serialize(async () => {
         const shelves = await load();
+        const trimmed = validName(name, shelves);
         const shelf: Shelf = {
           id: generateId(),
           name: trimmed,
@@ -70,20 +71,18 @@ export function createShelfRepository(storage: KeyValueStorage, options: ShelfRe
         };
         await save([...shelves, shelf]);
         return shelf;
-      });
-    },
+      }),
 
-    rename: async (id, name) => {
-      const trimmed = validName(name);
-      return await serialize(async () => {
+    rename: (id, name) =>
+      serialize(async () => {
         const shelves = await load();
+        const trimmed = validName(name, shelves, id);
         const current = shelves.find((s) => s.id === id);
         if (!current) return null;
         const renamed = { ...current, name: trimmed };
         await save(shelves.map((s) => (s.id === id ? renamed : s)));
         return renamed;
-      });
-    },
+      }),
 
     reorder: (ids) =>
       serialize(async () => {

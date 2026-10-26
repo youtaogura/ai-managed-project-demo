@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppText } from '../components/AppText';
@@ -8,6 +8,7 @@ import { SettingsCard } from '../components/SettingsCard';
 import { SettingsRow } from '../components/SettingsRow';
 import { space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
+import { useShelfRepository } from '../hooks/useShelfRepository';
 import { useSettings } from '../hooks/useSettings';
 import { useStarterSettings } from '../hooks/useStarterSettings';
 import { starterSummary } from '../lib/starterItems';
@@ -23,11 +24,12 @@ const defaultExportStore = createExportStore(asyncKeyValueStorage);
 
 type SettingsScreenProps = {
   exportStore?: ExportStore;
-  /** 値が変わると「最後に書き出した日」を読み直す。 */
+  /** 値が変わると「最後に書き出した日」と本棚の数を読み直す。 */
   reloadKey?: number;
   onOpenData?: () => void;
   onOpenAbout?: () => void;
   onOpenStarters?: () => void;
+  onOpenShelves?: () => void;
 };
 
 export function SettingsScreen({
@@ -36,10 +38,26 @@ export function SettingsScreen({
   onOpenData = () => undefined,
   onOpenAbout = () => undefined,
   onOpenStarters = () => undefined,
+  onOpenShelves = () => undefined,
 }: SettingsScreenProps) {
   const { lastExportedAt } = useLastExportedAt(exportStore, reloadKey);
   const { settings, update } = useSettings();
   const { starterSettings } = useStarterSettings();
+  const shelfRepository = useShelfRepository();
+  const [shelfCount, setShelfCount] = useState(0);
+  useEffect(() => {
+    let active = true;
+    shelfRepository
+      .getAll()
+      .then((all) => all.length)
+      .catch(() => 0)
+      .then((n) => {
+        if (active) setShelfCount(n);
+      });
+    return () => {
+      active = false;
+    };
+  }, [shelfRepository, reloadKey]);
   const bottomInset = useBottomInset();
   const [statusOpen, setStatusOpen] = useState(false);
 
@@ -59,6 +77,13 @@ export function SettingsScreen({
           />
           <View style={styles.gap} />
           <SettingsRow label="書き出し" value={starterSummary(starterSettings)} onPress={onOpenStarters} />
+        </SettingsCard>
+        <SettingsCard title="本棚">
+          <SettingsRow
+            label="本棚の管理"
+            value={shelfCount === 0 ? 'まだありません' : `${shelfCount} つ`}
+            onPress={onOpenShelves}
+          />
         </SettingsCard>
         <SettingsCard title="データ">
           <SettingsRow

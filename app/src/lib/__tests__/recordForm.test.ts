@@ -208,6 +208,17 @@ describe('createFormValues / recordToFormValues', () => {
   });
 });
 
+describe('shelfIds', () => {
+  it('初期値はないと空で、記録の shelfIds を引き継ぐ', () => {
+    expect(createFormValues().shelfIds).toEqual([]);
+    expect(createFormValues({ shelfIds: ['a'] }).shelfIds).toEqual(['a']);
+  });
+  it('NewRecordInput の shelfIds はフォームの値を使う', () => {
+    const values = { ...createFormValues({ title: 'T' }), shelfIds: ['b'] };
+    expect(toNewRecordInput(values, { shelfIds: ['a'] }).shelfIds).toEqual(['b']);
+  });
+});
+
 describe('paramsToInitialValues', () => {
   it('文字列の値だけを取り出し、古い kind は無視する', () => {
     expect(

@@ -21,13 +21,16 @@ export function withRepository(
   children: ReactNode,
   photoService: PhotoService = createMockPhotoService(),
   resolver: CoverResolver = noCover,
+  shelfRepository?: ShelfRepository,
 ) {
   return (
-    <RecordRepositoryProvider repository={repository}>
-      <CoverResolverContextProvider resolver={resolver}>
-        <PhotoServiceContextProvider service={photoService}>{children}</PhotoServiceContextProvider>
-      </CoverResolverContextProvider>
-    </RecordRepositoryProvider>
+    <ShelfRepositoryProvider repository={shelfRepository}>
+      <RecordRepositoryProvider repository={repository}>
+        <CoverResolverContextProvider resolver={resolver}>
+          <PhotoServiceContextProvider service={photoService}>{children}</PhotoServiceContextProvider>
+        </CoverResolverContextProvider>
+      </RecordRepositoryProvider>
+    </ShelfRepositoryProvider>
   );
 }
 

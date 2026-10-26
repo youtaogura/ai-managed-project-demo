@@ -1,14 +1,19 @@
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { createExportStore, LAST_EXPORTED_AT_KEY } from '../../lib/exportStore';
-import { createSettingsStore } from '../../lib/settingsStore';
-import { withSettings } from '../../testProviders';
+import type { ReactNode } from 'react';
+import { createSettingsStore, type SettingsStore } from '../../lib/settingsStore';
+import { createShelfRepository } from '../../lib/shelfRepository';
+import { withSettings as baseWithSettings, withShelfRepository } from '../../testProviders';
 import { createMemoryStorage } from '../../testUtils';
 import { SettingsScreen } from '../SettingsScreen';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
+
+const withSettings = (store: SettingsStore, ui: ReactNode) =>
+  withShelfRepository(createShelfRepository(createMemoryStorage().storage), baseWithSettings(store, ui));
 
 describe('SettingsScreen', () => {
   it('見出し・各行を出し、「使う種別」は出さない', async () => {
@@ -127,5 +132,43 @@ describe('SettingsScreen（書き出し）', () => {
     );
     await fireEvent.press(await screen.findByRole('button', { name: '書き出し、オン · 一度に 3 つ' }));
     expect(onOpenStarters).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('SettingsScreen（本棚）', () => {
+  it('0 件なら「まだありません」、タップで onOpenShelves が呼ばれる', async () => {
+    const onOpenShelves = jest.fn();
+    await render(
+      withSettings(
+        createSettingsStore(createMemoryStorage().storage),
+        <SettingsScreen onOpenShelves={onOpenShelves} />,
+      ),
+    );
+    await fireEvent.press(await screen.findByRole('button', { name: '本棚の管理、まだありません' }));
+    expect(onOpenShelves).toHaveBeenCalledTimes(1);
+  });
+
+  it('本棚があれば「N つ」を出す。未指定でも押せる', async () => {
+    const shelfRepository = createShelfRepository(createMemoryStorage().storage);
+    await shelfRepository.create('SF');
+    await shelfRepository.create('哲学');
+    await render(
+      withShelfRepository(
+        shelfRepository,
+        baseWithSettings(createSettingsStore(createMemoryStorage().storage), <SettingsScreen />),
+      ),
+    );
+    await fireEvent.press(await screen.findByRole('button', { name: '本棚の管理、2 つ' }));
+  });
+
+  it('読み込みに失敗したら「まだありません」', async () => {
+    const shelfRepository = createShelfRepository(createMemoryStorage().storage);
+    await render(
+      withShelfRepository(
+        { ...shelfRepository, getAll: () => Promise.reject(new Error('x')) },
+        baseWithSettings(createSettingsStore(createMemoryStorage().storage), <SettingsScreen />),
+      ),
+    );
+    expect(await screen.findByRole('button', { name: '本棚の管理、まだありません' })).toBeTruthy();
   });
 });
