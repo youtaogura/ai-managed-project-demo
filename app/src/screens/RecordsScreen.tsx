@@ -19,6 +19,20 @@ export function RecordsScreen() {
       >
         <Text style={styles.addText}>追加</Text>
       </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push('/record/isbn')}
+        style={styles.add}
+      >
+        <Text style={styles.addText}>ISBN で探して追加</Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push('/record/scan')}
+        style={styles.add}
+      >
+        <Text style={styles.addText}>バーコードで読み取って追加</Text>
+      </Pressable>
       {sorted.length === 0 ? (
         loading ? null : (
           <EmptyState

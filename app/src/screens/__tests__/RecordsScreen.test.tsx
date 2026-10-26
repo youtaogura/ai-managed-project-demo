@@ -54,6 +54,18 @@ describe('RecordsScreen', () => {
     expect(router.push).toHaveBeenCalledWith('/record/new');
   });
 
+
+  it('ISBN・バーコードのボタンで各画面へ遷移する', async () => {
+    await render(
+      <RecordRepositoryProvider repository={memoryRepository()}>
+        <RecordsScreen />
+      </RecordRepositoryProvider>,
+    );
+    await fireEvent.press(screen.getByRole("button", { name: "ISBN で探して追加" }));
+    expect(router.push).toHaveBeenCalledWith("/record/isbn");
+    await fireEvent.press(screen.getByRole("button", { name: "バーコードで読み取って追加" }));
+    expect(router.push).toHaveBeenCalledWith("/record/scan");
+  });
   it('記録を新しい順に表示し、行を押すと編集画面へ遷移する', async () => {
     const repository = memoryRepository();
     await repository.add(input);
