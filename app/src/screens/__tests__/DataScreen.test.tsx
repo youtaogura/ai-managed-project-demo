@@ -1,6 +1,7 @@
 import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 import { Text } from 'react-native';
 
+import { colors } from '../../design/tokens';
 import { FileServiceContextProvider } from '../../hooks/useFileService';
 import { BACKUP_FORMAT } from '../../types/backup';
 import { buildBackup } from '../../lib/backup';
@@ -325,7 +326,7 @@ describe('DataScreen（すべての記録を削除）', () => {
     await screen.findByText('2');
     const link = screen.getByRole('button', { name: 'すべての記録を削除' });
     expect(link).toHaveStyle({ minHeight: 44 });
-    expect(screen.getByText('すべての記録を削除')).toHaveStyle({ color: '#ff7a7a' });
+    expect(screen.getByText('すべての記録を削除')).toHaveStyle({ color: colors.danger });
   });
 
   it('0 件ではリンクを出さない', async () => {

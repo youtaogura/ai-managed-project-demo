@@ -20,7 +20,7 @@ jest.mock('expo-router', () => {
   return {
     Stack,
     ThemeProvider: Passthrough,
-    DarkTheme: jest.requireActual('expo-router').DarkTheme,
+    DefaultTheme: jest.requireActual('expo-router').DefaultTheme,
   };
 });
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -39,10 +39,10 @@ describe('ルートレイアウト', () => {
     expect(SplashScreen.hideAsync).not.toHaveBeenCalled();
   });
 
-  it('読み込み完了後は描画し、スプラッシュを隠し、ステータスバーは light', async () => {
+  it('読み込み完了後は描画し、スプラッシュを隠し、ステータスバーは dark（明るい地に暗い文字）', async () => {
     mockUseAppFonts.mockReturnValue({ ready: true });
     await render(<RootLayout />);
-    expect(jest.mocked(StatusBar).mock.calls[0]?.[0]).toMatchObject({ style: 'light' });
+    expect(jest.mocked(StatusBar).mock.calls[0]?.[0]).toMatchObject({ style: 'dark' });
     expect(SplashScreen.hideAsync).toHaveBeenCalledTimes(1);
   });
 });

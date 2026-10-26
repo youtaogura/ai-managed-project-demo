@@ -37,7 +37,7 @@ function Providers() {
                         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                       </Stack>
                     </ThemeProvider>
-                    <StatusBar style="light" />
+                    <StatusBar style="dark" />
                   </FileServiceContextProvider>
                 </PhotoServiceContextProvider>
               </MediaSearchContextProvider>

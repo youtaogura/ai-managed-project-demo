@@ -2,8 +2,8 @@ import { navigationTheme, stackScreenOptions, tabsScreenOptions } from '../navig
 import { colors } from '../tokens';
 
 describe('navigationTheme', () => {
-  it('dark ベースで背景と文字が tokens', () => {
-    expect(navigationTheme.dark).toBe(true);
+  it('light ベースで背景と文字が tokens', () => {
+    expect(navigationTheme.dark).toBe(false);
     expect(navigationTheme.colors.background).toBe(colors.bg);
     expect(navigationTheme.colors.text).toBe(colors.textPrimary);
   });
