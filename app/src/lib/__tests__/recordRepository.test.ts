@@ -29,6 +29,7 @@ const input: NewRecordInput = {
   status: 'planned',
   review: null,
   rating: null,
+  source: { provider: 'manual' },
 };
 
 function setup(storage: KeyValueStorage) {
@@ -150,6 +151,50 @@ describe('RecordRepository', () => {
         removeItem: async () => undefined,
       };
       expect(await setup(storage).getAll()).toEqual([]);
+    });
+  });
+
+  describe('移行', () => {
+    const { source: _s, ...legacyInput } = input;
+    const raw = JSON.stringify([
+      { ...legacyInput, id: 'old', createdAt: 'a', updatedAt: 'b', isbn: '9784065199817' },
+    ]);
+
+    it('migrate は 1 回だけ走り、旧形式の記録に source が書き戻される', async () => {
+      const { storage, data } = createMemoryStorage({ 'records.v1': raw });
+      const getItem = jest.spyOn(storage, 'getItem');
+      const repo = setup(storage);
+      await Promise.all([repo.migrate(), repo.migrate()]);
+      expect(getItem.mock.calls.filter(([k]) => k === 'records.schemaVersion')).toHaveLength(1);
+      expect(JSON.parse(data.get('records.v1') ?? '')[0].source).toEqual({
+        provider: 'openbd',
+        isbn: '9784065199817',
+      });
+    });
+
+    it('getAll は移行の完了を待ち、source を補って返す', async () => {
+      const { storage } = createMemoryStorage({ 'records.v1': raw });
+      const repo = setup(storage);
+      const [record] = await repo.getAll();
+      expect(record?.source).toEqual({ provider: 'openbd', isbn: '9784065199817' });
+    });
+
+    it('移行が失敗しても操作は通常どおり動き、旧形式も読み込みで補われる', async () => {
+      const { storage } = createMemoryStorage({ 'records.v1': raw });
+      const failing: KeyValueStorage = {
+        ...storage,
+        setItem: jest.fn().mockRejectedValue(new Error('x')),
+      };
+      const repo = setup(failing);
+      await expect(repo.migrate()).resolves.toBeUndefined();
+      expect((await repo.getAll())[0]?.source.provider).toBe('openbd');
+    });
+
+    it('add に渡した source が保存される', async () => {
+      const repo = setup(createMemoryStorage().storage);
+      const added = await repo.add({ ...input, source: { provider: 'ndl', ndlId: '1' } });
+      expect((await repo.getAll())[0]).toEqual(added);
+      expect(added.source).toEqual({ provider: 'ndl', ndlId: '1' });
     });
   });
 });

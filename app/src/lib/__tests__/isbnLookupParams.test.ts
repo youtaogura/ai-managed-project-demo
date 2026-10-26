@@ -17,10 +17,12 @@ describe('isbnLookupParams', () => {
       creator: 'A',
       publisher: 'P',
       coverUrl: 'http://c',
+      sourceProvider: 'openbd',
+      sourceId: '9784065199817',
     });
     expect(
       bookInfoToParams({ isbn: '1', title: 'T', author: null, publisher: null, coverUrl: null }),
-    ).toEqual({ kind: 'book', title: 'T', isbn: '1' });
+    ).toEqual({ kind: 'book', title: 'T', isbn: '1', sourceProvider: 'openbd', sourceId: '1' });
   });
 
   it('ISBN のみの params を作る', () => {

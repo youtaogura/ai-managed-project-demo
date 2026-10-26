@@ -34,6 +34,7 @@ export function makeRecord(overrides: Partial<MediaRecord> = {}): MediaRecord {
     rating: null,
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2024-01-01T00:00:00.000Z',
+    source: { provider: 'manual' },
     ...overrides,
   };
 }
@@ -41,6 +42,7 @@ export function makeRecord(overrides: Partial<MediaRecord> = {}): MediaRecord {
 export function createFakeRepository(initial: MediaRecord[] = []) {
   let records = [...initial];
   const repository: RecordRepository = {
+    migrate: async () => undefined,
     getAll: async () => [...records],
     add: async () => {
       throw new Error('unused');

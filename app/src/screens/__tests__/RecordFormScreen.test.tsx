@@ -35,6 +35,7 @@ const baseInput = {
   status: 'planned' as const,
   review: null,
   rating: null,
+  source: { provider: 'manual' as const },
 };
 
 const press = (name: string) => fireEvent.press(screen.getByRole('button', { name }));
@@ -85,6 +86,28 @@ describe('RecordFormScreen（新規）', () => {
     await press('記録する');
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
     expect((await repository.getAll())[0]?.coverUrl).toBe('http://c');
+  });
+
+  it('初期値の source が保存され、手入力は manual で保存される', async () => {
+    const repository = memoryRepository();
+    const add = jest.spyOn(repository, 'add');
+    await render(
+      withRepository(
+        repository,
+        <RecordFormScreen initialValues={{ title: 'N', source: { provider: 'ndl', ndlId: '5' } }} />,
+      ),
+    );
+    await press('記録する');
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
+    expect(add).toHaveBeenCalledWith(expect.objectContaining({ source: { provider: 'ndl', ndlId: '5' } }));
+  });
+
+  it('手入力は manual で保存される', async () => {
+    const repository = memoryRepository();
+    await render(withRepository(repository, <RecordFormScreen initialValues={{ title: 'M' }} />));
+    await press('記録する');
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
+    expect((await repository.getAll())[0]?.source).toEqual({ provider: 'manual' });
   });
 
   it('add が失敗したら画面に留まり失敗メッセージを表示する', async () => {

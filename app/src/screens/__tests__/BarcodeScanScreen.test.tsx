@@ -189,6 +189,8 @@ describe('BarcodeScanScreen', () => {
         creator: 'A',
         publisher: 'P',
         coverUrl: 'U',
+        sourceProvider: 'openbd',
+        sourceId: ISBN,
       },
     });
   });

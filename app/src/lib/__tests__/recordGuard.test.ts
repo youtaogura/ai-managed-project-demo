@@ -16,6 +16,7 @@ const valid = {
   rating: 4.5,
   createdAt: '2024-01-01T00:00:00.000Z',
   updatedAt: '2024-01-01T00:00:00.000Z',
+  source: { provider: 'manual' },
 };
 
 describe('isMediaRecord', () => {
@@ -65,5 +66,30 @@ describe('parseRecords', () => {
     const [record] = parseRecords([{ ...valid, extra: 'x' }]);
     expect(record).toEqual(valid);
     expect(record).not.toHaveProperty('extra');
+  });
+});
+
+describe('source の補完', () => {
+  const { source: _source, ...legacy } = valid;
+
+  it('source なしは ISBN があれば openbd、なければ manual', () => {
+    expect(parseRecords([{ ...legacy, isbn: '9784065199817' }])[0]?.source).toEqual({
+      provider: 'openbd',
+      isbn: '9784065199817',
+    });
+    expect(parseRecords([legacy])[0]?.source).toEqual({ provider: 'manual' });
+    expect(parseRecords([{ ...legacy, isbn: '' }])[0]?.source).toEqual({ provider: 'manual' });
+  });
+
+  it('不正な source は捨てずに補い、ほかの項目は変わらない', () => {
+    const [record] = parseRecords([
+      { ...valid, isbn: '1', source: { provider: 'ndl', ndlId: '' } },
+    ]);
+    expect(record).toEqual({ ...valid, isbn: '1', source: { provider: 'openbd', isbn: '1' } });
+  });
+
+  it('有効な source は保持する', () => {
+    const source = { provider: 'ndl', ndlId: '7' };
+    expect(parseRecords([{ ...valid, source }])[0]?.source).toEqual(source);
   });
 });

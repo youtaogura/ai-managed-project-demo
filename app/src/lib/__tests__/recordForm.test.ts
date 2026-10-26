@@ -196,6 +196,7 @@ describe('createFormValues / recordToFormValues', () => {
       rating: 2.5,
       createdAt: 'a',
       updatedAt: 'b',
+      source: { provider: 'manual' },
     };
     expect(recordToFormValues(record)).toMatchObject({
       title: 'T',
@@ -227,8 +228,9 @@ describe('paramsToInitialValues', () => {
       publisher: 'P',
       isbn: 'I',
       coverUrl: 'U',
+      source: { provider: 'manual' },
     });
-    expect(paramsToInitialValues({ kind: 'x', title: ['a', 'b'], isbn: '' })).toEqual({});
+    expect(paramsToInitialValues({ kind: 'x', title: ['a', 'b'], isbn: '' })).toEqual({ source: { provider: 'manual' } });
   });
 });
 
@@ -263,5 +265,40 @@ describe('crossesInteger', () => {
     expect(crossesInteger(3.0, 3.1)).toBe(false);
     expect(crossesInteger(2.8, 2.9)).toBe(false);
     expect(crossesInteger(3.0, 3.0)).toBe(false);
+  });
+});
+
+describe('source', () => {
+  const base = createFormValues({ title: 'T', kind: 'book' });
+
+  it('初期値の source を保持し、なければ manual', () => {
+    expect(base.source).toEqual({ provider: 'manual' });
+    const v = createFormValues({ source: { provider: 'ndl', ndlId: '1' } });
+    expect(toNewRecordInput(v).source).toEqual({ provider: 'ndl', ndlId: '1' });
+  });
+
+  it('openbd は ISBN が同じなら保持、書き換えると manual に降格', () => {
+    const v = createFormValues({
+      title: 'T',
+      isbn: '9784065199817',
+      source: { provider: 'openbd', isbn: '9784065199817' },
+    });
+    expect(toNewRecordInput(v).source).toEqual({ provider: 'openbd', isbn: '9784065199817' });
+    expect(toNewRecordInput({ ...v, isbn: '9784101010013' }).source).toEqual({ provider: 'manual' });
+    expect(toNewRecordInput({ ...v, isbn: '' }).source).toEqual({ provider: 'manual' });
+    expect(toNewRecordInput({ ...v, kind: 'movie' }).source).toEqual({ provider: 'manual' });
+  });
+
+  it('ndl は ISBN を書き換えても保持される', () => {
+    const v = createFormValues({ title: 'T', isbn: '1', source: { provider: 'ndl', ndlId: '9' } });
+    expect(toNewRecordInput({ ...v, isbn: '2' }).source).toEqual({ provider: 'ndl', ndlId: '9' });
+  });
+
+  it('paramsToInitialValues はクエリから source を作る', () => {
+    expect(paramsToInitialValues({ sourceProvider: 'ndl', sourceId: '5' }).source).toEqual({
+      provider: 'ndl',
+      ndlId: '5',
+    });
+    expect(paramsToInitialValues({ sourceProvider: 'ndl' }).source).toEqual({ provider: 'manual' });
   });
 });

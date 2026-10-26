@@ -131,6 +131,8 @@ describe('IsbnLookupScreen', () => {
         creator: '著者',
         publisher: '出版社',
         coverUrl: 'https://example.com/c.jpg',
+        sourceProvider: 'openbd',
+        sourceId: '9784065199817',
       },
     });
   });

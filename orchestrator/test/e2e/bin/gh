@@ -41,6 +41,17 @@ if (c1 === 'api' && c2 === 'graphql') {
   throw new Error('unknown graphql');
 }
 
+// Issue の依存関係（blocked by）。st.deps = { "<番号>": [前提の番号, ...] }
+const depMatch = c1 === 'api' && /issues\/(\d+)\/dependencies\/blocked_by/.exec(c2 || '');
+if (depMatch) {
+  const deps = (st.deps && st.deps[depMatch[1]]) || [];
+  return out(deps.map((d) => {
+    const it = st.items.find((i) => i.number === d);
+    const closed = it && it.state === 'CLOSED';
+    return { number: d, title: it ? it.title : '', state: closed ? 'closed' : 'open', state_reason: closed ? 'completed' : null };
+  }));
+}
+
 if (c1 === 'issue') {
   const n = Number(a[2]);
   const it = st.items.find((i) => i.number === n);

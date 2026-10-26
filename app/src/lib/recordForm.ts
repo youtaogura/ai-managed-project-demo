@@ -3,8 +3,10 @@ import {
   type MediaKind,
   type MediaRecord,
   type NewRecordInput,
+  type RecordSource,
   type RecordStatus,
 } from '../types/record';
+import { paramsToSource } from './recordSource';
 import { isValidDateString, isValidRating } from './validation';
 
 export type RecordFormValues = {
@@ -20,6 +22,7 @@ export type RecordFormValues = {
   rating: string;
   coverUrl: string | null;
   photoUri: string | null;
+  source: RecordSource;
 };
 
 export type RecordFormErrors = {
@@ -56,6 +59,7 @@ export function createFormValues(initial: Partial<NewRecordInput> = {}): RecordF
     rating: formatRating(initial.rating ?? null),
     coverUrl: initial.coverUrl ?? null,
     photoUri: initial.photoUri ?? null,
+    source: initial.source ?? { provider: 'manual' },
   };
 }
 
@@ -138,12 +142,17 @@ function emptyToNull(text: string): string | null {
 export function toNewRecordInput(values: RecordFormValues): NewRecordInput {
   const withPublisher = hasPublisherFields(values.kind);
   const rating = parseRating(values.rating);
+  const isbn = withPublisher ? emptyToNull(values.isbn) : null;
+  const source: RecordSource =
+    values.source.provider === 'openbd' && isbn !== values.source.isbn
+      ? { provider: 'manual' }
+      : values.source;
   return {
     kind: values.kind,
     title: values.title.trim(),
     creator: emptyToNull(values.creator),
     publisher: withPublisher ? emptyToNull(values.publisher) : null,
-    isbn: withPublisher ? emptyToNull(values.isbn) : null,
+    isbn,
     coverUrl: values.coverUrl,
     photoUri: values.photoUri,
     startDate: emptyToNull(values.startDate),
@@ -151,6 +160,7 @@ export function toNewRecordInput(values: RecordFormValues): NewRecordInput {
     status: values.status,
     review: emptyToNull(values.review),
     rating: rating === null || Number.isNaN(rating) ? null : rating,
+    source,
   };
 }
 
@@ -178,6 +188,7 @@ export function paramsToInitialValues(
   if (isbn !== undefined) initial.isbn = isbn;
   const coverUrl = text('coverUrl');
   if (coverUrl !== undefined) initial.coverUrl = coverUrl;
+  initial.source = paramsToSource(params);
   return initial;
 }
 

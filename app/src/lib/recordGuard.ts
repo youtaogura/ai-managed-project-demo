@@ -1,4 +1,5 @@
 import { MEDIA_KINDS, RECORD_STATUSES, type MediaKind, type MediaRecord, type RecordStatus } from '../types/record';
+import { isRecordSource, sourceFromIsbn } from './recordSource';
 import { isValidDateRange, isValidRating } from './validation';
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -52,6 +53,7 @@ function toMediaRecord(value: unknown): MediaRecord | null {
     rating,
     createdAt,
     updatedAt,
+    source: isRecordSource(value.source) ? value.source : sourceFromIsbn(isbn),
   };
 }
 

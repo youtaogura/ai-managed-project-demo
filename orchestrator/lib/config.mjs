@@ -15,7 +15,7 @@ const bool = (v) => ['1', 'true', 'yes'].includes(String(v ?? '').toLowerCase())
 // 日本語名などに変えたい場合は STATUS_NAMES='{"spec":"要件整理・設計"}' のように上書きする。
 const DEFAULT_STATUS = {
   backlog: 'Backlog', // 人間が起票・整理する場所。オーケストレーターは触らない
-  ready: 'Ready', // 人間が「着手してよい」と判断したら置く
+  ready: 'Ready', // 人間が「内容 OK」と判断したら置く。前提の Issue（blocked by）が終わるまでは着手しない
   spec: 'Spec', // 要件整理・設計中
   implement: 'Implement', // 実装・テスト中
   review: 'Review', // レビュー中（別セッション）
