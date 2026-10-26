@@ -7,11 +7,17 @@ import { createShelfRepository, SHELVES_STORAGE_KEY } from '../../lib/shelfRepos
 import { withNoteDraftStore, withRepository } from '../../testProviders';
 import { createMemoryStorage, makeRecord } from '../../testUtils';
 import type { MediaRecord } from '../../types/record';
+import { triggerImpactHaptic } from '../../lib/haptics';
 import { ReadingScreen } from '../ReadingScreen';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
+
+jest.mock('../../lib/haptics', () => ({
+  triggerImpactHaptic: jest.fn(),
+  triggerRatingHaptic: jest.fn(),
+}));
 
 jest.setTimeout(15000);
 
@@ -236,6 +242,8 @@ describe('メモ・引用の追加・編集・削除', () => {
 });
 
 describe('「読み終えた」', () => {
+  beforeEach(() => jest.clearAllMocks());
+
   it('completed・終了日=今日で保存し、ほかは変えず onFinished を呼ぶ', async () => {
     const onFinished = jest.fn();
     const { repository } = await show([{ ...base, startDate: null }], { onFinished });
@@ -244,6 +252,7 @@ describe('「読み終えた」', () => {
       await fireEvent.press(screen.getByRole('button', { name: '読み終えた' }));
     });
     expect(onFinished).toHaveBeenCalledWith('x');
+    expect(triggerImpactHaptic).toHaveBeenCalledTimes(1);
     const saved = await stored(repository);
     expect(saved).toMatchObject({
       status: 'completed',
@@ -255,6 +264,15 @@ describe('「読み終えた」', () => {
     expect(saved?.memos).toHaveLength(1);
   });
 
+  it('終了日がすでにあれば変えない', async () => {
+    const { repository } = await show([{ ...base, endDate: '2024-10-26' }]);
+    await waitFor(() => expect(screen.getByRole('button', { name: '読み終えた' })).toBeTruthy());
+    await act(async () => {
+      await fireEvent.press(screen.getByRole('button', { name: '読み終えた' }));
+    });
+    expect((await stored(repository))?.endDate).toBe('2024-10-26');
+  });
+
   it('保存に失敗したらエラーを出して遷移しない', async () => {
     const onFinished = jest.fn();
     await show([base], { onFinished }, (repo) => ({ ...repo, update: async () => Promise.reject(new Error('x')) }));
@@ -264,5 +282,6 @@ describe('「読み終えた」', () => {
     });
     expect(screen.getByText('保存できませんでした。もう一度お試しください')).toBeTruthy();
     expect(onFinished).not.toHaveBeenCalled();
+    expect(triggerImpactHaptic).not.toHaveBeenCalled();
   });
 });

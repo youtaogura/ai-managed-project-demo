@@ -11,7 +11,7 @@ export default function ReadingRoute() {
       <ReadingScreen
         recordId={id}
         onEdit={(recordId) => router.push({ pathname: '/record/[id]', params: { id: recordId } })}
-        onFinished={(recordId) => router.replace(`/records/${recordId}`)}
+        onFinished={(recordId) => router.replace(`/finished/${recordId}`)}
         onBack={() => router.replace('/')}
       />
     </>

@@ -29,6 +29,7 @@ import type { MediaRecord, NewRecordInput } from '../types/record';
 type RecordDetailScreenProps = {
   recordId: string;
   onEdit?: (id: string) => void;
+  onWrite?: (id: string) => void;
   onDeleted?: () => void;
   onBack?: () => void;
 };
@@ -47,7 +48,7 @@ function toInput(
   return { ...input, photoUri, coverUrl };
 }
 
-export function RecordDetailScreen({ recordId, onEdit, onDeleted, onBack }: RecordDetailScreenProps) {
+export function RecordDetailScreen({ recordId, onEdit, onWrite, onDeleted, onBack }: RecordDetailScreenProps) {
   const bottomInset = useBottomInset();
   const repository = useRecordRepository();
   const photoService = usePhotoService();
@@ -226,6 +227,9 @@ export function RecordDetailScreen({ recordId, onEdit, onDeleted, onBack }: Reco
             value={shelfNames(record, shelves).join('、') || 'まだ入れていません'}
             onPress={() => setShelfOpen(true)}
           />
+          {record.status === 'completed' ? (
+            <SettingsRow label="書き出しの続きを書く" onPress={() => onWrite?.(record.id)} />
+          ) : null}
           <View onLayout={(e) => setInfoY(e.nativeEvent.layout.y)}>
             <RecordInfoSection record={record} onDelete={openDelete} />
           </View>

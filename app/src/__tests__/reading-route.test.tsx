@@ -24,6 +24,7 @@ const routes = {
   '(tabs)/analytics': AnalyticsRoute,
   'records/[id]': RecordDetailRoute,
   'reading/[id]': ReadingRoute,
+  'finished/[id]': () => <Text>ダミー読み終えた画面</Text>,
   'record/new': () => <Text>ダミー追加画面</Text>,
   'record/[id]': () => <Text>ダミー編集画面</Text>,
 };
@@ -69,11 +70,11 @@ describe('読んでる本のルート', () => {
     await waitFor(() => expect(screen).toHavePathname('/'));
   });
 
-  it('「読み終えた」で completed にして /records/<id> へ置き換える', async () => {
+  it('「読み終えた」で completed にして /finished/<id> へ置き換える', async () => {
     await renderRouter(routes, { initialUrl: '/reading/r1' });
     await waitFor(() => expect(screen.getByRole('button', { name: '読み終えた' })).toBeTruthy());
     await fireEvent.press(screen.getByRole('button', { name: '読み終えた' }));
-    await waitFor(() => expect(screen).toHavePathname('/records/r1'));
+    await waitFor(() => expect(screen).toHavePathname('/finished/r1'));
     const saved = JSON.parse((await AsyncStorage.getItem(RECORDS_STORAGE_KEY)) ?? '[]');
     expect(saved.find((r: { id: string }) => r.id === 'r1').status).toBe('completed');
   });

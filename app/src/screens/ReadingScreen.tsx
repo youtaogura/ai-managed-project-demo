@@ -14,6 +14,7 @@ import { useRecordRepository } from '../hooks/useRecordRepository';
 import { useShelves } from '../hooks/useShelves';
 import { useTopInset } from '../hooks/useTopInset';
 import { parseDateParts } from '../lib/date';
+import { triggerImpactHaptic } from '../lib/haptics';
 import {
   addNote,
   buildNoteItems,
@@ -97,7 +98,8 @@ export function ReadingScreen({ recordId, onEdit, onFinished, onBack }: ReadingS
     setError(null);
     setFinishing(true);
     try {
-      await save({ ...recordToInput(record, record.memos, record.quotes), status: 'completed', endDate: todayString() });
+      await save({ ...recordToInput(record, record.memos, record.quotes), status: 'completed', endDate: record.endDate ?? todayString() });
+      triggerImpactHaptic();
       onFinished?.(recordId);
     } catch {
       setError(ERROR_FINISH);
