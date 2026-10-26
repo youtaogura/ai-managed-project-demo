@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
-import { Animated, StyleSheet } from 'react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 
 import { colors, radius, size } from '../../design/tokens';
 import { makeRecord } from '../../testUtils';
@@ -104,22 +104,27 @@ describe('CoverCard', () => {
   });
 
   it('押すと scale 0.97 へ 100ms、離すと 1 へ戻る', async () => {
-    const timing = jest.spyOn(Animated, 'timing');
-    await render(<CoverCard record={makeRecord()} variant="thumb" width={80} onPress={jest.fn()} />);
-    expect(
-      StyleSheet.flatten(screen.getByTestId('cover-card-body').props.style).transform,
-    ).toEqual([{ scale: 1 }]);
-    const button = screen.getByRole('button');
-    await fireEvent(button, 'pressIn');
-    expect(timing).toHaveBeenLastCalledWith(
-      expect.anything(),
-      expect.objectContaining({ toValue: 0.97, duration: 100 }),
-    );
-    await fireEvent(button, 'pressOut');
-    expect(timing).toHaveBeenLastCalledWith(
-      expect.anything(),
-      expect.objectContaining({ toValue: 1, duration: 100 }),
-    );
-    timing.mockRestore();
+    jest.useFakeTimers();
+    try {
+      await render(
+        <CoverCard record={makeRecord()} variant="thumb" width={80} onPress={jest.fn()} />,
+      );
+      const transformOf = () =>
+        StyleSheet.flatten(screen.getByTestId('cover-card-body').props.style).transform;
+      expect(transformOf()).toEqual([{ scale: 1 }]);
+      const button = screen.getByRole('button');
+      await fireEvent(button, 'pressIn');
+      await act(async () => {
+        jest.advanceTimersByTime(150);
+      });
+      expect(transformOf()).toEqual([{ scale: 0.97 }]);
+      await fireEvent(button, 'pressOut');
+      await act(async () => {
+        jest.advanceTimersByTime(150);
+      });
+      expect(transformOf()).toEqual([{ scale: 1 }]);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

@@ -19,7 +19,7 @@ const DOT_SIZE = 8;
 export function CoverCard({ record, variant, width, onPress }: CoverCardProps) {
   const [scale] = useState(() => new Animated.Value(1));
   const animateTo = (toValue: number) =>
-    Animated.timing(scale, { toValue, duration: PRESS_DURATION, useNativeDriver: true }).start();
+    Animated.timing(scale, { toValue, duration: PRESS_DURATION, useNativeDriver: false }).start();
 
   const cardWidth = variant === 'hero' ? size.heroCardWidth : width;
   const cardRadius = variant === 'hero' ? radius.card : radius.thumb;

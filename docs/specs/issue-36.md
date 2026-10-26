@@ -56,7 +56,7 @@
 - 縦並び: `Cover`（幅 = カード幅）→（hero のみ）下の情報行（星の数字 `★ 4.2`＝`typography.value`、終了日＝`typography.label`・`textSecondary`、間隔 `space['1']`）。
 - 点: 左上から `space['2']` の位置に直径 8px 程度の円（`colors.accent`）、`accessible` + `accessibilityLabel`。画像の上に重なる唯一の要素。
 - Pressable 全体が 1 つのボタン。`accessibilityLabel` は `タイトル` に加え、hero では評価・終了日があれば続けて含めてよい（最低限タイトルを含む）。点のラベルは Pressable のラベルとは別にテストで見つけられるよう `accessibilityLabel="読んでる"` を点の View に付ける（子の `accessible` を有効にするため Pressable は `accessible={false}` ではなくラベル付きの親とする。読み上げが二重になる場合は、親の label に状態を含めて点を `importantForAccessibility="no"` にする案も可 — 実装担当が選び判断ログへ追記）。
-- 押下: `Animated.Value`（`react-native` 標準）で `onPressIn` → `timing(0.97, 100ms)`、`onPressOut` → `timing(1, 100ms)`。`useNativeDriver: true`。Jest ではタイマーを進めるか、`transform` の初期値・呼び出しを検証できる形にする。
+- 押下: `Animated.Value`（`react-native` 標準）で `onPressIn` → `timing(0.97, 100ms)`、`onPressOut` → `timing(1, 100ms)`。`useNativeDriver: false`（Jest ではネイティブドライバだと値・props が進まず scale の実値を検証できないため。100ms の scale のみで JS ドライバでも負荷は小さい）。Jest ではタイマーを進めるか、`transform` の初期値・呼び出しを検証できる形にする。
 - 最小タップサイズ: thumb は幅 4 列（約 80px 超）で `touchMin`（44）以上を満たす。幅が極端に狭い場合の保証は呼び出し側（一覧）の責務。
 
 ### エラー時
