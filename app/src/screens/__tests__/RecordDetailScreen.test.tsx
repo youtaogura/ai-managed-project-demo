@@ -34,6 +34,9 @@ function pressAlertButton(label: string) {
   };
 }
 
+// 初回描画が重く、CI のコールドスタートで 5 秒を超えることがある
+jest.setTimeout(15000);
+
 afterEach(() => jest.restoreAllMocks());
 
 describe('RecordDetailScreen', () => {

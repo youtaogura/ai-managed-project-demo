@@ -1,4 +1,5 @@
-import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
+import { router } from 'expo-router';
+import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 import { Text } from 'react-native';
 
 import { createFakeRepository, makeRecord } from '../../testUtils';
@@ -24,6 +25,20 @@ describe('useRecords', () => {
     await waitFor(() => expect(screen.getByText('count:1')).toBeTruthy());
     setRecords([makeRecord({ id: 'a' }), makeRecord({ id: 'b' })]);
     await fireEvent.press(screen.getByText('reload'));
+    await waitFor(() => expect(screen.getByText('count:2')).toBeTruthy());
+  });
+
+  it('別画面から戻ってフォーカスされると再読み込みする', async () => {
+    const { repository, setRecords } = createFakeRepository([makeRecord()]);
+    function Other() {
+      return <Text>other</Text>;
+    }
+    await renderRouter({ index: makeProbe(repository), other: Other });
+    await waitFor(() => expect(screen.getByText('count:1')).toBeTruthy());
+    await act(async () => router.push('/other'));
+    await waitFor(() => expect(screen.getByText('other')).toBeTruthy());
+    setRecords([makeRecord({ id: 'a' }), makeRecord({ id: 'b' })]);
+    await act(async () => router.back());
     await waitFor(() => expect(screen.getByText('count:2')).toBeTruthy());
   });
 
