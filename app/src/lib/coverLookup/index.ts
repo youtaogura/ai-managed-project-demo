@@ -1,8 +1,7 @@
-import { GoogleBooksCoverProvider } from './GoogleBooksCoverProvider';
-import { NdlCoverProvider } from './NdlCoverProvider';
+import { OpenBdCoverProvider } from './OpenBdCoverProvider';
 import { createCoverResolver, type CoverResolver } from './resolveCoverUrl';
 
-/** 既定の書影取得元（NDL → Google Books の順）を登録する唯一の場所。 */
+/** 既定の書影取得元（openBD だけ）を登録する唯一の場所。取得元を足すときはここに追加する。 */
 export function createDefaultCoverResolver(): CoverResolver {
-  return createCoverResolver([new NdlCoverProvider(), new GoogleBooksCoverProvider()]);
+  return createCoverResolver([new OpenBdCoverProvider()]);
 }

@@ -376,10 +376,11 @@ describe('書影の自動取得', () => {
     return { ...fake, repository, update, view };
   }
 
-  it('見つかれば 1 回だけ取得して保存し、クレジットを表示する', async () => {
+  it('見つかれば 1 回だけ取得して保存し、クレジットは出さない', async () => {
     const resolver = jest.fn(async (_isbn: string) => FOUND);
     const { update, repository } = await open(resolver);
-    expect(await screen.findByText('書影: Google Books')).toBeTruthy();
+    await waitFor(() => expect(update).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText(/書影:/)).toBeNull();
     expect(resolver).toHaveBeenCalledTimes(1);
     expect(resolver).toHaveBeenCalledWith('9784101010014');
     expect(update).toHaveBeenCalledTimes(1);
@@ -387,9 +388,13 @@ describe('書影の自動取得', () => {
     expect(saved).toMatchObject({ coverUrl: FOUND, title: target.title, review: target.review });
   });
 
-  it('NDL 由来ならそのクレジットを表示する', async () => {
-    await open(async () => 'https://ndlsearch.ndl.go.jp/thumbnail/9784101010014.jpg');
-    expect(await screen.findByText('書影: 国立国会図書館サーチ')).toBeTruthy();
+  it.each([
+    'https://cover.openbd.jp/9784101010014.jpg',
+    'https://ndlsearch.ndl.go.jp/thumbnail/9784101010014.jpg',
+    'https://books.google.com/books/content?id=1',
+  ])('coverUrl が %s でもクレジットを出さない', async (coverUrl) => {
+    await open(async () => FOUND, { ...target, coverUrl });
+    expect(screen.queryByText(/書影:/)).toBeNull();
   });
 
   it('見つからない・失敗したときは何も変えず、再試行もしない', async () => {
@@ -412,7 +417,7 @@ describe('書影の自動取得', () => {
     ['写真がある', { photoUri: PHOTO }],
     ['ISBN がない', { isbn: null }],
     ['映画', { kind: 'movie' as const }],
-  ])('%s ときは取得せず、openBD・写真のみではクレジットを出さない', async (_name, override) => {
+  ])('%s ときは取得せず、クレジットを出さない', async (_name, override) => {
     const resolver = jest.fn(async (_isbn: string) => FOUND);
     await open(resolver, { ...target, ...override });
     expect(resolver).not.toHaveBeenCalled();

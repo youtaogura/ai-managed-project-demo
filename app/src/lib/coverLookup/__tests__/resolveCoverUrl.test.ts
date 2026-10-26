@@ -80,17 +80,14 @@ describe('createCoverResolver', () => {
 });
 
 describe('createDefaultCoverResolver', () => {
-  it('NDL → Google Books の順で試す', async () => {
-    const spy = jest
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce({ status: 404 } as Response)
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ items: [{ volumeInfo: { imageLinks: { thumbnail: 'http://g/x' } } }] }),
-      } as Response);
-    expect(await createDefaultCoverResolver()(ISBN)).toBe('https://g/x');
-    expect(spy.mock.calls[0][0]).toContain('ndlsearch');
-    expect(spy.mock.calls[1][0]).toContain('googleapis');
+  it('openBD だけに問い合わせる', async () => {
+    const spy = jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      json: async () => [{ summary: { title: 'T', cover: 'http://cover.openbd.jp/x.jpg' } }],
+    } as Response);
+    expect(await createDefaultCoverResolver()(ISBN)).toBe('https://cover.openbd.jp/x.jpg');
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(String(spy.mock.calls[0][0])).toContain('api.openbd.jp');
     spy.mockRestore();
   });
 });

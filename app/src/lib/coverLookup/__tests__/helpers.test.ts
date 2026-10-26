@@ -1,19 +1,6 @@
 import { makeRecord } from '../../../testUtils';
-import { coverCreditLabel } from '../coverCredit';
 import { needsCover } from '../needsCover';
 import { withCover } from '../withCover';
-
-describe('coverCreditLabel', () => {
-  it.each([
-    ['https://books.google.com/books/content?id=1', '書影: Google Books'],
-    ['https://lh3.googleusercontent.com/x', '書影: Google Books'],
-    ['https://ndlsearch.ndl.go.jp/thumbnail/9784065199817.jpg', '書影: 国立国会図書館サーチ'],
-    ['https://cover.openbd.jp/9784065199817.jpg', null],
-    [null, null],
-  ])('%s → %s', (url, label) => {
-    expect(coverCreditLabel(url)).toBe(label);
-  });
-});
 
 describe('needsCover', () => {
   const base = { kind: 'book' as const, isbn: '9784065199817', coverUrl: null, photoUri: null };
