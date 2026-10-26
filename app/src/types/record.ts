@@ -1,3 +1,5 @@
+import type { SPINE_COLORS } from '../lib/constants';
+
 export const RECORD_STATUSES = ['planned', 'in_progress', 'dropped', 'completed'] as const;
 export type RecordStatus = (typeof RECORD_STATUSES)[number];
 
@@ -7,18 +9,6 @@ export type RecordSourceProvider = (typeof RECORD_SOURCE_PROVIDERS)[number];
 export type RecordSource =
   { provider: 'manual' } | { provider: 'openbd'; isbn: string } | { provider: 'ndl'; ndlId: string };
 
-export const SPINE_COLORS = [
-  'spine-1',
-  'spine-2',
-  'spine-3',
-  'spine-4',
-  'spine-5',
-  'spine-6',
-  'spine-7',
-  'spine-8',
-  'spine-9',
-  'spine-10',
-] as const;
 export type SpineColor = (typeof SPINE_COLORS)[number];
 
 export type StarterEntry = {

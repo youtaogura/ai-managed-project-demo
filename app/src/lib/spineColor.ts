@@ -1,4 +1,5 @@
-import { SPINE_COLORS, type SpineColor } from '../types/record';
+import type { SpineColor } from '../types/record';
+import { SPINE_COLORS } from './constants';
 
 /** 既存の記録が n 件のときの、新しい記録の背表紙の色。 */
 export function spineColorForIndex(n: number): SpineColor {

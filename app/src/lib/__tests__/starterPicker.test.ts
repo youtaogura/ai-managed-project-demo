@@ -1,4 +1,5 @@
-import { STARTER_FIXED, type StarterSettings } from '../../types/starter';
+import type { StarterSettings } from '../../types/starter';
+import { STARTER_FIXED } from '../constants';
 import { defaultStarterSettings } from '../starterDefaults';
 import { pickStarters, swapStarters } from '../starterPicker';
 

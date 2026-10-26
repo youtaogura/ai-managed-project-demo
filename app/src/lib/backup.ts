@@ -1,4 +1,5 @@
-import { BACKUP_FORMAT, BACKUP_VERSION, type BackupFile, type ParseBackupResult } from '../types/backup';
+import type { BackupFile, ParseBackupResult } from '../types/backup';
+import { BACKUP_FORMAT, BACKUP_VERSION } from './constants';
 import type { MediaRecord } from '../types/record';
 import type { AppSettings } from '../types/settings';
 import type { Shelf } from '../types/shelf';

@@ -1,4 +1,5 @@
-import { STARTER_COUNT_OPTIONS, type StarterItem, type StarterSettings } from '../types/starter';
+import type { StarterItem, StarterSettings } from '../types/starter';
+import { STARTER_COUNT_OPTIONS } from './constants';
 import { defaultStarterSettings } from './starterDefaults';
 import type { KeyValueStorage } from './storage';
 

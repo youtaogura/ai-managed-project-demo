@@ -1,9 +1,8 @@
-import { BACKUP_FORMAT, BACKUP_VERSION } from '../backup';
-import { RECORD_SOURCE_PROVIDERS, RECORD_STATUSES, SPINE_COLORS } from '../record';
+import { RECORD_SOURCE_PROVIDERS, RECORD_STATUSES } from '../record';
 import * as shelfModule from '../shelf';
-import { STARTER_COUNT_OPTIONS, STARTER_FIXED } from '../starter';
+import { BACKUP_FORMAT, BACKUP_VERSION, SPINE_COLORS, STARTER_COUNT_OPTIONS, STARTER_FIXED } from '../../lib/constants';
 
-describe('型ファイルの定数', () => {
+describe('定数', () => {
   it('背表紙の色は spine-1〜spine-10 の 10 色', () => {
     expect(SPINE_COLORS).toHaveLength(10);
     expect(SPINE_COLORS.map((c, i) => c === `spine-${i + 1}`).every(Boolean)).toBe(true);

@@ -1,11 +1,5 @@
-import {
-  SPINE_COLORS,
-  type FreeTextEntry,
-  type MemoEntry,
-  type QuoteEntry,
-  type SpineColor,
-  type StarterEntry,
-} from '../types/record';
+import type { FreeTextEntry, MemoEntry, QuoteEntry, SpineColor, StarterEntry } from '../types/record';
+import { SPINE_COLORS } from './constants';
 
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);

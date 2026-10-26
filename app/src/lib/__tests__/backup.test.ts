@@ -1,5 +1,5 @@
 import { makeRecord } from '../../testUtils';
-import { BACKUP_FORMAT } from '../../types/backup';
+import { BACKUP_FORMAT } from '../constants';
 import { DEFAULT_SETTINGS } from '../../types/settings';
 import type { Shelf } from '../../types/shelf';
 import { buildBackup, parseBackup } from '../backup';

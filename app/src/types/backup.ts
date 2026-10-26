@@ -1,10 +1,8 @@
+import type { BACKUP_FORMAT, BACKUP_VERSION } from '../lib/constants';
 import type { MediaRecord } from './record';
 import type { AppSettings } from './settings';
 import type { Shelf } from './shelf';
 import type { StarterSettings } from './starter';
-
-export const BACKUP_FORMAT = 'ai-managed-records-backup';
-export const BACKUP_VERSION = 2;
 
 export type BackupFile = {
   format: typeof BACKUP_FORMAT;

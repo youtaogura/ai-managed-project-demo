@@ -3,7 +3,7 @@ import { Text } from 'react-native';
 
 import { colors } from '../../design/tokens';
 import { FileServiceContextProvider } from '../../hooks/useFileService';
-import { BACKUP_FORMAT } from '../../types/backup';
+import { BACKUP_FORMAT } from '../../lib/constants';
 import { buildBackup } from '../../lib/backup';
 import { createExportStore, LAST_EXPORTED_AT_KEY } from '../../lib/exportStore';
 import type { FileService } from '../../lib/fileService/FileService';
