@@ -2,17 +2,22 @@ import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-li
 import type { ReactElement } from 'react';
 import { Alert, type AlertButton } from 'react-native';
 
+import type { PhotoService } from '../../lib/photo/PhotoService';
 import type { RecordRepository } from '../../lib/recordRepository';
 import { withRepository } from '../../testProviders';
-import { createFakeRepository, makeRecord } from '../../testUtils';
+import { createFakeRepository, createMockPhotoService, makeRecord } from '../../testUtils';
 import { RecordDetailScreen } from '../RecordDetailScreen';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 
-function renderDetail(repository: RecordRepository, element: ReactElement) {
-  return renderRouter({ index: () => withRepository(repository, element) });
+function renderDetail(
+  repository: RecordRepository,
+  element: ReactElement,
+  photoService?: PhotoService,
+) {
+  return renderRouter({ index: () => withRepository(repository, element, photoService) });
 }
 
 const full = makeRecord({
@@ -104,6 +109,19 @@ describe('RecordDetailScreen', () => {
     alert.press();
     await waitFor(() => expect(onDeleted).toHaveBeenCalled());
     expect(del).toHaveBeenCalledWith('x');
+  });
+
+  it('削除すると記録の写真ファイルも削除する', async () => {
+    const photoService = createMockPhotoService();
+    const { repository } = createFakeRepository([{ ...full, photoUri: 'file:///documents/photos/p.jpg' }]);
+    const alert = pressAlertButton('削除');
+    await renderDetail(repository, <RecordDetailScreen recordId="x" onDeleted={jest.fn()} />, photoService);
+    await waitFor(() => expect(screen.getByText('削除')).toBeTruthy());
+    await fireEvent.press(screen.getByText('削除'));
+    alert.press();
+    await waitFor(() =>
+      expect(photoService.remove).toHaveBeenCalledWith('file:///documents/photos/p.jpg'),
+    );
   });
 
   it('キャンセルでは削除されない', async () => {

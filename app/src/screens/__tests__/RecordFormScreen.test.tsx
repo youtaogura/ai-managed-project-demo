@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-
 import { router } from 'expo-router';
 import { Alert, type AlertButton } from 'react-native';
 
-import { RecordRepositoryProvider } from '../../hooks/useRecordRepository';
+import { withRepository } from '../../testProviders';
 import { createRecordRepository } from '../../lib/recordRepository';
 import type { KeyValueStorage } from '../../lib/storage';
 import { RecordFormScreen } from '../RecordFormScreen';
@@ -51,9 +51,7 @@ describe('RecordFormScreen（新規）', () => {
     const repository = memoryRepository();
     const add = jest.spyOn(repository, 'add');
     await render(
-      <RecordRepositoryProvider repository={repository}>
-        <RecordFormScreen />
-      </RecordRepositoryProvider>,
+      withRepository(repository, <RecordFormScreen />),
     );
     await fireEvent.changeText(screen.getByLabelText('タイトル'), '新しい本');
     await press('保存');
@@ -68,9 +66,7 @@ describe('RecordFormScreen（新規）', () => {
     const repository = memoryRepository();
     const add = jest.spyOn(repository, 'add');
     await render(
-      <RecordRepositoryProvider repository={repository}>
-        <RecordFormScreen />
-      </RecordRepositoryProvider>,
+      withRepository(repository, <RecordFormScreen />),
     );
     await press('保存');
     expect(screen.getByText('タイトルを入力してください')).toBeTruthy();
@@ -81,9 +77,7 @@ describe('RecordFormScreen（新規）', () => {
   it('初期値が入力済みになり、書影 URL が保存される', async () => {
     const repository = memoryRepository();
     await render(
-      <RecordRepositoryProvider repository={repository}>
-        <RecordFormScreen initialValues={{ title: '検索結果', coverUrl: 'http://c' }} />
-      </RecordRepositoryProvider>,
+      withRepository(repository, <RecordFormScreen initialValues={{ title: '検索結果', coverUrl: 'http://c' }} />),
     );
     expect(screen.getByLabelText('タイトル').props.value).toBe('検索結果');
     await press('保存');
@@ -95,9 +89,7 @@ describe('RecordFormScreen（新規）', () => {
     const repository = memoryRepository();
     jest.spyOn(repository, 'add').mockRejectedValue(new Error('x'));
     await render(
-      <RecordRepositoryProvider repository={repository}>
-        <RecordFormScreen initialValues={{ title: 'a' }} />
-      </RecordRepositoryProvider>,
+      withRepository(repository, <RecordFormScreen initialValues={{ title: 'a' }} />),
     );
     await press('保存');
     expect(await screen.findByText('保存に失敗しました')).toBeTruthy();
@@ -110,9 +102,7 @@ describe('RecordFormScreen（編集）', () => {
     const repository = memoryRepository();
     const record = await repository.add(baseInput);
     await render(
-      <RecordRepositoryProvider repository={repository}>
-        <RecordFormScreen recordId={record.id} />
-      </RecordRepositoryProvider>,
+      withRepository(repository, <RecordFormScreen recordId={record.id} />),
     );
     return { repository, record };
   };
@@ -131,9 +121,7 @@ describe('RecordFormScreen（編集）', () => {
 
   it('存在しない id では「記録が見つかりません」を表示する', async () => {
     await render(
-      <RecordRepositoryProvider repository={memoryRepository()}>
-        <RecordFormScreen recordId="none" />
-      </RecordRepositoryProvider>,
+      withRepository(memoryRepository(), <RecordFormScreen recordId="none" />),
     );
     expect(await screen.findByText('記録が見つかりません')).toBeTruthy();
   });
@@ -142,9 +130,7 @@ describe('RecordFormScreen（編集）', () => {
     const repository = memoryRepository();
     jest.spyOn(repository, 'getAll').mockRejectedValue(new Error('x'));
     await render(
-      <RecordRepositoryProvider repository={repository}>
-        <RecordFormScreen recordId="1" />
-      </RecordRepositoryProvider>,
+      withRepository(repository, <RecordFormScreen recordId="1" />),
     );
     expect(await screen.findByText('記録が見つかりません')).toBeTruthy();
   });

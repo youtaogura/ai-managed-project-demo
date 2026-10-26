@@ -1,7 +1,14 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { Alert, type AlertButton } from 'react-native';
+import { act, fireEvent, render as rtlRender, screen } from '@testing-library/react-native';
+import type { ReactElement } from 'react';
+import { Alert, Linking, type AlertButton } from 'react-native';
 
+import { PhotoServiceContextProvider } from '../../hooks/usePhotoService';
+import type { PhotoService } from '../../lib/photo/PhotoService';
+import { createMockPhotoService } from '../../testUtils';
 import { RecordForm } from '../RecordForm';
+
+const render = (ui: ReactElement, service: PhotoService = createMockPhotoService()) =>
+  rtlRender(<PhotoServiceContextProvider service={service}>{ui}</PhotoServiceContextProvider>);
 
 // 初回レンダリングが CI の遅い環境で 5 秒を超えることがあるため延長する
 jest.setTimeout(30000);
@@ -228,6 +235,220 @@ describe('RecordForm', () => {
         find('削除')?.onPress?.();
       });
       expect(screen.getByText('削除に失敗しました')).toBeTruthy();
+    });
+  });
+  describe('写真', () => {
+    const SAVED = 'file:///documents/photos/new.jpg';
+    const OLD = 'file:///documents/photos/old.jpg';
+    const picked = (uri = 'file:///tmp/pick.jpg') =>
+      ({ status: 'picked', uri }) as const;
+    const thumbnailUri = () => screen.getByLabelText('サムネイル').props.source.uri;
+    const choose = (name: string) => act(async () => press(name));
+
+    it('撮影・選択ボタンがあり、写真が無いとき削除ボタンは出ない', async () => {
+      await render(<RecordForm onSubmit={jest.fn()} />);
+      expect(screen.getByRole('button', { name: 'カメラで撮影' })).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'ライブラリから選択' })).toBeTruthy();
+      expect(screen.queryByRole('button', { name: '写真を削除' })).toBeNull();
+    });
+
+    it('選んだ写真が書影より優先してプレビューされ、保存で photoUri に入る', async () => {
+      const service = createMockPhotoService({
+        pick: jest.fn().mockResolvedValue(picked()),
+        save: jest.fn().mockResolvedValue(SAVED),
+      });
+      const onSubmit = jest.fn().mockResolvedValue(undefined);
+      await render(
+        <RecordForm
+          onSubmit={onSubmit}
+          initialValues={{ title: 'a', coverUrl: 'http://c/cover.jpg' }}
+        />,
+        service,
+      );
+      expect(thumbnailUri()).toBe('http://c/cover.jpg');
+      await choose('ライブラリから選択');
+      expect(service.pick).toHaveBeenCalledWith('library');
+      expect(service.save).toHaveBeenCalledWith('file:///tmp/pick.jpg');
+      expect(thumbnailUri()).toBe(SAVED);
+      await press('保存');
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ photoUri: SAVED }));
+    });
+
+    it('キャンセルでは何も変わらない', async () => {
+      const service = createMockPhotoService();
+      await render(<RecordForm onSubmit={jest.fn()} />, service);
+      await choose('カメラで撮影');
+      expect(service.pick).toHaveBeenCalledWith('camera');
+      expect(service.save).not.toHaveBeenCalled();
+      expect(screen.queryByRole('button', { name: '写真を削除' })).toBeNull();
+    });
+
+    it('保存済みの写真の置き換えでは、保存成功後に旧ファイルを削除する', async () => {
+      const service = createMockPhotoService({
+        pick: jest.fn().mockResolvedValue(picked()),
+        save: jest.fn().mockResolvedValue(SAVED),
+      });
+      await render(
+        <RecordForm
+          onSubmit={jest.fn().mockResolvedValue(undefined)}
+          initialValues={{ title: 'a', photoUri: OLD }}
+        />,
+        service,
+      );
+      await choose('ライブラリから選択');
+      expect(service.remove).not.toHaveBeenCalled();
+      await press('保存');
+      expect(service.remove).toHaveBeenCalledWith(OLD);
+      expect(service.remove).toHaveBeenCalledTimes(1);
+    });
+
+    it('保存に失敗したときは旧ファイルも新規コピーも削除しない', async () => {
+      const service = createMockPhotoService({
+        pick: jest.fn().mockResolvedValue(picked()),
+        save: jest.fn().mockResolvedValue(SAVED),
+      });
+      await render(
+        <RecordForm
+          onSubmit={jest.fn().mockRejectedValue(new Error('x'))}
+          initialValues={{ title: 'a', photoUri: OLD }}
+        />,
+        service,
+      );
+      await choose('ライブラリから選択');
+      await press('保存');
+      expect(service.remove).not.toHaveBeenCalled();
+    });
+
+    it('写真を削除すると書影表示に戻り、保存成功後に旧ファイルを削除する', async () => {
+      const service = createMockPhotoService();
+      const onSubmit = jest.fn().mockResolvedValue(undefined);
+      await render(
+        <RecordForm
+          onSubmit={onSubmit}
+          initialValues={{ title: 'a', photoUri: OLD, coverUrl: 'http://c/cover.jpg' }}
+        />,
+        service,
+      );
+      expect(thumbnailUri()).toBe(OLD);
+      await press('写真を削除');
+      expect(thumbnailUri()).toBe('http://c/cover.jpg');
+      expect(service.remove).not.toHaveBeenCalled();
+      await press('保存');
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ photoUri: null }));
+      expect(service.remove).toHaveBeenCalledWith(OLD);
+    });
+
+    it('未保存の新規コピーは、再選択・削除で即座に消える', async () => {
+      const pick = jest.fn().mockResolvedValue(picked());
+      const save = jest.fn().mockResolvedValueOnce('file:///documents/photos/1.jpg');
+      save.mockResolvedValueOnce('file:///documents/photos/2.jpg');
+      const service = createMockPhotoService({ pick, save });
+      await render(<RecordForm onSubmit={jest.fn()} />, service);
+      await choose('ライブラリから選択');
+      await choose('ライブラリから選択');
+      expect(service.remove).toHaveBeenCalledWith('file:///documents/photos/1.jpg');
+      await press('写真を削除');
+      expect(service.remove).toHaveBeenCalledWith('file:///documents/photos/2.jpg');
+    });
+
+    it('保存せずに破棄すると未保存の新規コピーを削除し、保存済みの写真は残す', async () => {
+      const service = createMockPhotoService({
+        pick: jest.fn().mockResolvedValue(picked()),
+        save: jest.fn().mockResolvedValue(SAVED),
+      });
+      const view = await render(
+        <RecordForm onSubmit={jest.fn()} initialValues={{ title: 'a', photoUri: OLD }} />,
+        service,
+      );
+      await choose('ライブラリから選択');
+      await view.unmount();
+      expect(service.remove).toHaveBeenCalledTimes(1);
+      expect(service.remove).toHaveBeenCalledWith(SAVED);
+    });
+
+    it('保存後に破棄しても保存した写真は削除されない', async () => {
+      const service = createMockPhotoService({
+        pick: jest.fn().mockResolvedValue(picked()),
+        save: jest.fn().mockResolvedValue(SAVED),
+      });
+      const view = await render(
+        <RecordForm onSubmit={jest.fn().mockResolvedValue(undefined)} initialValues={{ title: 'a' }} />,
+        service,
+      );
+      await choose('ライブラリから選択');
+      await press('保存');
+      await view.unmount();
+      expect(service.remove).not.toHaveBeenCalled();
+    });
+
+    it('記録を削除すると写真ファイルも削除する', async () => {
+      const service = createMockPhotoService({
+        pick: jest.fn().mockResolvedValue(picked()),
+        save: jest.fn().mockResolvedValue(SAVED),
+      });
+      const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+      await render(
+        <RecordForm
+          onSubmit={jest.fn()}
+          onDelete={jest.fn().mockResolvedValue(undefined)}
+          initialValues={{ title: 'a', photoUri: OLD }}
+        />,
+        service,
+      );
+      await choose('ライブラリから選択');
+      await press('削除');
+      const buttons = alert.mock.calls[0]?.[2] as AlertButton[];
+      await act(async () => {
+        buttons.find((b) => b.text === '削除')?.onPress?.();
+      });
+      expect(service.remove).toHaveBeenCalledWith(OLD);
+      expect(service.remove).toHaveBeenCalledWith(SAVED);
+    });
+
+    it('コピーが例外を投げたら文言を表示し、既存の写真を維持する', async () => {
+      const service = createMockPhotoService({
+        pick: jest.fn().mockResolvedValue(picked()),
+        save: jest.fn().mockRejectedValue(new Error('x')),
+      });
+      await render(
+        <RecordForm onSubmit={jest.fn()} initialValues={{ title: 'a', photoUri: OLD }} />,
+        service,
+      );
+      await choose('ライブラリから選択');
+      expect(screen.getByText('写真を保存できませんでした')).toBeTruthy();
+      expect(thumbnailUri()).toBe(OLD);
+      expect(screen.queryByRole('button', { name: '設定を開く' })).toBeNull();
+    });
+
+    it('権限が拒否されたら理由と「設定を開く」を表示し、再要求不可なら設定を開く', async () => {
+      const openSettings = jest.spyOn(Linking, 'openSettings').mockResolvedValue(undefined);
+      const service = createMockPhotoService({
+        pick: jest.fn().mockResolvedValue({ status: 'denied', canAskAgain: false }),
+      });
+      await render(<RecordForm onSubmit={jest.fn()} />, service);
+      await choose('カメラで撮影');
+      expect(screen.getByText('カメラへのアクセスが許可されていません')).toBeTruthy();
+      await press('設定を開く');
+      expect(openSettings).toHaveBeenCalledTimes(1);
+      expect(service.pick).toHaveBeenCalledTimes(1);
+    });
+
+    it('再要求できる場合は「設定を開く」で再度許可を要求する', async () => {
+      const openSettings = jest.spyOn(Linking, 'openSettings').mockResolvedValue(undefined);
+      openSettings.mockClear();
+      const pick = jest
+        .fn()
+        .mockResolvedValueOnce({ status: 'denied', canAskAgain: true })
+        .mockResolvedValueOnce(picked());
+      const service = createMockPhotoService({ pick, save: jest.fn().mockResolvedValue(SAVED) });
+      await render(<RecordForm onSubmit={jest.fn()} />, service);
+      await choose('ライブラリから選択');
+      expect(screen.getByText('写真ライブラリへのアクセスが許可されていません')).toBeTruthy();
+      await choose('設定を開く');
+      expect(pick).toHaveBeenCalledTimes(2);
+      expect(openSettings).not.toHaveBeenCalled();
+      expect(thumbnailUri()).toBe(SAVED);
+      expect(screen.queryByText('設定を開く')).toBeNull();
     });
   });
 });

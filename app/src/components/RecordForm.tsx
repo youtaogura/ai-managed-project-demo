@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 
+import { usePhotoService } from '../hooks/usePhotoService';
 import {
   applyStatusChange,
   createFormValues,
@@ -24,6 +25,7 @@ import { getStatusLabel, KIND_LABELS } from '../lib/statusLabel';
 import { colors, formColors, spacing } from '../theme';
 import { MEDIA_KINDS, RECORD_STATUSES, type NewRecordInput } from '../types/record';
 import { DateField } from './DateField';
+import { PhotoField } from './PhotoField';
 import { RatingInput } from './RatingInput';
 import { SegmentedControl } from './SegmentedControl';
 
@@ -49,6 +51,35 @@ export function RecordForm({
   const [errors, setErrors] = useState<RecordFormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
+  const photoService = usePhotoService();
+  // 保存済みの写真は保存成功後にだけ消す。未保存の新規コピーは破棄時に消す
+  const initialPhotoUri = useRef(values.photoUri);
+  const currentPhotoUri = useRef(values.photoUri);
+  const pendingNew = useRef(new Set<string>());
+  const persisted = useRef(false);
+
+  useEffect(() => {
+    const pending = pendingNew.current;
+    return () => {
+      if (persisted.current) return;
+      for (const uri of pending) void photoService.remove(uri);
+    };
+  }, [photoService]);
+
+  const changePhoto = (next: string | null) => {
+    const prev = currentPhotoUri.current;
+    if (prev && pendingNew.current.delete(prev)) void photoService.remove(prev);
+    if (next) pendingNew.current.add(next);
+    currentPhotoUri.current = next;
+    setField('photoUri', next);
+  };
+
+  const commitPhoto = () => {
+    const initial = initialPhotoUri.current;
+    if (initial && initial !== currentPhotoUri.current) void photoService.remove(initial);
+    initialPhotoUri.current = currentPhotoUri.current;
+    pendingNew.current.clear();
+  };
 
   const setField = <K extends keyof RecordFormValues>(key: K, value: RecordFormValues[K]) => {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -85,7 +116,11 @@ export function RecordForm({
     const found = validateForm(values);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
-    await run(() => onSubmit(toNewRecordInput(values)), '保存に失敗しました');
+    await run(async () => {
+      await onSubmit(toNewRecordInput(values));
+      persisted.current = true;
+      commitPhoto();
+    }, '保存に失敗しました');
   };
 
   const handleDelete = () => {
@@ -96,7 +131,14 @@ export function RecordForm({
         text: '削除',
         style: 'destructive',
         onPress: () => {
-          void run(onDelete, '削除に失敗しました');
+          void run(async () => {
+            await onDelete();
+            persisted.current = true;
+            const initial = initialPhotoUri.current;
+            if (initial) void photoService.remove(initial);
+            for (const uri of pendingNew.current) void photoService.remove(uri);
+            pendingNew.current.clear();
+          }, '削除に失敗しました');
         },
       },
     ]);
@@ -183,6 +225,8 @@ export function RecordForm({
         error={errors.rating}
         onChange={(text) => setField('rating', text)}
       />
+
+      <PhotoField record={values} onChange={changePhoto} />
 
       <View style={styles.field}>
         <Text style={styles.label}>感想</Text>
