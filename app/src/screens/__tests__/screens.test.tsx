@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react-native';
 
 import { RecordRepositoryProvider } from '../../hooks/useRecordRepository';
 import { createRecordRepository } from '../../lib/recordRepository';
-import { AnalyticsScreen } from '../AnalyticsScreen';
+import { ReviewScreen } from '../ReviewScreen';
 import { RecordsScreen } from '../RecordsScreen';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -33,13 +33,13 @@ describe('RecordsScreen', () => {
   });
 });
 
-describe('AnalyticsScreen', () => {
+describe('ReviewScreen', () => {
   it('空状態の文言を表示する', async () => {
     await render(
       <RecordRepositoryProvider repository={emptyRepository}>
-        <AnalyticsScreen />
+        <ReviewScreen />
       </RecordRepositoryProvider>,
     );
-    expect(await screen.findByText('分析できる記録がまだありません')).toBeTruthy();
+    expect(await screen.findByText('記録がたまると、ここに振り返りが表示されます')).toBeTruthy();
   });
 });

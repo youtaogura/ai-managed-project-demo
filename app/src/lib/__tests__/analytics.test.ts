@@ -1,5 +1,12 @@
 import { makeRecord } from '../../testUtils';
-import { aggregateMonthlyCompletions, formatAverage, summarizeRatings } from '../analytics';
+import {
+  aggregateMonthlyCompletions,
+  formatAverage,
+  formatPeriod,
+  monthLabel,
+  summarizeRatings,
+  summarizeYear,
+} from '../analytics';
 
 const now = new Date(2026, 9, 15);
 const done = (endDate: string | null, extra = {}) =>
@@ -83,5 +90,32 @@ describe('formatAverage', () => {
   it('小数第 1 位の文字列にする', () => {
     expect(formatAverage(3.3)).toBe('3.3');
     expect(formatAverage(4)).toBe('4.0');
+  });
+});
+
+describe('summarizeYear / formatPeriod / monthLabel', () => {
+  it('12 か月の合計に範囲外・終了日未入力・進行中は含まない', () => {
+    const result = aggregateMonthlyCompletions(
+      [
+        done('2025-11-01'),
+        done('2026-10-31'),
+        done('2025-10-31'),
+        done('2026-11-01'),
+        done(null),
+        makeRecord({ status: 'in_progress', endDate: '2026-10-05' }),
+      ],
+      now,
+    );
+    expect(summarizeYear(result)).toBe(2);
+  });
+
+  it('対象期間を「YYYY/MM – YYYY/MM」にする（年またぎ）', () => {
+    expect(formatPeriod(aggregateMonthlyCompletions([], now).months)).toBe('2025/11 – 2026/10');
+    expect(formatPeriod([])).toBe('');
+  });
+
+  it('月ラベルは「N月」', () => {
+    expect(monthLabel('2026-10')).toBe('10月');
+    expect(monthLabel('2026-01')).toBe('1月');
   });
 });

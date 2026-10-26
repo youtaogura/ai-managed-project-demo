@@ -1,5 +1,5 @@
 import { colors as tokens, space } from '../design/tokens';
-import { colors, formColors, kindColors, overlayColors, spacing, starColors } from '../theme';
+import { colors, formColors,overlayColors, spacing, starColors } from '../theme';
 
 function luminance(hex: string): number {
   const [r, g, b] = [1, 3, 5].map((i) => {
@@ -36,9 +36,7 @@ describe('theme（互換層）', () => {
     expect(overlayColors).toEqual({ text: tokens.textPrimary, background: tokens.scrim });
   });
 
-  it('種別色と星は有彩色でなく accent / starOff', () => {
-    for (const color of Object.values(kindColors)) expect(color).toBe(tokens.accent);
-    expect(Object.keys(kindColors).sort()).toEqual(['anime', 'book', 'drama', 'manga', 'movie']);
+  it('星は有彩色でなく accent / starOff', () => {
     expect(starColors).toEqual({ filled: tokens.accent, empty: tokens.starOff });
   });
 

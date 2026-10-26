@@ -46,7 +46,7 @@ describe('タブ構成', () => {
 
   it('タブを押すと画面が切り替わる', async () => {
     await fireEvent.press(screen.getByRole('tab', { name: '振り返り' }));
-    expect(await screen.findByText('分析できる記録がまだありません')).toBeTruthy();
+    expect(await screen.findByText('記録がたまると、ここに振り返りが表示されます')).toBeTruthy();
     await fireEvent.press(screen.getByRole('tab', { name: '記録' }));
     expect(await screen.findByText('最初の1作品を記録しよう')).toBeTruthy();
   });
@@ -185,5 +185,40 @@ describe('タイトルで探して追加', () => {
     expect(screen.getByDisplayValue('著者C 著')).toBeTruthy();
     expect(screen.getByDisplayValue('出版社D')).toBeTruthy();
     expect(screen.getByDisplayValue('9784065199817')).toBeTruthy();
+  });
+});
+
+describe('振り返りタブの遷移', () => {
+  beforeEach(async () => {
+    await AsyncStorage.clear();
+  });
+
+  afterEach(async () => {
+    await AsyncStorage.clear();
+  });
+
+  it('空表示の「記録する」→「手で入力する」で記録の追加画面へ移る', async () => {
+    await renderRouter(routes);
+    await fireEvent.press(screen.getByRole('tab', { name: '振り返り' }));
+    await fireEvent.press((await screen.findAllByRole('button', { name: '記録する' })).slice(-1)[0]);
+    await fireEvent.press(await screen.findByRole('button', { name: '手で入力する' }));
+    await waitFor(() => expect(screen).toHavePathname('/record/new'));
+  });
+
+  it('「入力する」で記録一覧へ移る', async () => {
+    const now = new Date().toISOString();
+    await AsyncStorage.setItem(
+      RECORDS_STORAGE_KEY,
+      JSON.stringify([
+        {
+          id: 'u1', kind: 'book', title: '未入力の本', creator: null, publisher: null, isbn: null,
+          coverUrl: null, photoUri: null, startDate: null, endDate: null, status: 'completed',
+          review: null, rating: null, createdAt: now, updatedAt: now, source: { provider: 'manual' },
+        },
+      ]),
+    );
+    await renderRouter(routes, { initialUrl: '/analytics' });
+    await fireEvent.press(await screen.findByRole('button', { name: '入力する' }));
+    await waitFor(() => expect(screen).toHavePathname('/'));
   });
 });
