@@ -14,6 +14,7 @@ export type RecordFormValues = {
   coverUrl: string | null;
   photoUri: string | null;
   source: RecordSource;
+  shelfIds: string[];
 };
 
 export type RecordFormErrors = {
@@ -45,6 +46,7 @@ export function createFormValues(initial: Partial<NewRecordInput> = {}): RecordF
     coverUrl: initial.coverUrl ?? null,
     photoUri: initial.photoUri ?? null,
     source: initial.source ?? { provider: 'manual' },
+    shelfIds: initial.shelfIds ?? [],
   };
 }
 
@@ -144,7 +146,7 @@ export function toNewRecordInput(values: RecordFormValues, carried: Partial<NewR
     memos: carried.memos ?? [],
     freeTexts: carried.freeTexts ?? [],
     favorite: carried.favorite ?? false,
-    shelfIds: carried.shelfIds ?? [],
+    shelfIds: values.shelfIds,
   };
 }
 

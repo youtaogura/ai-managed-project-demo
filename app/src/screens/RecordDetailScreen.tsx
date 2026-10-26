@@ -9,9 +9,12 @@ import { Cover } from '../components/Cover';
 import { InfoCell, InfoCellRow } from '../components/InfoCell';
 import { RatingStars } from '../components/RatingStars';
 import { RecordInfoSection } from '../components/RecordInfoSection';
+import { SettingsRow } from '../components/SettingsRow';
+import { ShelfPickSheet } from '../components/ShelfPickSheet';
 import { colors, radius, shadows, size, space } from '../design/tokens';
 import { useCoverResolver } from '../hooks/useCoverResolver';
 import { useBottomInset } from '../hooks/useBottomInset';
+import { useShelfPick } from '../hooks/useShelfPick';
 import { usePhotoPicker } from '../hooks/usePhotoPicker';
 import { usePhotoService } from '../hooks/usePhotoService';
 import { useRecordRepository } from '../hooks/useRecordRepository';
@@ -19,6 +22,7 @@ import { needsCover } from '../lib/coverLookup/needsCover';
 import { triggerImpactHaptic } from '../lib/haptics';
 import { getHeroBackground } from '../lib/heroColor';
 import { infoCellLabels } from '../lib/infoCellLabels';
+import { shelfNames } from '../lib/shelfSelectors';
 import { getStatusLabel } from '../lib/statusLabel';
 import type { MediaRecord, NewRecordInput } from '../types/record';
 
@@ -52,6 +56,8 @@ export function RecordDetailScreen({ recordId, onEdit, onDeleted, onBack }: Reco
   const [loading, setLoading] = useState(true);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [photoOpen, setPhotoOpen] = useState(false);
+  const [shelfOpen, setShelfOpen] = useState(false);
+  const { shelves, counts, create: createShelf } = useShelfPick();
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
@@ -117,6 +123,13 @@ export function RecordDetailScreen({ recordId, onEdit, onDeleted, onBack }: Reco
   };
 
   const picker = usePhotoPicker(savePhoto);
+
+  const saveShelves = async (shelfIds: string[]) => {
+    if (!record) return;
+    const updated = await repository.update(recordId, { ...toInput(record, record.photoUri), shelfIds });
+    if (!updated) throw new Error('not found');
+    setRecord(updated);
+  };
 
   const removePhoto = async () => {
     setPhotoError(null);
@@ -208,6 +221,11 @@ export function RecordDetailScreen({ recordId, onEdit, onDeleted, onBack }: Reco
             <InfoCell label={labels.start} value={record.startDate} />
             <InfoCell label={labels.end} value={record.endDate} />
           </InfoCellRow>
+          <SettingsRow
+            label="本棚"
+            value={shelfNames(record, shelves).join('、') || 'まだ入れていません'}
+            onPress={() => setShelfOpen(true)}
+          />
           <View onLayout={(e) => setInfoY(e.nativeEvent.layout.y)}>
             <RecordInfoSection record={record} onDelete={openDelete} />
           </View>
@@ -222,6 +240,16 @@ export function RecordDetailScreen({ recordId, onEdit, onDeleted, onBack }: Reco
         />
         <Button label="編集" style={styles.barButton} onPress={() => onEdit?.(record.id)} />
       </View>
+
+      <ShelfPickSheet
+        visible={shelfOpen}
+        shelves={shelves}
+        counts={counts}
+        selectedIds={record.shelfIds}
+        onSubmit={saveShelves}
+        onCreate={createShelf}
+        onClose={() => setShelfOpen(false)}
+      />
 
       <BottomSheet visible={deleteOpen} onClose={() => setDeleteOpen(false)} title="この記録を削除しますか？">
         <View style={styles.sheetBody}>

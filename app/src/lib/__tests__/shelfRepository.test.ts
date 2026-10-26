@@ -141,3 +141,29 @@ describe('ShelfRepository', () => {
     expect(replaced).toEqual([{ id: 'only', name: 'O', order: 0 }]);
   });
 });
+
+describe('ShelfRepository の名前の検証', () => {
+  it('同じ名前（全角半角・大文字小文字違いを含む）は create できず、保存は変わらない', async () => {
+    const { repo, memory } = setup();
+    await repo.create('SF');
+    const before = memory.data.get(SHELVES_STORAGE_KEY);
+    await expect(repo.create('ｓｆ')).rejects.toThrow('同じ名前の本棚があります');
+    await expect(repo.create('SF')).rejects.toBeInstanceOf(ValidationError);
+    expect(memory.data.get(SHELVES_STORAGE_KEY)).toBe(before);
+  });
+
+  it('長すぎる名前と予約語は create できない', async () => {
+    const { repo } = setup();
+    await expect(repo.create('あ'.repeat(21))).rejects.toThrow('本棚の名前は 20 文字までです');
+    await expect(repo.create('すべての本')).rejects.toThrow('その名前は使えません');
+    expect(await repo.getAll()).toEqual([]);
+  });
+
+  it('rename は重複を拒否するが、自分自身の名前のままなら保存できる', async () => {
+    const { repo } = await three();
+    await expect(repo.rename('s1', 'b')).rejects.toThrow('同じ名前の本棚があります');
+    await expect(repo.rename('s1', ' ')).rejects.toBeInstanceOf(ValidationError);
+    expect((await repo.rename('s1', 'A'))?.name).toBe('A');
+    expect((await repo.getAll()).map((s) => s.name)).toEqual(['A', 'B', 'C']);
+  });
+});

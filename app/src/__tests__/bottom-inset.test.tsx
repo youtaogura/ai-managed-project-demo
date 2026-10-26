@@ -8,11 +8,11 @@ import { BookLookupContextProvider } from '../hooks/useBookLookup';
 import { CoverResolverContextProvider } from '../hooks/useCoverResolver';
 import { BookSearchContextProvider } from '../hooks/useBookSearch';
 import { PhotoServiceContextProvider } from '../hooks/usePhotoService';
-import { RecordRepositoryProvider } from '../hooks/useRecordRepository';
 import { BarcodeScanScreen } from '../screens/BarcodeScanScreen';
 import { RecordDetailScreen } from '../screens/RecordDetailScreen';
 import { TitleSearchScreen } from '../screens/TitleSearchScreen';
 import { size, space } from '../design/tokens';
+import { withRepository } from '../testProviders';
 import { createFakeRepository, createMockPhotoService, makeRecord } from '../testUtils';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -67,7 +67,7 @@ describe.each([
   [0, 0],
 ])('下端インセット %i', (bottom, extra) => {
   it('記録フォームの主ボタン領域の下端にインセットが加わる', async () => {
-    await render(withInsets(bottom, <RecordForm onSubmit={jest.fn()} />));
+    await render(withInsets(bottom, withRepository(createFakeRepository().repository, <RecordForm onSubmit={jest.fn()} />)));
     let node = (await screen.findByRole('button', { name: '記録する' })).parent;
     let padding: number | undefined;
     while (node && padding === undefined) {
@@ -82,11 +82,7 @@ describe.each([
     await render(
       withInsets(
         bottom,
-        <RecordRepositoryProvider repository={repository}>
-          <CoverResolverContextProvider resolver={async () => null}>
-            <RecordDetailScreen recordId="x" />
-          </CoverResolverContextProvider>
-        </RecordRepositoryProvider>,
+        withRepository(repository, <RecordDetailScreen recordId="x" />),
       ),
     );
     await screen.findByText('ステータス');

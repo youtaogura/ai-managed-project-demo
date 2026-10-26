@@ -15,14 +15,18 @@ import { EmptyState } from '../components/EmptyState';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { Shelf } from '../components/Shelf';
 import { ShelfChips } from '../components/ShelfChips';
+import { ShelfCreateSheet } from '../components/ShelfCreateSheet';
 import { SortSheet } from '../components/SortSheet';
 import { StatusTabs } from '../components/StatusTabs';
 import { colors, radius, space } from '../design/tokens';
 import { useAddSheet } from '../hooks/useAddSheet';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useRecords } from '../hooks/useRecords';
+import { useShelfRepository } from '../hooks/useShelfRepository';
+import { useShelves } from '../hooks/useShelves';
 import { useSortOrder } from '../hooks/useSortOrder';
 import { countByStatus, filterByStatus, type StatusFilter } from '../lib/countByStatus';
+import { recordsInShelf } from '../lib/shelfSelectors';
 import { createSortOrderStore, type SortOrderStore } from '../lib/sortOrderStore';
 import { sortRecords } from '../lib/sortRecords';
 import { SHELF_ROW_GAP } from '../lib/spineLayout';
@@ -39,16 +43,18 @@ type RecordsScreenProps = {
   sortOrderStore?: SortOrderStore;
   onAdd?: () => void;
   onOpen?: (id: string) => void;
-  onCreateShelf?: () => void;
 };
 
 export function RecordsScreen({
   sortOrderStore = defaultSortOrderStore,
   onAdd,
   onOpen,
-  onCreateShelf,
 }: RecordsScreenProps) {
   const { records, loading } = useRecords();
+  const { shelves, reload: reloadShelves } = useShelves();
+  const shelfRepository = useShelfRepository();
+  const [selectedShelfId, setSelectedShelfId] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
   const [order, setOrder] = useSortOrder(sortOrderStore);
   const { addOpen, openAdd, closeAdd, select } = useAddSheet(onAdd);
   const [sortOpen, setSortOpen] = useState(false);
@@ -58,11 +64,14 @@ export function RecordsScreen({
   const listRef = useRef<FlatList<null>>(null);
   useScrollToTop(listRef);
 
+  // 選択中の本棚が消えていたら「すべての本」として扱う
+  const shelfId = shelves.some((s) => s.id === selectedShelfId) ? selectedShelfId : null;
+  const inShelf = useMemo(() => recordsInShelf(records, shelfId), [records, shelfId]);
   const visible = useMemo(
-    () => sortRecords(filterByStatus(records, filter), order),
-    [records, filter, order],
+    () => sortRecords(filterByStatus(inShelf, filter), order),
+    [inShelf, filter, order],
   );
-  const counts = useMemo(() => countByStatus(records), [records]);
+  const counts = useMemo(() => countByStatus(inShelf), [inShelf]);
   const yearCount = useMemo(() => countCompletions(records, new Date()).year, [records]);
 
   if (loading) {
@@ -75,6 +84,12 @@ export function RecordsScreen({
     );
   }
 
+  const createShelf = async (name: string) => {
+    const shelf = await shelfRepository.create(name);
+    await reloadShelves();
+    setSelectedShelfId(shelf.id);
+  };
+
   const open = (record: MediaRecord) => onOpen?.(record.id);
 
   const sheets = (
@@ -85,6 +100,12 @@ export function RecordsScreen({
         value={order}
         onClose={() => setSortOpen(false)}
         onChange={setOrder}
+      />
+      <ShelfCreateSheet
+        visible={createOpen}
+        shelves={shelves}
+        onSubmit={createShelf}
+        onClose={() => setCreateOpen(false)}
       />
     </>
   );
@@ -127,7 +148,12 @@ export function RecordsScreen({
   const header = (
     <View>
       {heading}
-      <ShelfChips onCreateShelf={onCreateShelf} />
+      <ShelfChips
+        shelves={shelves}
+        selectedId={shelfId}
+        onSelect={setSelectedShelfId}
+        onCreateShelf={() => setCreateOpen(true)}
+      />
       <View style={styles.tabs}>
         <StatusTabs value={filter} counts={counts} onChange={setFilter} />
       </View>
@@ -143,7 +169,7 @@ export function RecordsScreen({
   const shelf =
     visible.length === 0 ? (
       <AppText variant="body" style={styles.none}>
-        この状態の本はまだありません
+        {inShelf.length === 0 ? 'この本棚にはまだ本がありません' : 'この状態の本はまだありません'}
       </AppText>
     ) : (
       <View style={styles.shelf}>
