@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -10,16 +11,14 @@ import {
 } from 'react-native';
 
 import { Thumbnail } from '../components/Thumbnail';
+import { useRecordRepository } from '../hooks/useRecordRepository';
 import { formatDateTime, formatRating } from '../lib/format';
-import type { RecordRepository } from '../lib/recordRepository';
-import { recordRepository } from '../lib/repository';
 import { getStatusLabel, KIND_LABELS } from '../lib/statusLabel';
 import { colors, spacing } from '../theme';
 import type { MediaRecord } from '../types/record';
 
 type RecordDetailScreenProps = {
   recordId: string;
-  repository?: RecordRepository;
   onEdit?: (id: string) => void;
   onDeleted?: () => void;
   onBack?: () => void;
@@ -38,29 +37,32 @@ function Row({ label, value }: { label: string; value: string }) {
 
 export function RecordDetailScreen({
   recordId,
-  repository = recordRepository,
   onEdit,
   onDeleted,
   onBack,
 }: RecordDetailScreenProps) {
+  const repository = useRecordRepository();
   const [record, setRecord] = useState<MediaRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
-    repository
-      .getAll()
-      .catch(() => [] as MediaRecord[])
-      .then((all) => {
-        if (!active) return;
-        setRecord(all.find((r) => r.id === recordId) ?? null);
-        setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [repository, recordId]);
+  // 編集から戻ったときに最新の内容を表示するため、フォーカスのたび読み込む
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      repository
+        .getAll()
+        .catch(() => [] as MediaRecord[])
+        .then((all) => {
+          if (!active) return;
+          setRecord(all.find((r) => r.id === recordId) ?? null);
+          setLoading(false);
+        });
+      return () => {
+        active = false;
+      };
+    }, [repository, recordId]),
+  );
 
   const remove = useCallback(async () => {
     try {
@@ -118,7 +120,11 @@ export function RecordDetailScreen({
       <Row label="登録日時" value={formatDateTime(record.createdAt)} />
       <Row label="更新日時" value={formatDateTime(record.updatedAt)} />
       {error ? <Text style={styles.error}>{error}</Text> : null}
-      <Pressable accessibilityRole="button" onPress={() => onEdit?.(record.id)} style={styles.primary}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => onEdit?.(record.id)}
+        style={styles.primary}
+      >
         <Text style={styles.primaryText}>編集</Text>
       </Pressable>
       <Pressable accessibilityRole="button" onPress={confirmDelete} style={styles.danger}>

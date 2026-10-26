@@ -1,5 +1,7 @@
+import { Text } from 'react-native';
 import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 
+import { withRepository } from '../../testProviders';
 import { createSortOrderStore } from '../../lib/sortOrderStore';
 import { createFakeRepository, createMemoryStorage, makeRecord } from '../../testUtils';
 import type { MediaRecord } from '../../types/record';
@@ -20,8 +22,20 @@ const records: MediaRecord[] = [
     endDate: '2024-02-10',
     rating: 4,
   }),
-  makeRecord({ id: 'b', title: 'ベータ', kind: 'movie', status: 'planned', startDate: '2024-03-01' }),
-  makeRecord({ id: 'c', title: 'ガンマ', kind: 'anime', endDate: '2024-05-01', rating: 2.5 }),
+  makeRecord({
+    id: 'b',
+    title: 'ベータ',
+    kind: 'movie',
+    status: 'planned',
+    startDate: '2024-03-01',
+  }),
+  makeRecord({
+    id: 'c',
+    title: 'ガンマ',
+    kind: 'anime',
+    endDate: '2024-05-01',
+    rating: 2.5,
+  }),
 ];
 
 function setup(
@@ -30,20 +44,18 @@ function setup(
   handlers: { onAdd?: () => void; onOpen?: (id: string) => void } = {},
 ) {
   return renderRouter({
-    index: () => (
-      <RecordsScreen
-        repository={repository}
-        sortOrderStore={createSortOrderStore(storage)}
-        {...handlers}
-      />
-    ),
+    index: () =>
+      withRepository(
+        repository,
+        <RecordsScreen sortOrderStore={createSortOrderStore(storage)} {...handlers} />,
+      ),
+    'record/isbn': () => <Text>ダミーISBN画面</Text>,
+    'record/scan': () => <Text>ダミー読取画面</Text>,
   });
 }
 
 const titles = () =>
-  screen
-    .getAllByText(/^(アルファ|ベータ|ガンマ)$/)
-    .map((n) => n.props.children as string);
+  screen.getAllByText(/^(アルファ|ベータ|ガンマ)$/).map((n) => n.props.children as string);
 
 describe('RecordsScreen', () => {
   it('読み込み中はインジケーターを表示し、完了後に切り替わる', async () => {
@@ -103,7 +115,9 @@ describe('RecordsScreen', () => {
 
   it('行をタップすると onOpen が id 付きで呼ばれる', async () => {
     const onOpen = jest.fn();
-    await setup(createFakeRepository(records).repository, undefined, { onOpen });
+    await setup(createFakeRepository(records).repository, undefined, {
+      onOpen,
+    });
     await waitFor(() => expect(screen.getByText('ベータ')).toBeTruthy());
     await fireEvent.press(screen.getByText('ベータ'));
     expect(onOpen).toHaveBeenCalledWith('b');
@@ -122,5 +136,19 @@ describe('RecordsScreen', () => {
     await setup(createFakeRepository(records).repository);
     await waitFor(() => expect(screen.getByText('ベータ')).toBeTruthy());
     await fireEvent.press(screen.getByText('ベータ'));
+  });
+
+  it('ISBN・バーコードのボタンで各画面へ遷移する', async () => {
+    await setup(createFakeRepository(records).repository);
+    await waitFor(() => expect(screen.getByText('ベータ')).toBeTruthy());
+    await fireEvent.press(screen.getByRole('button', { name: 'ISBN で探して追加' }));
+    await waitFor(() => expect(screen).toHavePathname('/record/isbn'));
+  });
+
+  it('0 件でもバーコードのボタンから読み取り画面へ遷移する', async () => {
+    await setup(createFakeRepository().repository);
+    await waitFor(() => expect(screen.getByText('まだ記録がありません')).toBeTruthy());
+    await fireEvent.press(screen.getByRole('button', { name: 'バーコードで読み取って追加' }));
+    await waitFor(() => expect(screen).toHavePathname('/record/scan'));
   });
 });

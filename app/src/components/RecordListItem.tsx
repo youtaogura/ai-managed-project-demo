@@ -14,11 +14,7 @@ type RecordListItemProps = {
 export function RecordListItem({ record, onPress }: RecordListItemProps) {
   const period = formatPeriod(record.startDate, record.endDate);
   return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={() => onPress(record)}
-      style={styles.row}
-    >
+    <Pressable accessibilityRole="button" onPress={() => onPress(record)} style={styles.row}>
       <Thumbnail record={record} />
       <View style={styles.body}>
         <Text style={styles.title} numberOfLines={2}>

@@ -14,7 +14,7 @@ export default function TabsLayout() {
           headerRight: () => (
             <Pressable
               accessibilityRole="button"
-              onPress={() => router.push('/records/new')}
+              onPress={() => router.push('/record/new')}
               style={{ paddingHorizontal: spacing.md }}
             >
               <Text style={{ color: colors.tint, fontSize: 16 }}>追加</Text>

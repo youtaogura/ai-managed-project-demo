@@ -21,8 +21,8 @@ const routes = {
   '(tabs)/analytics': AnalyticsRoute,
   'records/[id]': RecordDetailRoute,
   // #3 が実装するルートの代わりのダミー
-  'records/new': () => <Text>ダミー追加画面</Text>,
-  'records/[id]/edit': () => <Text>ダミー編集画面</Text>,
+  'record/new': () => <Text>ダミー追加画面</Text>,
+  'record/[id]': () => <Text>ダミー編集画面</Text>,
 };
 
 describe('記録のルート配線', () => {

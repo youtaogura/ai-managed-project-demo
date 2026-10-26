@@ -134,7 +134,7 @@ RN の `Alert.alert` を使う（追加依存なし）。テストでは `jest.s
 | 並び順が再描画（再マウント）後も維持 | 同上（同じ storage で 2 回 render） |
 | 詳細の全項目表示・null の表示・種別による出版社/ISBN の出し分け | `src/screens/__tests__/RecordDetailScreen.test.tsx` |
 | 編集遷移・削除確認（実行/キャンセル）・失敗時メッセージ・存在しない id | 同上 |
-| ルート配線（一覧 → 詳細 → 戻る、削除後に一覧へ戻る） | `src/__tests__/tabs.test.tsx` を拡張、または `src/__tests__/records-routes.test.tsx` を新設（`renderRouter`。`records/new` と `records/[id]/edit` はダミーのルートを渡して遷移先を確認） |
+| ルート配線（一覧 → 詳細 → 戻る、削除後に一覧へ戻る） | `src/__tests__/tabs.test.tsx` を拡張、または `src/__tests__/records-routes.test.tsx` を新設（`renderRouter`。`record/new` と `record/[id]` はダミーのルートを渡して遷移先を確認） |
 | 追加後に一覧が最新になる | `useRecords` のフォーカス再読み込みを `src/hooks/__tests__/useRecords.test.tsx` で確認 |
 
 既存の `src/__tests__/tabs.test.tsx` は、一覧が repository を読むようになるため、空の storage を使うよう調整する（テストは削除・減少させない。ケースは維持または増やす）。`RecordsScreen` の既存テスト（`screens.test.tsx`）の「まだ記録がありません」は空状態として引き続き成立させる。
@@ -160,3 +160,6 @@ RN の `Alert.alert` を使う（追加依存なし）。テストでは `jest.s
 12. **日時表示はローカル時刻の `YYYY-MM-DD HH:mm`**（Hermes の `toLocaleString` は環境差があるため自前整形）。
 13. **「追加」の導線は、ヘッダー右ボタン（常時）と空状態のボタンの 2 か所**。Issue は 0 件時の導線のみ明記だが、1 件以上でも追加できないと機能的に不自然なため。
 14. **`CLAUDE.md` / jest 設定の変更は不要と判断**。
+
+### 追記（main 取り込み時）
+- #3 が `RecordRepositoryProvider`（context）と `record/new`・`record/[id]`（編集）を導入したため、判断ログ 1・2 の方針を次のとおり更新: repository は context から取得（`lib/repository.ts` は削除）、編集は `/record/<id>`、追加は `/record/new`。詳細画面は編集ルートと衝突しないよう `records/[id]` のまま。

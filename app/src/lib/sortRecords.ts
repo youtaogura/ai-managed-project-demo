@@ -12,7 +12,10 @@ export const SORT_ORDER_LABELS: Record<SortOrder, string> = {
   createdAt_desc: '登録が新しい順',
 };
 
-const collator = new Intl.Collator('ja', { numeric: true, sensitivity: 'base' });
+const collator = new Intl.Collator('ja', {
+  numeric: true,
+  sensitivity: 'base',
+});
 
 const compareText = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
 

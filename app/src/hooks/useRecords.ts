@@ -1,10 +1,11 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useState } from 'react';
 
-import type { RecordRepository } from '../lib/recordRepository';
 import type { MediaRecord } from '../types/record';
+import { useRecordRepository } from './useRecordRepository';
 
-export function useRecords(repository: RecordRepository) {
+export function useRecords() {
+  const repository = useRecordRepository();
   const [records, setRecords] = useState<MediaRecord[]>([]);
   const [loading, setLoading] = useState(true);
 

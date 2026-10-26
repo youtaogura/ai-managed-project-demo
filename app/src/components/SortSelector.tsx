@@ -23,7 +23,13 @@ export function SortSelector({ value, onChange }: SortSelectorProps) {
       >
         <Text style={styles.barText}>並び替え: {SORT_ORDER_LABELS[value]}</Text>
       </Pressable>
-      <Modal testID="sort-modal" transparent animationType="fade" visible={open} onRequestClose={() => setOpen(false)}>
+      <Modal
+        testID="sort-modal"
+        transparent
+        animationType="fade"
+        visible={open}
+        onRequestClose={() => setOpen(false)}
+      >
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
           <View style={styles.sheet}>
             {SORT_ORDERS.map((order) => (
@@ -58,7 +64,11 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   barText: { fontSize: 14, color: colors.text },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
   sheet: { backgroundColor: colors.background, paddingVertical: spacing.sm },
   option: { padding: spacing.md },
   optionText: { fontSize: 16, color: colors.text },

@@ -6,10 +6,34 @@ const ids = (order: Parameters<typeof sortRecords>[1], records = sample) =>
   sortRecords(records, order).map((r) => r.id);
 
 const sample = [
-  makeRecord({ id: 'a', startDate: '2024-01-01', endDate: '2024-02-01', rating: 3, title: 'b' }),
-  makeRecord({ id: 'b', startDate: '2024-03-01', endDate: '2024-04-01', rating: 5, title: 'a' }),
-  makeRecord({ id: 'c', startDate: null, endDate: null, rating: null, title: 'c' }),
-  makeRecord({ id: 'd', startDate: '2023-01-01', endDate: '2023-02-01', rating: 1, title: 'd' }),
+  makeRecord({
+    id: 'a',
+    startDate: '2024-01-01',
+    endDate: '2024-02-01',
+    rating: 3,
+    title: 'b',
+  }),
+  makeRecord({
+    id: 'b',
+    startDate: '2024-03-01',
+    endDate: '2024-04-01',
+    rating: 5,
+    title: 'a',
+  }),
+  makeRecord({
+    id: 'c',
+    startDate: null,
+    endDate: null,
+    rating: null,
+    title: 'c',
+  }),
+  makeRecord({
+    id: 'd',
+    startDate: '2023-01-01',
+    endDate: '2023-02-01',
+    rating: 1,
+    title: 'd',
+  }),
 ];
 
 describe('sortRecords', () => {
@@ -36,10 +60,26 @@ describe('sortRecords', () => {
 
   it('同値は createdAt の新しい順、それも同じなら id 順', () => {
     const records = [
-      makeRecord({ id: 'old', endDate: '2024-01-01', createdAt: '2024-01-01T00:00:00.000Z' }),
-      makeRecord({ id: 'new', endDate: '2024-01-01', createdAt: '2024-02-01T00:00:00.000Z' }),
-      makeRecord({ id: 'n2', endDate: null, createdAt: '2024-02-01T00:00:00.000Z' }),
-      makeRecord({ id: 'n1', endDate: null, createdAt: '2024-02-01T00:00:00.000Z' }),
+      makeRecord({
+        id: 'old',
+        endDate: '2024-01-01',
+        createdAt: '2024-01-01T00:00:00.000Z',
+      }),
+      makeRecord({
+        id: 'new',
+        endDate: '2024-01-01',
+        createdAt: '2024-02-01T00:00:00.000Z',
+      }),
+      makeRecord({
+        id: 'n2',
+        endDate: null,
+        createdAt: '2024-02-01T00:00:00.000Z',
+      }),
+      makeRecord({
+        id: 'n1',
+        endDate: null,
+        createdAt: '2024-02-01T00:00:00.000Z',
+      }),
     ];
     expect(ids('endDate_asc', records)).toEqual(['new', 'old', 'n1', 'n2']);
   });
@@ -50,8 +90,16 @@ describe('sortRecords', () => {
       makeRecord({ id: '2', title: 'あ' }),
       makeRecord({ id: '3', title: 'Zebra' }),
       makeRecord({ id: '4', title: 'apple' }),
-      makeRecord({ id: '5', title: ' か ', createdAt: '2024-05-01T00:00:00.000Z' }),
-      makeRecord({ id: '6', title: 'カ', createdAt: '2024-01-01T00:00:00.000Z' }),
+      makeRecord({
+        id: '5',
+        title: ' か ',
+        createdAt: '2024-05-01T00:00:00.000Z',
+      }),
+      makeRecord({
+        id: '6',
+        title: 'カ',
+        createdAt: '2024-01-01T00:00:00.000Z',
+      }),
     ];
     expect(ids('title_asc', records)).toEqual(['4', '3', '2', '5', '6', '1']);
   });

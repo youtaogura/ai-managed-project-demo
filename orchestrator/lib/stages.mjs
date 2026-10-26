@@ -56,6 +56,35 @@ async function rework(item, reason) {
   await gh.setStatus(item, S.implement);
 }
 
+const fileList = (files) => (files.length ? files.map((f) => `- \`${f}\``).join('\n') : '（ファイルを特定できませんでした）');
+
+// base とのコンフリクトは止めずに実装工程で解消させる。レビュー・CI の差し戻しとは別に数える
+async function conflictRework(item, files, res) {
+  const n = item.issue.number;
+  const count = (getIssueState(n).conflicts ?? 0) + 1;
+  if (count > config.maxConflictResolve) {
+    return block(
+      item,
+      'failed',
+      `\`${config.baseBranch}\` とのコンフリクト解消が上限（${config.maxConflictResolve}回）に達しました。\n\nコンフリクトしているファイル:\n\n${fileList(files)}`,
+      res,
+    );
+  }
+  if (!config.dryRun) updateIssueState(n, { conflicts: count });
+  log(`#${n}: ${config.baseBranch} とのコンフリクトを解消するため実装へ差し戻し (${count}/${config.maxConflictResolve}) - ${files.join(', ')}`);
+  await gh.setStatus(item, S.implement);
+}
+
+// 実装エージェントに渡す、base との関係の説明
+function describeBaseSync(sync) {
+  if (sync.state === 'conflict') {
+    const files = sync.files.map((f) => `\`${f}\``).join(', ') || '（不明）';
+    return `**コンフリクトあり**（${files}）。下の「${config.baseBranch} とのコンフリクト解消」を最初に行うこと。`;
+  }
+  if (sync.state === 'behind') return `${config.baseBranch} が先に進んでいるがコンフリクトはない（取り込みはマージ前にオーケストレーターが行うので不要）。`;
+  return 'なし';
+}
+
 // エージェントの結果のうち、各工程で共通の扱い
 async function handleCommon(item, res) {
   if (res.outcome === 'dry_run') return true;
@@ -116,7 +145,8 @@ async function specStage(item) {
 async function implementStage(item) {
   const branch = branchFor(item.issue.number);
   const pr = await gh.findOpenPr(branch);
-  const wt = await prepare(item);
+  const wt = await prepare(item); // origin を fetch 済み
+  const sync = await git.baseSyncState(item.issue.number);
   const res = await runAgent({
     stage: 'implement',
     issue: item.issue.number,
@@ -126,6 +156,7 @@ async function implementStage(item) {
       baseVars(item, {
         PR_NUMBER: pr ? pr.number : 'なし（新規作成すること）',
         REWORK_COUNT: getIssueState(item.issue.number).rework,
+        BASE_SYNC: describeBaseSync(sync),
       }),
     ),
   });
@@ -134,6 +165,10 @@ async function implementStage(item) {
 
   const created = await gh.findOpenPr(branch);
   if (!created) return block(item, 'failed', `ブランチ \`${branch}\` の PR が見つかりません。`, res);
+  // 事後条件: base とのコンフリクトが残っていないこと（作業中に base が進んだ場合も含む）
+  await git.fetchOrigin();
+  const after = await git.baseSyncState(item.issue.number);
+  if (after.state === 'conflict') return conflictRework(item, after.files, res);
   await gh.setStatus(item, S.review);
 }
 
@@ -165,6 +200,30 @@ async function releaseStage(item) {
   );
   if (touched.length) {
     return block(item, 'failed', `PR #${pr.number} が保護対象のファイルを変更しています:\n\n${touched.map((f) => `- \`${f}\``).join('\n')}`);
+  }
+
+  // base が先に進んでいたら、コンフリクトは実装工程に戻して解消させ、
+  // コンフリクトがなければ取り込んでから CI をやり直す（古い base に対する CI 結果ではマージしない）
+  await git.fetchOrigin();
+  const sync = await git.baseSyncState(n);
+  if (sync.state === 'conflict') {
+    await gh.commentPr(
+      pr.number,
+      `🤖 オーケストレーター: \`${config.baseBranch}\` とコンフリクトしているため、実装工程に差し戻して解消します。\n\n` +
+        `コンフリクトしているファイル:\n\n${fileList(sync.files)}`,
+    );
+    if (!config.dryRun) updateIssueState(n, { ciWaitSince: null });
+    return conflictRework(item, sync.files);
+  }
+  if (sync.state === 'behind') {
+    if (config.dryRun) {
+      log(`[dry-run] #${n}: ${config.baseBranch} を ${branch} に取り込んで push する予定`);
+      return;
+    }
+    await git.mergeBaseAndPush(n);
+    updateIssueState(n, { ciWaitSince: null });
+    log(`#${n}: ${config.baseBranch} を取り込みました。PR #${pr.number} の CI をやり直します`);
+    return;
   }
 
   const result = gh.evaluateChecks(await gh.prChecks(pr.number), config.requiredChecks);

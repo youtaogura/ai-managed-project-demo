@@ -123,9 +123,53 @@ test('プロンプトの変数を埋め込む', () => {
     SPEC_PATH: 'docs/specs/issue-7.md',
     PR_NUMBER: 'なし',
     REWORK_COUNT: 0,
+    BASE_SYNC: 'なし',
   });
   assert.match(p, /Issue: #7「ToDo 追加」/);
   assert.match(p, /docs\/specs\/issue-7\.md/);
   assert.match(p, /AGENT_RESULT/);
   assert.doesNotMatch(p, /\{\{\w+\}\}/);
+});
+
+test('作業ブランチと base の関係（最新 / 遅れ / コンフリクト）を判定する', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const path = await import('node:path');
+  const { config } = await import('./config.mjs');
+  const { baseSyncState } = await import('./git.mjs');
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'base-sync-'));
+  const seed = path.join(tmp, 'seed');
+  const repo = path.join(tmp, 'repo');
+  fs.mkdirSync(seed);
+  const git = (cwd, ...a) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@e', ...a], { cwd, stdio: 'pipe' });
+  const commit = (file, content, msg) => {
+    fs.writeFileSync(path.join(seed, file), content);
+    git(seed, 'add', '-A');
+    git(seed, 'commit', '-qm', msg);
+  };
+  const saved = config.repoDir;
+  try {
+    git(seed, 'init', '-q', '-b', 'main');
+    commit('a.txt', 'a\n', 'init');
+    git(seed, 'checkout', '-q', '-b', 'agent/issue-1');
+    commit('b.txt', 'mine\n', 'feat: #1');
+    git(seed, 'checkout', '-q', 'main');
+    git(tmp, 'clone', '-q', seed, repo);
+    config.repoDir = repo;
+    const state = async () => {
+      git(repo, 'fetch', '-q', 'origin');
+      return baseSyncState(1);
+    };
+
+    assert.deepEqual(await state(), { state: 'up_to_date', files: [] });
+    assert.deepEqual(await baseSyncState(2), { state: 'up_to_date', files: [] }); // まだ push されていない
+    commit('c.txt', 'c\n', '別の Issue (#2)');
+    assert.deepEqual(await state(), { state: 'behind', files: [] });
+    commit('b.txt', 'theirs\n', '同じファイルを追加 (#3)');
+    assert.deepEqual(await state(), { state: 'conflict', files: ['b.txt'] });
+  } finally {
+    config.repoDir = saved;
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
 });

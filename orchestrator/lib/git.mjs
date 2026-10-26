@@ -51,6 +51,33 @@ export function prepareWorktree(issue) {
   });
 }
 
+// origin 上の作業ブランチと base の関係を返す（事前に fetch しておくこと）
+// { state: 'up_to_date' | 'behind' | 'conflict', files: コンフリクトするファイル }
+export async function baseSyncState(issue) {
+  const base = `origin/${config.baseBranch}`;
+  const head = `origin/${branchFor(issue)}`;
+  const exists = await git(['rev-parse', '--verify', '--quiet', head], config.repoDir, { allowFail: true });
+  if (!exists.ok) return { state: 'up_to_date', files: [] }; // まだ push されていない（次の push は最新の base から）
+  const ancestor = await git(['merge-base', '--is-ancestor', base, head], config.repoDir, { allowFail: true });
+  if (ancestor.ok) return { state: 'up_to_date', files: [] };
+  // 作業ツリーを触らずにマージを試す。終了コード 1 がコンフリクト、それ以外の失敗はエラー
+  const tree = await git(['merge-tree', '--write-tree', '--name-only', '--no-messages', head, base], config.repoDir, {
+    allowFail: true,
+  });
+  if (tree.ok) return { state: 'behind', files: [] };
+  if (tree.code !== 1) throw new Error(`git merge-tree failed: ${tree.stderr.trim()}`);
+  // 1行目はマージ結果のツリー、以降がコンフリクトしたファイル
+  return { state: 'conflict', files: tree.stdout.trim().split('\n').slice(1).filter(Boolean) };
+}
+
+// コンフリクトしないことを確認済みの base を作業ブランチに取り込んで push する（force push はしない）
+export async function mergeBaseAndPush(issue) {
+  const { branch, wt } = await prepareWorktree(issue);
+  const base = `origin/${config.baseBranch}`;
+  await git(['merge', '--no-edit', '-m', `chore: ${config.baseBranch} を取り込む`, base], wt);
+  await git(['push', 'origin', `HEAD:refs/heads/${branch}`], wt);
+}
+
 export async function installDeps(wt) {
   const appPath = path.join(wt, config.appDir);
   if (config.skipInstall || !existsSync(path.join(appPath, 'package.json'))) return;

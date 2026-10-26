@@ -6,7 +6,7 @@ export default function RecordsRoute() {
   const router = useRouter();
   return (
     <RecordsScreen
-      onAdd={() => router.push('/records/new')}
+      onAdd={() => router.push('/record/new')}
       onOpen={(id) => router.push(`/records/${id}`)}
     />
   );

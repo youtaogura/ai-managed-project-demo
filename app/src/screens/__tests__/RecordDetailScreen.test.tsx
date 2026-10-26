@@ -1,13 +1,19 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
+import type { ReactElement } from 'react';
 import { Alert, type AlertButton } from 'react-native';
 
 import type { RecordRepository } from '../../lib/recordRepository';
+import { withRepository } from '../../testProviders';
 import { createFakeRepository, makeRecord } from '../../testUtils';
 import { RecordDetailScreen } from '../RecordDetailScreen';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
+
+function renderDetail(repository: RecordRepository, element: ReactElement) {
+  return renderRouter({ index: () => withRepository(repository, element) });
+}
 
 const full = makeRecord({
   id: 'x',
@@ -42,7 +48,7 @@ afterEach(() => jest.restoreAllMocks());
 describe('RecordDetailScreen', () => {
   it('全項目を表示する', async () => {
     const { repository } = createFakeRepository([full]);
-    await render(<RecordDetailScreen recordId="x" repository={repository} />);
+    await renderDetail(repository, <RecordDetailScreen recordId="x" />);
     await waitFor(() => expect(screen.getByText('吾輩は猫である')).toBeTruthy());
     for (const text of [
       '本',
@@ -63,7 +69,7 @@ describe('RecordDetailScreen', () => {
 
   it('null の項目は「未入力」、感想は「感想はありません」と表示する', async () => {
     const { repository } = createFakeRepository([makeRecord({ id: 'x' })]);
-    await render(<RecordDetailScreen recordId="x" repository={repository} />);
+    await renderDetail(repository, <RecordDetailScreen recordId="x" />);
     await waitFor(() => expect(screen.getByText('感想はありません')).toBeTruthy());
     expect(screen.getAllByText('未入力').length).toBe(5);
     expect(screen.getByText('未評価')).toBeTruthy();
@@ -71,7 +77,7 @@ describe('RecordDetailScreen', () => {
 
   it('本・漫画以外では出版社と ISBN を表示しない', async () => {
     const { repository } = createFakeRepository([makeRecord({ id: 'x', kind: 'movie' })]);
-    await render(<RecordDetailScreen recordId="x" repository={repository} />);
+    await renderDetail(repository, <RecordDetailScreen recordId="x" />);
     await waitFor(() => expect(screen.getByText('感想はありません')).toBeTruthy());
     expect(screen.queryByText('出版社')).toBeNull();
     expect(screen.queryByText('ISBN')).toBeNull();
@@ -80,7 +86,7 @@ describe('RecordDetailScreen', () => {
   it('「編集」で onEdit が呼ばれる', async () => {
     const onEdit = jest.fn();
     const { repository } = createFakeRepository([full]);
-    await render(<RecordDetailScreen recordId="x" repository={repository} onEdit={onEdit} />);
+    await renderDetail(repository, <RecordDetailScreen recordId="x" onEdit={onEdit} />);
     await waitFor(() => expect(screen.getByText('編集')).toBeTruthy());
     await fireEvent.press(screen.getByText('編集'));
     expect(onEdit).toHaveBeenCalledWith('x');
@@ -91,9 +97,7 @@ describe('RecordDetailScreen', () => {
     const { repository } = createFakeRepository([full]);
     const del = jest.spyOn(repository, 'delete');
     const alert = pressAlertButton('削除');
-    await render(
-      <RecordDetailScreen recordId="x" repository={repository} onDeleted={onDeleted} />,
-    );
+    await renderDetail(repository, <RecordDetailScreen recordId="x" onDeleted={onDeleted} />);
     await waitFor(() => expect(screen.getByText('削除')).toBeTruthy());
     await fireEvent.press(screen.getByText('削除'));
     expect(alert.spy.mock.calls[0]?.[0]).toBe('この記録を削除しますか？');
@@ -107,9 +111,7 @@ describe('RecordDetailScreen', () => {
     const { repository } = createFakeRepository([full]);
     const del = jest.spyOn(repository, 'delete');
     const alert = pressAlertButton('キャンセル');
-    await render(
-      <RecordDetailScreen recordId="x" repository={repository} onDeleted={onDeleted} />,
-    );
+    await renderDetail(repository, <RecordDetailScreen recordId="x" onDeleted={onDeleted} />);
     await waitFor(() => expect(screen.getByText('削除')).toBeTruthy());
     await fireEvent.press(screen.getByText('削除'));
     alert.press();
@@ -128,9 +130,7 @@ describe('RecordDetailScreen', () => {
       },
     };
     const alert = pressAlertButton('削除');
-    await render(
-      <RecordDetailScreen recordId="x" repository={failing} onDeleted={onDeleted} />,
-    );
+    await renderDetail(failing, <RecordDetailScreen recordId="x" onDeleted={onDeleted} />);
     await waitFor(() => expect(screen.getByText('削除')).toBeTruthy());
     await fireEvent.press(screen.getByText('削除'));
     alert.press();
@@ -141,7 +141,7 @@ describe('RecordDetailScreen', () => {
   it('存在しない id では見つからない表示と戻るボタンを出す', async () => {
     const onBack = jest.fn();
     const { repository } = createFakeRepository([]);
-    await render(<RecordDetailScreen recordId="nope" repository={repository} onBack={onBack} />);
+    await renderDetail(repository, <RecordDetailScreen recordId="nope" onBack={onBack} />);
     await waitFor(() => expect(screen.getByText('記録が見つかりません')).toBeTruthy());
     await fireEvent.press(screen.getByText('一覧へ戻る'));
     expect(onBack).toHaveBeenCalled();
@@ -155,7 +155,7 @@ describe('RecordDetailScreen', () => {
         throw new Error('fail');
       },
     };
-    await render(<RecordDetailScreen recordId="x" repository={failing} />);
+    await renderDetail(failing, <RecordDetailScreen recordId="x" />);
     await waitFor(() => expect(screen.getByText('記録が見つかりません')).toBeTruthy());
   });
 });

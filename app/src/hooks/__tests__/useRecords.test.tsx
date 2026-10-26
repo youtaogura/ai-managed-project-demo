@@ -2,19 +2,28 @@ import { router } from 'expo-router';
 import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 import { Text } from 'react-native';
 
+jest.mock('@react-native-async-storage/async-storage', () =>
+  jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
+
+import { withRepository } from '../../testProviders';
 import { createFakeRepository, makeRecord } from '../../testUtils';
 import type { RecordRepository } from '../../lib/recordRepository';
 import { useRecords } from '../useRecords';
 
+function Probe() {
+  const { records, loading, reload } = useRecords();
+  return (
+    <>
+      <Text>{loading ? 'loading' : `count:${records.length}`}</Text>
+      <Text onPress={() => void reload()}>reload</Text>
+    </>
+  );
+}
+
 function makeProbe(repository: RecordRepository) {
-  return function Probe() {
-    const { records, loading, reload } = useRecords(repository);
-    return (
-      <>
-        <Text>{loading ? 'loading' : `count:${records.length}`}</Text>
-        <Text onPress={() => void reload()}>reload</Text>
-      </>
-    );
+  return function ProbeWithRepository() {
+    return withRepository(repository, <Probe />);
   };
 }
 

@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useMemo } from 'react';
 import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
@@ -6,8 +7,6 @@ import { RecordListItem } from '../components/RecordListItem';
 import { SortSelector } from '../components/SortSelector';
 import { useRecords } from '../hooks/useRecords';
 import { useSortOrder } from '../hooks/useSortOrder';
-import { recordRepository } from '../lib/repository';
-import type { RecordRepository } from '../lib/recordRepository';
 import { createSortOrderStore, type SortOrderStore } from '../lib/sortOrderStore';
 import { sortRecords } from '../lib/sortRecords';
 import { asyncKeyValueStorage } from '../lib/storage';
@@ -16,19 +15,17 @@ import { colors, spacing } from '../theme';
 const defaultSortOrderStore = createSortOrderStore(asyncKeyValueStorage);
 
 type RecordsScreenProps = {
-  repository?: RecordRepository;
   sortOrderStore?: SortOrderStore;
   onAdd?: () => void;
   onOpen?: (id: string) => void;
 };
 
 export function RecordsScreen({
-  repository = recordRepository,
   sortOrderStore = defaultSortOrderStore,
   onAdd,
   onOpen,
 }: RecordsScreenProps) {
-  const { records, loading } = useRecords(repository);
+  const { records, loading } = useRecords();
   const [order, setOrder] = useSortOrder(sortOrderStore);
   const sorted = useMemo(() => sortRecords(records, order), [records, order]);
 
@@ -40,18 +37,41 @@ export function RecordsScreen({
     );
   }
 
+  const lookupButtons = (
+    <View style={styles.lookupRow}>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push('/record/isbn')}
+        style={styles.lookupButton}
+      >
+        <Text style={styles.addButtonText}>ISBN で探して追加</Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push('/record/scan')}
+        style={styles.lookupButton}
+      >
+        <Text style={styles.addButtonText}>バーコードで読み取って追加</Text>
+      </Pressable>
+    </View>
+  );
+
   if (records.length === 0) {
     return (
-      <EmptyState title="まだ記録がありません" description="記録を追加するとここに表示されます">
-        <Pressable accessibilityRole="button" onPress={onAdd} style={styles.addButton}>
-          <Text style={styles.addButtonText}>記録を追加する</Text>
-        </Pressable>
-      </EmptyState>
+      <View style={styles.container}>
+        {lookupButtons}
+        <EmptyState title="まだ記録がありません" description="記録を追加するとここに表示されます">
+          <Pressable accessibilityRole="button" onPress={onAdd} style={styles.addButton}>
+            <Text style={styles.addButtonText}>記録を追加する</Text>
+          </Pressable>
+        </EmptyState>
+      </View>
     );
   }
 
   return (
     <View style={styles.container}>
+      {lookupButtons}
       <SortSelector value={order} onChange={setOrder} />
       <FlatList
         data={sorted}
@@ -67,11 +87,19 @@ export function RecordsScreen({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  lookupRow: { flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
+  lookupButton: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: colors.tint,
+    padding: spacing.sm,
+    borderRadius: 8,
+  },
   addButton: {
     backgroundColor: colors.tint,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
     borderRadius: 8,
   },
-  addButtonText: { color: '#fff', fontWeight: '600' },
+  addButtonText: { color: '#fff', fontWeight: '600', textAlign: 'center' },
 });
