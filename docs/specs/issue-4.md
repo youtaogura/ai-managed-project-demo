@@ -52,13 +52,13 @@
 - [ ] サムネイルは `photoUri` があればそれ、なければ `coverUrl`、どちらもなければ種別ごとのプレースホルダーを表示する（優先順位は `getThumbnailSource` の単体テストで 5 種別・各組み合わせを確認）
 - [ ] 画像の読み込みに失敗した場合（`onError`）は次の候補にフォールバックし、最終的にプレースホルダーを表示する
 - [ ] 読み込み中はインジケーターを表示し、読み込み完了後に一覧（または空状態）に切り替わる
-- [ ] 記録が 0 件のとき、空状態（「まだ記録がありません」+ 補足）と「記録を追加する」ボタンを表示する。押すと追加画面（`/records/new`）へ遷移する
-- [ ] 一覧に「追加」ボタン（ヘッダー右）があり、押すと `/records/new` へ遷移する（記録が 1 件以上でも使える）
+- [ ] 記録が 0 件のとき、空状態（「まだ記録がありません」+ 補足）と「記録を追加する」ボタンを表示する。押すと追加画面（`/record/new`）へ遷移する
+- [ ] 一覧に「追加」ボタン（ヘッダー右）があり、押すと `/record/new` へ遷移する（記録が 1 件以上でも使える）
 - [ ] 行をタップすると `/records/<id>` の詳細画面へ遷移する
 
 ### 詳細画面
 - [ ] 詳細画面に全項目が表示される: サムネイル、種別、タイトル、作者・著者など、出版社、ISBN、開始日、終了日、ステータス、レーティング、感想（複数行そのまま）、登録日時、更新日時。値が `null` の項目は「未入力」と表示する（感想は「感想はありません」）。出版社・ISBN は本・漫画以外では行ごと表示しない
-- [ ] 「編集」を押すと `/records/<id>/edit` へ遷移する
+- [ ] 「編集」を押すと `/record/<id>`（#3 の編集ルート） へ遷移する
 - [ ] 「削除」を押すと確認ダイアログ（「この記録を削除しますか？」/「キャンセル」「削除」）が出る。「削除」で `repository.delete` が呼ばれ、一覧へ戻る。「キャンセル」では削除されず詳細に留まる
 - [ ] 存在しない id（削除済みなど）で開くと「記録が見つかりません」を表示し、一覧へ戻るボタンを出す
 - [ ] 削除に失敗（例外）したときは「削除できませんでした」を表示し、画面に留まる
@@ -69,7 +69,7 @@
 ### ルート構成
 - `(tabs)/index`（記録一覧タブ）: 一覧画面。タブ内にはヘッダー右に「追加」
 - `records/[id]`（Stack、タブの外）: 詳細画面。ヘッダー「記録の詳細」、戻るボタンあり
-- **`records/new` と `records/[id]/edit` は #3 が実装する**。本 Issue では作らず、`router.push` で遷移するだけ（判断ログ 1）
+- **追加 `record/new` と編集 `record/[id]` は #3 が実装済み**。本 Issue は `router.push` で遷移するだけ。詳細は `records/[id]`（複数形）に置く（末尾の追記参照）
 
 ### 一覧画面
 上から: 並び替えバー（現在の並び順を表示する 1 行のボタン。押すと選択肢 8 つのシート/モーダルを開き、選ぶと閉じる）、リスト（`FlatList`）。
@@ -96,8 +96,8 @@ Hermes（Expo の既定エンジン）の `Intl.Collator` は ICU に依存し�
 | `src/lib/thumbnail.ts` | `getThumbnailSource(record): { kind: 'photo' \| 'cover' \| 'placeholder'; uri: string \| null }`、`getThumbnailCandidates(record): string[]`（フォールバック用）、`PLACEHOLDER_LABELS`（種別ごとの絵文字/記号。本 📖、漫画 📚、映画 🎬、ドラマ 📺、アニメ 🎞 など。画像アセットは追加しない） |
 | `src/lib/format.ts` | `formatPeriod(start, end)`、`formatRating(rating)`、`formatDateTime(iso)`（`YYYY-MM-DD HH:mm`、ローカル時刻） |
 | `src/lib/sortOrderStore.ts` | `createSortOrderStore(storage)`: `load(): Promise<SortOrder>` / `save(order)`。キー `listSortOrder.v1`。壊れた値は既定にフォールバック |
-| `src/lib/repository.ts` | アプリ全体で共有する `recordRepository` シングルトン（`createRecordRepository(asyncKeyValueStorage)`）。#3 も同じものを使うこと。#3 が先にマージされて同等のものがあればそれを使う（判断ログ 2） |
-| `src/hooks/useRecords.ts` | `useRecords(repository)`: `{ records, loading, reload }`。`useFocusEffect`（expo-router 同梱）でフォーカスのたび再読み込み |
+| `src/hooks/useRecordRepository.tsx` | #3 導入済みの Provider を使う。`src/lib/repository.ts` は作らない（末尾の追記参照） |
+| `src/hooks/useRecords.ts` | `useRecords()`（repository は context から取得）: `{ records, loading, reload }`。`useFocusEffect`（expo-router 同梱）でフォーカスのたび再読み込み |
 | `src/hooks/useSortOrder.ts` | `useSortOrder(store)`: `[order, setOrder]` |
 | `src/components/Thumbnail.tsx` | 候補を順に試して `Image` を表示、失敗でプレースホルダー。`size` prop で一覧/詳細を共用 |
 | `src/components/RecordListItem.tsx` | 行コンポーネント（`onPress`） |
@@ -143,7 +143,7 @@ RN の `Alert.alert` を使う（追加依存なし）。テストでは `jest.s
 
 ## 判断ログ
 
-1. **#3 との境界: 一覧・詳細・削除は #4、フォームは #3。#4 は `/records/new` と `/records/[id]/edit` へ遷移するだけ**
+1. **#3 との境界: 一覧・詳細・削除は #4、フォームは #3。#4 は `/record/new` と `/records/[id]/edit` へ遷移するだけ**
    - 依存の #3 は未マージで仕様も未確定。Issue 文面上「詳細画面から編集・削除に進める」の削除は詳細画面（#4）で完結させ、編集は #3 のフォームに委ねる。ルート名は慣習的（REST 風）で #3 側が従いやすいものを採用し、衝突を避けるため #4 では作らない。
    - 却下: #4 で仮のフォームルートを作る（#3 とファイル競合する）。`needs_clarification` で #3 の完了を待つ（手戻りは小さく、ルート名はマージ時に調整可能と判断）。
    - 注意: #3 より先にマージされると「追加」「編集」は未定義ルートになる（Expo Router の not-found）。実装担当は PR 本文に、#3 のルートが必要な旨を書くこと。#3 が `records/new` 以外のルート名を採用した場合は、遷移先を 1 か所（`src/app/(tabs)/index.tsx` と `src/app/records/[id].tsx` の `router.push`）で直す。
