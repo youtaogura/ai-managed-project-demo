@@ -79,6 +79,7 @@ describe('parseBackup', () => {
     expect(result.ok && result.backup.settings).toEqual({
       enabledKinds: ['movie'],
       heroCriterion: DEFAULT_SETTINGS.heroCriterion,
+      defaultStatus: DEFAULT_SETTINGS.defaultStatus,
     });
     const none = parseBackup(text({ settings: undefined }));
     expect(none.ok && none.backup.settings).toBeNull();

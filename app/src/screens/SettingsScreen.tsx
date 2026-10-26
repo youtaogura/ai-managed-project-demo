@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { AppText } from '../components/AppText';
 import { ChipMultiGroup, type ChipOption } from '../components/Chip';
 import { HeroCriterionSheet } from '../components/HeroCriterionSheet';
+import { StatusDefaultSheet } from '../components/StatusDefaultSheet';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { SettingsCard } from '../components/SettingsCard';
 import { SettingsRow } from '../components/SettingsRow';
@@ -16,6 +17,7 @@ import { formatDate } from '../lib/format';
 import { asyncKeyValueStorage } from '../lib/storage';
 import { toggleKind } from '../lib/enabledKinds';
 import { HERO_CRITERIA } from '../lib/heroCriteria';
+import { STATUS_DEFAULT_LABELS } from '../lib/statusDefault';
 import { KIND_LABELS } from '../lib/statusLabel';
 import { MEDIA_KINDS, type MediaKind } from '../types/record';
 
@@ -43,6 +45,7 @@ export function SettingsScreen({
   const { settings, update } = useSettings();
   const bottomInset = useBottomInset();
   const [heroOpen, setHeroOpen] = useState(false);
+  const [statusOpen, setStatusOpen] = useState(false);
 
   const onToggle = (kind: MediaKind) => {
     const next = toggleKind(settings.enabledKinds, kind);
@@ -79,6 +82,13 @@ export function SettingsScreen({
             最低 1 つは選んでおく必要があります
           </AppText>
         </SettingsCard>
+        <SettingsCard title="記録するとき">
+          <SettingsRow
+            label="ステータスの初期値"
+            value={STATUS_DEFAULT_LABELS[settings.defaultStatus]}
+            onPress={() => setStatusOpen(true)}
+          />
+        </SettingsCard>
         <SettingsCard title="記録一覧">
           <SettingsRow
             label="上に大きく出す作品"
@@ -103,6 +113,15 @@ export function SettingsScreen({
         onChange={(heroCriterion) => {
           update({ heroCriterion });
           setHeroOpen(false);
+        }}
+      />
+      <StatusDefaultSheet
+        visible={statusOpen}
+        value={settings.defaultStatus}
+        onClose={() => setStatusOpen(false)}
+        onChange={(defaultStatus) => {
+          update({ defaultStatus });
+          setStatusOpen(false);
         }}
       />
     </ScreenContainer>

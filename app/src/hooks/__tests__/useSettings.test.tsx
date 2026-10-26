@@ -51,7 +51,9 @@ describe('useSettings', () => {
       </SettingsContextProvider>,
     );
     expect(screen.queryByText('子')).toBeNull();
-    await act(async () => release({ enabledKinds: ['movie'], heroCriterion: 'recent' }));
+    await act(async () =>
+      release({ enabledKinds: ['movie'], heroCriterion: 'recent', defaultStatus: 'completed' }),
+    );
     expect(screen.getByText('子')).toBeTruthy();
   });
 
@@ -82,7 +84,11 @@ describe('useSettings', () => {
     const saved: string[][] = [];
     let calls = 0;
     const store: SettingsStore = {
-      load: async () => ({ enabledKinds: ['book'], heroCriterion: 'recent' }),
+      load: async () => ({
+        enabledKinds: ['book'],
+        heroCriterion: 'recent',
+        defaultStatus: 'completed',
+      }),
       save: async (s) => {
         calls += 1;
         if (calls === 1) throw new Error('fail');
@@ -102,13 +108,13 @@ describe('useSettings', () => {
   it('replace で設定全体が置き換わる（保存は呼び出し側）', async () => {
     const save = jest.fn(async () => undefined);
     const store: SettingsStore = {
-      load: async () => ({ enabledKinds: ['book'], heroCriterion: 'recent' }),
+      load: async () => ({ enabledKinds: ['book'], heroCriterion: 'recent', defaultStatus: 'completed' }),
       save,
     };
     const { get } = await mount(store);
     await waitFor(() => expect(get().settings.enabledKinds).toEqual(['book']));
-    await act(async () => get().replace({ enabledKinds: ['movie'], heroCriterion: 'none' }));
-    expect(get().settings).toEqual({ enabledKinds: ['movie'], heroCriterion: 'none' });
+    await act(async () => get().replace({ enabledKinds: ['movie'], heroCriterion: 'none', defaultStatus: 'completed' }));
+    expect(get().settings).toEqual({ enabledKinds: ['movie'], heroCriterion: 'none', defaultStatus: 'completed' });
     expect(save).not.toHaveBeenCalled();
   });
 });

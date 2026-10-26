@@ -211,10 +211,8 @@ async function releaseStage(item) {
   const pr = await gh.findOpenPr(branch);
   if (!pr) return block(item, 'failed', 'リリース対象の PR が見つかりません。');
 
-  const touched = (await gh.prFiles(pr.number)).filter(
-    (f) =>
-      !config.protectedExceptions.includes(f) &&
-      config.protectedPaths.some((p) => (p.endsWith('/') ? f.startsWith(p) : f === p || f.startsWith(`${p}.`))),
+  const touched = (await gh.prFiles(pr.number)).filter((f) =>
+    config.protectedPaths.some((p) => (p.endsWith('/') ? f.startsWith(p) : f === p || f.startsWith(`${p}.`))),
   );
   if (touched.length) {
     return block(item, 'failed', `PR #${pr.number} が保護対象のファイルを変更しています:\n\n${touched.map((f) => `- \`${f}\``).join('\n')}`);

@@ -30,7 +30,8 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env files（app/.env には実際のキーを書く。見本の .env.example だけをコミットする）
+.env
 .env*.local
 
 # typescript

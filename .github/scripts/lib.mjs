@@ -17,10 +17,6 @@ export function loadPolicy() {
 
 export const matchesPath = (file, p) => (p.endsWith('/') ? file.startsWith(p) : file === p || file.startsWith(`${p}.`));
 
-// 保護対象か（protectedExceptions に挙げたファイルは、保護対象のパターンに当たっても除く）
-export const isProtectedPath = (file, policy = loadPolicy()) =>
-  !(policy.protectedExceptions ?? []).includes(file) && policy.protectedPaths.some((p) => matchesPath(file, p));
-
 // エージェントのブランチかどうか（エージェントのブランチだけルールを強制する）
 export function isAgentBranch(ref, policy = loadPolicy()) {
   return Boolean(ref) && ref.startsWith(policy.agentBranchPrefix);

@@ -163,7 +163,7 @@ function backupText(overrides: Record<string, unknown> = {}) {
   return JSON.stringify({
     ...buildBackup(
       [makeRecord({ id: 'a', title: 'ファイルのアルファ' }), makeRecord({ id: 'c', title: 'ガンマ' })],
-      { enabledKinds: ['movie'], heroCriterion: 'none' },
+      { enabledKinds: ['movie'], heroCriterion: 'none', defaultStatus: 'completed' },
       '2026-10-26T03:00:00.000Z',
     ),
     ...overrides,
@@ -236,6 +236,7 @@ describe('DataScreen（読み込み）', () => {
     expect(JSON.parse(memory.data.get(SETTINGS_STORAGE_KEY) ?? '{}')).toEqual({
       enabledKinds: ['movie'],
       heroCriterion: 'none',
+      defaultStatus: 'completed',
     });
   });
 

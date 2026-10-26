@@ -9,6 +9,8 @@ import { useCoverResolver } from '../hooks/useCoverResolver';
 import { useSettings } from '../hooks/useSettings';
 import { useRecordRepository } from '../hooks/useRecordRepository';
 import { resolveInitialKind } from '../lib/enabledKinds';
+import { applyDefaultStatus } from '../lib/statusDefault';
+import { todayString } from '../lib/recordForm';
 import { needsCover } from '../lib/coverLookup/needsCover';
 import type { MediaRecord, NewRecordInput } from '../types/record';
 
@@ -59,10 +61,14 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
   if (recordId === undefined) {
     return (
       <RecordForm
-        initialValues={{
-          ...initialValues,
-          kind: resolveInitialKind(initialValues?.kind, settings.enabledKinds),
-        }}
+        initialValues={applyDefaultStatus(
+          {
+            ...initialValues,
+            kind: resolveInitialKind(initialValues?.kind, settings.enabledKinds),
+          },
+          settings.defaultStatus,
+          todayString(),
+        )}
         onSubmit={async (input) => {
           const added = await repository.add(await fillCover(input));
           addedId.current = added.id;
