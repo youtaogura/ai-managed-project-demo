@@ -1,41 +1,29 @@
-import type { BookLookupResult } from '../../types/book';
+import type { BookInfo, BookLookupResult } from '../../types/book';
 import type { BookLookupProvider } from './BookLookupProvider';
 
 const ENDPOINT = 'https://api.openbd.jp/v1/get';
+const DEFAULT_TIMEOUT_MS = 10000;
 
-type FetchFn = (
-  url: string,
-  init?: { signal?: AbortSignal },
-) => Promise<{
-  ok: boolean;
-  json(): Promise<unknown>;
-}>;
+type FetchFn = (url: string, init?: { signal?: AbortSignal }) => Promise<Response>;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function textOrNull(value: unknown): string | null {
-  return typeof value === 'string' && value !== '' ? value : null;
+function optionalText(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
 }
 
-function parseResponse(body: unknown, isbn13: string): BookLookupResult {
-  if (!Array.isArray(body)) return { status: 'error' };
-  const first: unknown = body[0];
-  if (first === null || first === undefined) return { status: 'not_found' };
-  if (!isRecord(first) || !isRecord(first.summary)) return { status: 'error' };
-  const summary = first.summary;
-  const title = textOrNull(summary.title);
-  if (title === null) return { status: 'error' };
+function toBookInfo(entry: unknown, isbn13: string): BookInfo | null {
+  if (!isRecord(entry) || !isRecord(entry.summary)) return null;
+  const summary = entry.summary;
+  if (typeof summary.title !== 'string' || summary.title.trim() === '') return null;
   return {
-    status: 'found',
-    book: {
-      isbn: textOrNull(summary.isbn) ?? isbn13,
-      title,
-      author: textOrNull(summary.author),
-      publisher: textOrNull(summary.publisher),
-      coverUrl: textOrNull(summary.cover),
-    },
+    isbn: optionalText(summary.isbn) ?? isbn13,
+    title: summary.title.trim(),
+    author: optionalText(summary.author),
+    publisher: optionalText(summary.publisher),
+    coverUrl: optionalText(summary.cover),
   };
 }
 
@@ -43,9 +31,9 @@ export class OpenBdProvider implements BookLookupProvider {
   private readonly fetchFn: FetchFn;
   private readonly timeoutMs: number;
 
-  constructor(fetchFn: FetchFn = (url, init) => fetch(url, init), timeoutMs = 10000) {
-    this.fetchFn = fetchFn;
-    this.timeoutMs = timeoutMs;
+  constructor(options: { fetchFn?: FetchFn; timeoutMs?: number } = {}) {
+    this.fetchFn = options.fetchFn ?? ((url, init) => globalThis.fetch(url, init));
+    this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
 
   async lookupByIsbn(isbn13: string): Promise<BookLookupResult> {
@@ -56,7 +44,11 @@ export class OpenBdProvider implements BookLookupProvider {
         signal: controller.signal,
       });
       if (!response.ok) return { status: 'error' };
-      return parseResponse(await response.json(), isbn13);
+      const json: unknown = await response.json();
+      if (!Array.isArray(json)) return { status: 'error' };
+      if (json.length === 0 || json[0] === null) return { status: 'not_found' };
+      const book = toBookInfo(json[0], isbn13);
+      return book ? { status: 'found', book } : { status: 'error' };
     } catch {
       return { status: 'error' };
     } finally {
