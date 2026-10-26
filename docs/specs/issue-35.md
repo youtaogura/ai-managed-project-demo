@@ -104,7 +104,7 @@
 **フォントファイルは npm パッケージではなく `app/assets/fonts/` に同梱する。**
 - `@expo-google-fonts/noto-sans-jp` と `@expo-google-fonts/shippori-mincho` のライセンスは `MIT AND OFL-1.1` で、`AND` は全て許可が必要なため、`orchestrator/policy.json` の許可リスト（`OFL-1.1` なし）で CI の `dependencies`（ライセンス検査）が失敗する。許可リストは人間だけが変更できる。
 - Noto Sans JP・Shippori Mincho 自体のライセンスは SIL Open Font License 1.1（再配布・アプリ同梱可。単体販売は不可）。ファイルは本番依存ではないためライセンス検査の対象外だが、同梱するので `app/assets/fonts/OFL.txt`（各フォントの著作権表示とライセンス全文）を同じフォルダに置くこと。
-- 取得元: Google Fonts（https://fonts.google.com/noto/specimen/Noto+Sans+JP 、 https://fonts.google.com/specimen/Shippori+Mincho ）の静的 TTF。ネットワークに接続できない等で取得できなければ、`npm pack @expo-google-fonts/noto-sans-jp @expo-google-fonts/shippori-mincho` を **空の一時ディレクトリで** 展開して TTF だけを取り出して使う（パッケージ自体は依存に追加しない）。どちらもできなければ `needs_clarification` ではなく、フォント読み込みを実装したうえでファイルが無い旨を PR に書く…のではなく、**そのときは `failed` として報告する**（ファイルがないとバンドルが失敗するため）。
+- 取得元: Google Fonts（https://fonts.google.com/noto/specimen/Noto+Sans+JP 、 https://fonts.google.com/specimen/Shippori+Mincho ）の静的 TTF。ネットワークに接続できない等で取得できなければ、`npm pack @expo-google-fonts/noto-sans-jp @expo-google-fonts/shippori-mincho` を **空の一時ディレクトリで** 展開して TTF だけを取り出して使う（パッケージ自体は依存に追加しない）。どちらもできなければ `failed` で報告する（ファイルがないとバンドルが失敗するため）。
 - ファイルサイズが大きい（日本語フォントは 1 ファイル数 MB）。5 ファイルで合計 20MB を超える場合は、判断ログに実際のサイズを書く（サブセット化は後続で検討）。
 
 ## テスト方針
@@ -134,6 +134,6 @@
 | フォント読み込み失敗時 | `error` でも `ready=true` で起動（システムフォント） | 失敗時にエラー画面 | Issue の要件。`typography` の `fontFamily` が未登録でも RN はシステムフォントにフォールバックする |
 | 太さの指定 | `fontFamily` をウェイトごとのキーに変換し `fontWeight` は渡さない | `fontWeight` 指定 | カスタムフォントでは Android が `fontWeight` で別ファイルを選べないため |
 | Shippori Mincho の 600 | 読み込むが現状 `typography` は 800 のみ使用 | 800 のみ読み込む | Issue が 600/800 を指定しているため |
-| `tab` 等の `typography` 使用 | `tabsScreenOptions` の `tabBarLabelStyle` に `typography.tab` を使うが、フォントはウェイト変換後のキーを使う | 触らない | タブバーの文字はデザイン（`TabBar` README）に合わせるのは #36〜#38。ここでは色のみ設定し、`tabBarLabelStyle` は設定しない（レイアウトを変えない） |
+| タブバーの文字スタイル | 色のみ設定し、`tabBarLabelStyle` は設定しない | `typography.tab` を適用 | タブバーの見た目は部品 Issue（#36〜#38）の範囲。ここではレイアウトを変えない |
 | タブ名・「追加」ボタン | 変更しない | 「記録」「振り返り」へ変更 | 構成・文言の変更は後続の画面 Issue（スコープ外） |
 | `userInterfaceStyle` | `dark` | `automatic` | ライトテーマはスコープ外。端末がライトでも暗色固定 |
