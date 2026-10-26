@@ -54,5 +54,5 @@ const styles = StyleSheet.create({
   },
   optionSelected: { backgroundColor: colors.tint, borderColor: colors.tint },
   optionText: { fontSize: 14, color: colors.text },
-  optionTextSelected: { color: '#fff', fontWeight: '600' },
+  optionTextSelected: { color: colors.onTint, fontWeight: '600' },
 });

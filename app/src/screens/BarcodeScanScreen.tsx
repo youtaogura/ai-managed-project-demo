@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.tint,
   },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  buttonText: { color: colors.onTint, fontSize: 16, fontWeight: '600' },
   camera: { flex: 1, backgroundColor: '#000' },
   overlay: {
     flex: 1,

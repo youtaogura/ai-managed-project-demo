@@ -252,7 +252,7 @@ export function RecordForm({
         onPress={() => void handleSubmit()}
         style={[styles.button, styles.primary, submitting && styles.disabled]}
       >
-        {submitting ? <ActivityIndicator color="#fff" /> : null}
+        {submitting ? <ActivityIndicator color={colors.onTint} /> : null}
         <Text style={styles.primaryText}>{submitLabel}</Text>
       </Pressable>
 
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   primary: { backgroundColor: colors.tint },
-  primaryText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  primaryText: { color: colors.onTint, fontSize: 16, fontWeight: '600' },
   danger: { borderWidth: 1, borderColor: formColors.danger },
   dangerText: { color: formColors.danger, fontSize: 16, fontWeight: '600' },
   disabled: { opacity: 0.5 },

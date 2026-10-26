@@ -112,5 +112,5 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     borderRadius: 8,
   },
-  addButtonText: { color: '#fff', fontWeight: '600', textAlign: 'center' },
+  addButtonText: { color: colors.onTint, fontWeight: '600', textAlign: 'center' },
 });

@@ -86,7 +86,7 @@ export function IsbnLookupScreen() {
         style={[styles.primary, loading && styles.disabled]}
       >
         {loading ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.onTint} />
         ) : (
           <Text style={styles.primaryText}>探す</Text>
         )}
@@ -143,7 +143,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.tint,
   },
-  primaryText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+  primaryText: { color: colors.onTint, fontSize: 16, fontWeight: '600' },
   disabled: { backgroundColor: formColors.disabled },
   secondary: { padding: spacing.md, alignItems: 'center' },
   secondaryText: { color: colors.tint, fontSize: 16 },
