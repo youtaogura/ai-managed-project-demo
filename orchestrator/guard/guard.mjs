@@ -12,7 +12,10 @@ import { fileURLToPath } from 'node:url';
 
 // 人間だけが変更してよいパス（リポジトリルートからの相対）。orchestrator/policy.json で管理する
 const POLICY_FILE = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'policy.json');
-export const PROTECTED_PATHS = JSON.parse(readFileSync(POLICY_FILE, 'utf8')).protectedPaths;
+const POLICY = JSON.parse(readFileSync(POLICY_FILE, 'utf8'));
+export const PROTECTED_PATHS = POLICY.protectedPaths;
+// テストの削除を許可するラベル。人間だけが付け外しする
+const TEST_REMOVAL_LABEL = POLICY.testRemovalLabel;
 
 const BASH_RULES = [
   { re: /\bsudo\b/, why: 'sudo は使用できません。' },
@@ -29,6 +32,9 @@ const BASH_RULES = [
   { re: /\bgh\s+issue\s+(close|delete|transfer|lock|edit\b[^|;&]*--remove-label)/, why: 'その Issue 操作は禁止です。' },
   { re: /\bgh\s+api\b[^|;&]*(-X|--method)\s*(DELETE|PUT|PATCH)/i, why: 'gh api での更新・削除系リクエストは禁止です。' },
   { re: /\bgh\s+api\s+graphql\b[^|;&]*mutation/i, why: 'GraphQL mutation は禁止です。' },
+  ...(TEST_REMOVAL_LABEL
+    ? [{ re: new RegExp(TEST_REMOVAL_LABEL.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), why: `\`${TEST_REMOVAL_LABEL}\` ラベルは人間だけが付け外しします。必要なら PR 本文の判断ログに理由を書いてください。` }]
+    : []),
   { re: /\b(eas|eas-cli)\b[^|;&]*\b(submit|credentials|secret|env:create|env:delete|delete)\b/, why: 'その EAS 操作は禁止です。' },
   { re: /\b(curl|wget)\b[^|;&]*\|\s*(sudo\s+)?(ba|z)?sh\b/, why: 'ダウンロードしたスクリプトの直接実行は禁止です。' },
   { re: /\b(printenv|env)\s*($|\||>)/, why: '環境変数の一覧出力は禁止です（トークン漏えい防止）。' },

@@ -1,10 +1,10 @@
-# PR のルール検査。PR 本文の編集（edited）でも再実行する。
+# PR のルール検査。PR 本文の編集（edited）とラベルの付け外し（labeled / unlabeled）でも再実行する。
 # ジョブ名は orchestrator/policy.json の requiredChecks と一致させること。
 name: PR policy
 
 on:
   pull_request:
-    types: [opened, synchronize, reopened, edited]
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
 
 permissions:
   contents: read
@@ -28,6 +28,7 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
           HEAD_REF: ${{ github.head_ref }}
+          PR_LABELS: ${{ toJSON(github.event.pull_request.labels.*.name) }}
         run: node .github/scripts/test-integrity.mjs
       - name: PR の形式とスコープ
         if: always()
