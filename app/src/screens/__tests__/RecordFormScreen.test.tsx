@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 
+import { CoverResolverContextProvider } from '../../hooks/useCoverResolver';
 import { withRepository, withSettings } from '../../testProviders';
 import { paramsToInitialValues, todayString } from '../../lib/recordForm';
 import { createRecordRepository } from '../../lib/recordRepository';
@@ -266,6 +267,44 @@ describe('RecordFormScreen の書影取得', () => {
     const repository = await renderNew(resolverFor(value), { title: 'a', isbn: ISBN });
     expect((await repository.getAll())[0]?.coverUrl).toBeNull();
     expect(screen.queryByText('保存に失敗しました')).toBeNull();
+  });
+
+  describe('既定の取得元（openBD の fetch をモック）', () => {
+    const saveWithDefaultResolver = async () => {
+      const repository = memoryRepository();
+      await render(
+        withRepository(
+          repository,
+          <CoverResolverContextProvider>
+            <RecordFormScreen />
+          </CoverResolverContextProvider>,
+        ),
+      );
+      await fireEvent.changeText(screen.getByLabelText('タイトル（必須）'), 'a');
+      await fireEvent.changeText(screen.getByLabelText('ISBN'), ISBN);
+      await press('記録する');
+      await waitFor(() => expect(router.replace).toHaveBeenCalled());
+      return repository;
+    };
+
+    it('ISBN を手入力して保存すると、openBD の書影が coverUrl に入る', async () => {
+      jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: true,
+        json: async () => [{ summary: { title: 'T', cover: 'https://cover.openbd.jp/x.jpg' } }],
+      } as Response);
+      const repository = await saveWithDefaultResolver();
+      expect((await repository.getAll())[0]?.coverUrl).toBe('https://cover.openbd.jp/x.jpg');
+    });
+
+    it('openBD に書影がなければ coverUrl: null で保存は止まらない', async () => {
+      jest.spyOn(globalThis, 'fetch').mockResolvedValue({
+        ok: true,
+        json: async () => [null],
+      } as Response);
+      const repository = await saveWithDefaultResolver();
+      expect((await repository.getAll())[0]?.coverUrl).toBeNull();
+      expect(screen.queryByText('保存に失敗しました')).toBeNull();
+    });
   });
 
   it('編集でも、書影も写真もない本は保存時に取得する', async () => {
