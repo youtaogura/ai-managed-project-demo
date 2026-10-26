@@ -37,8 +37,11 @@ export function RecordsScreen({
     );
   }
 
-  const lookupButtons = (
+  const addButtons = (
     <View style={styles.lookupRow}>
+      <Pressable accessibilityRole="button" onPress={onAdd} style={styles.lookupButton}>
+        <Text style={styles.addButtonText}>手入力で追加</Text>
+      </Pressable>
       <Pressable
         accessibilityRole="button"
         onPress={() => router.push('/record/isbn')}
@@ -66,7 +69,7 @@ export function RecordsScreen({
   if (records.length === 0) {
     return (
       <View style={styles.container}>
-        {lookupButtons}
+        {addButtons}
         <EmptyState title="まだ記録がありません" description="記録を追加するとここに表示されます">
           <Pressable accessibilityRole="button" onPress={onAdd} style={styles.addButton}>
             <Text style={styles.addButtonText}>記録を追加する</Text>
@@ -78,7 +81,7 @@ export function RecordsScreen({
 
   return (
     <View style={styles.container}>
-      {lookupButtons}
+      {addButtons}
       <SortSelector value={order} onChange={setOrder} />
       <FlatList
         data={sorted}
@@ -96,8 +99,8 @@ const styles = StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   lookupRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, padding: spacing.md },
   lookupButton: {
-    minWidth: '45%',
     flex: 1,
+    minWidth: 140,
     alignItems: 'center',
     backgroundColor: colors.tint,
     padding: spacing.sm,

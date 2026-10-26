@@ -41,9 +41,25 @@ describe('タブ構成', () => {
 
   it('タブを押すと画面が切り替わる', async () => {
     await fireEvent.press(screen.getByText('分析'));
-    expect(screen.getByText('分析できる記録がまだありません')).toBeTruthy();
+    expect(await screen.findByText('分析できる記録がまだありません')).toBeTruthy();
     await fireEvent.press(screen.getByText('記録一覧'));
     expect(await screen.findByText('まだ記録がありません')).toBeTruthy();
+  });
+});
+
+describe('分析タブの最新表示', () => {
+  afterEach(async () => {
+    await AsyncStorage.clear();
+  });
+
+  it('記録を追加したあとに分析タブを開くと集計が表示される', async () => {
+    await renderRouter(routes);
+    await fireEvent.press(await screen.findByRole('button', { name: '追加' }));
+    await fireEvent.changeText(await screen.findByLabelText('タイトル'), '分析用の本');
+    await fireEvent.press(screen.getByRole('button', { name: '保存' }));
+    await waitFor(() => expect(screen.getByText('分析用の本')).toBeTruthy());
+    await fireEvent.press(screen.getByText('分析'));
+    expect(await screen.findByText('月別の完了数')).toBeTruthy();
   });
 });
 
@@ -55,6 +71,15 @@ describe('記録の追加', () => {
     await fireEvent.press(screen.getByRole('button', { name: '保存' }));
     await waitFor(() => expect(screen.getByText('統合テストの本')).toBeTruthy());
     expect(screen.getByText('本 ・ 読みたい')).toBeTruthy();
+  });
+});
+
+describe('手入力で追加（一覧内ボタン）', () => {
+  it('一覧の「手入力で追加」を押すと追加フォームが表示される', async () => {
+    await renderRouter(routes);
+    await fireEvent.press(await screen.findByRole('button', { name: '手入力で追加' }));
+    expect(await screen.findByLabelText('タイトル')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '保存' })).toBeTruthy();
   });
 });
 

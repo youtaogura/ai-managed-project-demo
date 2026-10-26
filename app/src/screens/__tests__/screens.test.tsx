@@ -34,7 +34,11 @@ describe('RecordsScreen', () => {
 
 describe('AnalyticsScreen', () => {
   it('空状態の文言を表示する', async () => {
-    await render(<AnalyticsScreen />);
-    expect(screen.getByText('分析できる記録がまだありません')).toBeTruthy();
+    await render(
+      <RecordRepositoryProvider repository={emptyRepository}>
+        <AnalyticsScreen />
+      </RecordRepositoryProvider>,
+    );
+    expect(await screen.findByText('分析できる記録がまだありません')).toBeTruthy();
   });
 });

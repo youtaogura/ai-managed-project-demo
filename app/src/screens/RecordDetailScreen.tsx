@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import { Thumbnail } from '../components/Thumbnail';
+import { usePhotoService } from '../hooks/usePhotoService';
 import { useRecordRepository } from '../hooks/useRecordRepository';
 import { formatDateTime, formatRating } from '../lib/format';
 import { getStatusLabel, KIND_LABELS } from '../lib/statusLabel';
@@ -42,6 +43,7 @@ export function RecordDetailScreen({
   onBack,
 }: RecordDetailScreenProps) {
   const repository = useRecordRepository();
+  const photoService = usePhotoService();
   const [record, setRecord] = useState<MediaRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -64,14 +66,17 @@ export function RecordDetailScreen({
     }, [repository, recordId]),
   );
 
+  const photoUri = record?.photoUri ?? null;
+
   const remove = useCallback(async () => {
     try {
       await repository.delete(recordId);
+      if (photoUri) void photoService.remove(photoUri);
       onDeleted?.();
     } catch {
       setError('削除できませんでした');
     }
-  }, [repository, recordId, onDeleted]);
+  }, [repository, photoService, recordId, photoUri, onDeleted]);
 
   const confirmDelete = () => {
     setError(null);
