@@ -64,7 +64,20 @@ if (c1 === 'pr') {
     const files = execFileSync('git', ['diff', '--name-only', 'origin/main', `origin/${branch}`], { cwd: process.env.REPO_DIR }).toString().trim().split('\n');
     return out({ files: files.filter(Boolean).map((path) => ({ path })) });
   }
-  if (c2 === 'checks') return out([{ name: 'app', bucket: 'pass' }]);
+  if (c2 === 'checks') {
+    // 必須チェックを返す。FAKE_CI_FAIL_ISSUE は初回だけ失敗、FAKE_CI_MISSING_ISSUE は pr-policy が永遠に現れない
+    const required = JSON.parse(fs.readFileSync(require('path').join(__dirname, '../../../policy.json'), 'utf8')).requiredChecks;
+    const issue = branch.replace('agent/issue-', '');
+    st.ciCalls = st.ciCalls || {};
+    st.ciCalls[branch] = (st.ciCalls[branch] || 0) + 1;
+    save();
+    const failOnce = process.env.FAKE_CI_FAIL_ISSUE === issue && st.ciCalls[branch] === 1;
+    const checks = required
+      .filter((name) => !(process.env.FAKE_CI_MISSING_ISSUE === issue && name === 'pr-policy'))
+      .map((name) => ({ name, bucket: failOnce && name === 'test-coverage' ? 'fail' : 'pass' }));
+    checks.push({ name: 'optional-check', bucket: 'fail' }); // 必須でないチェックの失敗は無視されること
+    return out(checks);
+  }
   if (c2 === 'merge') { st.prs[branch].open = false; record(`pr merge #${n}`); process.exit(0); }
   if (c2 === 'comment' || c2 === 'review') { record(`pr ${c2} #${n}: ${(stdin() || '').split('\n')[0]}`); process.exit(0); }
 }

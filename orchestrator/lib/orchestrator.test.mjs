@@ -45,6 +45,38 @@ test('後工程を優先する', () => {
   assert.deepEqual(items.sort(byPriority).map((i) => i.status), ['Release', 'Review', 'Implement', 'Ready']);
 });
 
+test('CI は必須チェックだけで判定する', async () => {
+  const { evaluateChecks } = await import('./github.mjs');
+  const req = ['lint', 'test'];
+  const c = (name, bucket) => ({ name, bucket });
+  assert.equal(evaluateChecks([c('lint', 'pass'), c('test', 'pass')], req).state, 'pass');
+  assert.equal(evaluateChecks([c('lint', 'pass'), c('test', 'skipping')], req).state, 'pass');
+  // 必須でないチェックの失敗は無視する
+  assert.equal(evaluateChecks([c('lint', 'pass'), c('test', 'pass'), c('other', 'fail')], req).state, 'pass');
+  assert.deepEqual(evaluateChecks([c('lint', 'fail'), c('test', 'pending')], req), { state: 'fail', failed: ['lint'], missing: [] });
+  assert.equal(evaluateChecks([c('lint', 'cancel'), c('test', 'pass')], req).state, 'fail');
+  assert.equal(evaluateChecks([c('lint', 'pass'), c('test', 'pending')], req).state, 'pending');
+  // まだ始まっていないチェックは待つ（チェックが1件もない場合も同じ）
+  assert.deepEqual(evaluateChecks([c('lint', 'pass')], req), { state: 'pending', failed: [], missing: ['test'] });
+  assert.equal(evaluateChecks([], req).state, 'pending');
+  // 同名が複数ある場合は最後（最新）を使う
+  assert.equal(evaluateChecks([c('lint', 'fail'), c('lint', 'pass'), c('test', 'pass')], req).state, 'pass');
+});
+
+const workflowsDir = new URL('../../.github/workflows/', import.meta.url);
+const { existsSync } = await import('node:fs');
+// コンテナ内（/opt/orchestrator）には .github が無いので、そこではスキップする
+test('必須チェックは policy.json と CI のジョブ名に一致する', { skip: !existsSync(workflowsDir) }, async () => {
+  const { readFileSync } = await import('node:fs');
+  const { config } = await import('./config.mjs');
+  const root = new URL('../../', import.meta.url);
+  const workflows = ['ci.yml', 'pr-policy.yml']
+    .map((f) => readFileSync(new URL(`.github/workflows/${f}`, root), 'utf8'))
+    .join('\n');
+  const jobNames = [...workflows.matchAll(/^\s{4}name:\s*(\S+)\s*$/gm)].map((m) => m[1]);
+  for (const name of config.requiredChecks) assert.ok(jobNames.includes(name), `CI にジョブ ${name} がありません`);
+});
+
 test('プロンプトの変数を埋め込む', () => {
   const p = buildPrompt('implement', {
     REPO: 'owner/repo',

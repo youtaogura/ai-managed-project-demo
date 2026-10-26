@@ -8,16 +8,11 @@
 
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-// 人間だけが変更してよいパス（リポジトリルートからの相対）
-export const PROTECTED_PATHS = [
-  'orchestrator/',
-  'docker/',
-  '.github/',
-  'docker-compose.yml',
-  'CLAUDE.md',
-  '.env',
-];
+// 人間だけが変更してよいパス（リポジトリルートからの相対）。orchestrator/policy.json で管理する
+const POLICY_FILE = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'policy.json');
+export const PROTECTED_PATHS = JSON.parse(readFileSync(POLICY_FILE, 'utf8')).protectedPaths;
 
 const BASH_RULES = [
   { re: /\bsudo\b/, why: 'sudo は使用できません。' },

@@ -34,7 +34,9 @@ cat > "$WORK/state.json" <<'EOF'
  {"itemId":"I2","number":2,"title":"質問を残して停止","status":"Ready","state":"OPEN","labels":[]},
  {"itemId":"I3","number":3,"title":"Backlog は触らない","status":"Backlog","state":"OPEN","labels":[]},
  {"itemId":"I4","number":4,"title":"保護ファイルを変更した PR はマージしない","status":"Implement","state":"OPEN","labels":[]},
- {"itemId":"I5","number":5,"title":"AGENT_RESULT が無ければ失敗扱い","status":"Ready","state":"OPEN","labels":[]}
+ {"itemId":"I5","number":5,"title":"AGENT_RESULT が無ければ失敗扱い","status":"Ready","state":"OPEN","labels":[]},
+ {"itemId":"I6","number":6,"title":"CI 失敗で差し戻されてから完了","status":"Implement","state":"OPEN","labels":[]},
+ {"itemId":"I7","number":7,"title":"必須チェックが出ないまま時間切れで停止","status":"Implement","state":"OPEN","labels":[]}
 ],"prs":{},"log":[],"reviews":{}}
 EOF
 
@@ -42,7 +44,9 @@ export PATH="$HERE/bin:$PATH"
 export FAKE_STATE="$WORK/state.json" REPO_DIR="$WORK/repo" DATA_DIR="$WORK/data" LOG_DIR="$WORK/logs"
 export GITHUB_REPOSITORY=youtaogura/ai-managed-project-demo PROJECT_NUMBER=1 GH_TOKEN=dummy ANTHROPIC_API_KEY=dummy
 export CLAUDE_BIN="$HERE/bin/claude" SKIP_INSTALL=1 DRY_RUN=0 MAX_CONCURRENCY=2 MAX_REWORK=2
-export FAKE_CLARIFY_ISSUE=2 FAKE_TOUCH_PROTECTED=4 FAKE_NO_RESULT=5
+export FAKE_CLARIFY_ISSUE=2 FAKE_TOUCH_PROTECTED=4 FAKE_NO_RESULT=5 FAKE_CI_FAIL_ISSUE=6 FAKE_CI_MISSING_ISSUE=7
+# CI 待ちのタイムアウトを 0 分にして、2回目の確認で時間切れになるようにする
+export CI_TIMEOUT_MIN=0
 
 # --- まず DRY_RUN で何も変更されないことを確認 ---
 DRY_RUN=1 node "$ORCH/index.mjs" once >/dev/null
@@ -54,7 +58,7 @@ echo "✔ DRY_RUN では Project を変更しない"
 rm -rf "$WORK/data" "$WORK/logs"
 
 # --- 本番相当で数サイクル回す ---
-for i in $(seq 1 9); do
+for i in $(seq 1 16); do
   node "$ORCH/index.mjs" once 2>&1 | sed -E 's/^[0-9T:.-]+Z /  /' | grep -vE 'ensure label|起動|終了' || true
 done
 
@@ -79,6 +83,11 @@ expect(item(3).status === 'Backlog' && !s.log.some((l) => l.includes('#3')), '#3
 expect(item(4).status === 'Blocked' && item(4).labels.includes('agent-failed'), '#4 は保護ファイル変更で Blocked');
 expect(s.prs['agent/issue-4']?.open === true, '#4 の PR はマージされない');
 expect(item(5).status === 'Blocked' && item(5).labels.includes('agent-failed'), '#5 は結果行なしで Blocked');
+expect(s.log.some((l) => /^pr comment #\d+: .*CI チェックが失敗/.test(l)), '#6 は CI 失敗を PR にコメントして差し戻される');
+expect(s.log.includes('status #6: Release -> Implement'), '#6 は Release から Implement に戻る');
+expect(item(6).status === 'Done' && item(6).state === 'CLOSED', '#6 は修正後に Done になる（必須でないチェックの失敗は無視）');
+expect(item(7).status === 'Blocked' && item(7).labels.includes('agent-failed'), '#7 は必須チェックが出ないまま時間切れで Blocked');
+expect(s.prs['agent/issue-7']?.open === true, '#7 の PR はマージされない');
 
 console.log(failed ? `\nNG: ${failed} 件失敗` : '\nOK: E2E リハーサル成功');
 process.exit(failed ? 1 : 0);

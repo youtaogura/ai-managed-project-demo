@@ -84,6 +84,13 @@ test('ファイル編集の範囲', () => {
   assert.ok(checkFilePath(`${WT}/CLAUDE.md`, WT));
   assert.ok(checkFilePath(`${WT}/.github/workflows/ci.yml`, WT));
   assert.ok(checkFilePath(`${WT}/.env.local`, WT));
+  // CI の閾値・ルールを決める設定ファイル
+  assert.ok(checkFilePath(`${WT}/app/jest.config.js`, WT));
+  assert.ok(checkFilePath(`${WT}/app/eslint.config.js`, WT));
+  assert.ok(checkFilePath(`${WT}/app/tsconfig.json`, WT));
+  assert.ok(checkFilePath(`${WT}/app/.npmrc`, WT));
+  assert.equal(checkFilePath(`${WT}/app/package.json`, WT), null);
+  assert.equal(checkFilePath(`${WT}/app/.gitignore`, WT), null);
   assert.ok(checkFilePath('/data/worktrees/issue-2/app/x.ts', WT));
   assert.ok(checkFilePath('/etc/claude-code/managed-settings.json', WT));
 });

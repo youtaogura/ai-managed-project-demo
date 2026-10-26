@@ -1,3 +1,5 @@
+# 品質ゲート。ジョブ名（name）は orchestrator/policy.json の requiredChecks と一致させること。
+# package.json の scripts は使わず、ツールを直接呼ぶ（scripts を書き換えて合格を偽装できないように）。
 name: CI
 
 on:
@@ -5,43 +7,100 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-jobs:
-  app:
-    name: app (lint / typecheck / test)
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: app
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: pnpm
-          cache-dependency-path: app/pnpm-lock.yaml
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm typecheck
-      - run: pnpm test --ci
+env:
+  EXPO_NO_TELEMETRY: '1'
+  CI: 'true'
 
-  orchestrator:
-    name: orchestrator (unit tests)
+jobs:
+  lint-typecheck:
+    name: lint-typecheck
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: orchestrator
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-app
+      - name: ESLint
+        working-directory: app
+        run: pnpm exec eslint . --max-warnings 0
+      - name: TypeScript
+        working-directory: app
+        run: pnpm exec tsc --noEmit
+
+  test-coverage:
+    name: test-coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-app
+      - name: Jest（全体カバレッジの閾値は app/jest.config.js）
+        working-directory: app
+        run: pnpm exec jest --ci --coverage
+      - name: 差分カバレッジ
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node .github/scripts/diff-coverage.mjs
+      - name: カバレッジレポートを保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: app/coverage
+          retention-days: 7
+          if-no-files-found: ignore
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-app
+      - name: Metro でバンドルできるか（Android / iOS）
+        working-directory: app
+        run: pnpm exec expo export --platform android --platform ios --output-dir "$RUNNER_TEMP/expo-export"
+
+  dependencies:
+    name: dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup-app
+      - name: Expo SDK との互換性
+        working-directory: app
+        run: pnpm exec expo install --check
+      - name: expo-doctor
+        working-directory: app
+        run: npx --yes expo-doctor
+      - name: 脆弱性（base から増えた high / critical を検出）
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: node .github/scripts/dependency-audit.mjs
+      - name: ライセンス
+        run: node .github/scripts/license-check.mjs
+
+  tooling:
+    name: tooling
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node --test
-      - name: E2E rehearsal (fake gh / claude)
+      - name: オーケストレーター（ユニットテスト）
+        working-directory: orchestrator
+        run: node --test
+      - name: オーケストレーター（E2E リハーサル）
+        working-directory: orchestrator
         run: bash test/e2e/run.sh
+      - name: CI スクリプト
+        run: node --test .github/scripts/*.test.mjs

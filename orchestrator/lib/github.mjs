@@ -160,21 +160,36 @@ export async function prFiles(number) {
   return pr.files.map((f) => f.path);
 }
 
-// 'pass' | 'fail' | 'pending' | 'none'
-export async function prChecksState(number) {
+// PR のチェック一覧 [{ name, bucket }]（bucket: pass | fail | pending | skipping | cancel）
+export async function prChecks(number) {
   const res = await run('gh', ['pr', 'checks', String(number), '--repo', config.repo, '--json', 'name,bucket'], {
     allowFail: true,
   });
-  let checks = [];
   try {
-    checks = JSON.parse(res.stdout || '[]');
+    return JSON.parse(res.stdout || '[]');
   } catch {
-    // チェックが1件も無いとき gh は JSON ではなくメッセージを返す
+    return []; // チェックが1件も無いとき gh は JSON ではなくメッセージを返す
   }
-  if (!checks.length) return 'none';
-  if (checks.some((c) => ['fail', 'cancel'].includes(c.bucket))) return 'fail';
-  if (checks.some((c) => c.bucket === 'pending')) return 'pending';
-  return 'pass';
+}
+
+// 必須チェックだけで判定する。{ state: 'pass' | 'fail' | 'pending', failed, missing }
+export function evaluateChecks(checks, required) {
+  const failed = [];
+  const missing = [];
+  let pending = false;
+  for (const name of required) {
+    // 同名のチェックが複数返ってきた場合は、最後のもの（最新の実行）を使う
+    const runs = checks.filter((c) => c.name === name);
+    const latest = runs[runs.length - 1];
+    if (!latest) {
+      missing.push(name);
+      pending = true;
+    } else if (['fail', 'cancel'].includes(latest.bucket)) failed.push(name);
+    else if (latest.bucket === 'pending') pending = true;
+  }
+  if (failed.length) return { state: 'fail', failed, missing };
+  if (pending) return { state: 'pending', failed, missing };
+  return { state: 'pass', failed, missing };
 }
 
 export const mergePr = (number) =>
