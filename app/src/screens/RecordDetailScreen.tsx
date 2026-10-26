@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
   },
-  primaryText: { color: '#fff', fontWeight: '600' },
+  primaryText: { color: colors.onTint, fontWeight: '600' },
   danger: {
     borderWidth: 1,
     borderColor: colors.danger,

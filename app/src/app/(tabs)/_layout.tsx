@@ -1,12 +1,13 @@
 import { Tabs, useRouter } from 'expo-router';
 import { Pressable, Text } from 'react-native';
 
+import { tabsScreenOptions } from '../../design/navigationTheme';
 import { colors, spacing } from '../../theme';
 
 export default function TabsLayout() {
   const router = useRouter();
   return (
-    <Tabs>
+    <Tabs screenOptions={tabsScreenOptions}>
       <Tabs.Screen
         name="index"
         options={{
