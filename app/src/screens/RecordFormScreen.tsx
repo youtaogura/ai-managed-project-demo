@@ -1,10 +1,11 @@
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
+import { AppText } from '../components/AppText';
 import { RecordForm } from '../components/RecordForm';
+import { colors, space } from '../design/tokens';
 import { useRecordRepository } from '../hooks/useRecordRepository';
-import { colors, spacing } from '../theme';
 import type { MediaRecord, NewRecordInput } from '../types/record';
 
 type RecordFormScreenProps = {
@@ -17,6 +18,7 @@ type LoadState = { status: 'loading' } | { status: 'ready'; record: MediaRecord 
 export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenProps) {
   const repository = useRecordRepository();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
+  const addedId = useRef<string | null>(null);
 
   useEffect(() => {
     if (recordId === undefined) return;
@@ -43,8 +45,11 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
       <RecordForm
         initialValues={initialValues}
         onSubmit={async (input) => {
-          await repository.add(input);
-          router.back();
+          const added = await repository.add(input);
+          addedId.current = added.id;
+        }}
+        onSaved={() => {
+          if (addedId.current !== null) router.replace(`/records/${addedId.current}`);
         }}
       />
     );
@@ -53,7 +58,7 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
   if (state.status === 'loading') {
     return (
       <View style={styles.center}>
-        <ActivityIndicator />
+        <ActivityIndicator color={colors.textSecondary} />
       </View>
     );
   }
@@ -62,7 +67,7 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
   if (!record) {
     return (
       <View style={styles.center}>
-        <Text style={styles.text}>記録が見つかりません</Text>
+        <AppText>記録が見つかりません</AppText>
       </View>
     );
   }
@@ -70,15 +75,16 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
   return (
     <RecordForm
       initialValues={record}
+      submitLabel="保存する"
       onSubmit={async (input) => {
         const updated = await repository.update(record.id, input);
         if (!updated) throw new Error('not found');
-        router.back();
       }}
+      onSaved={() => router.back()}
       onDelete={async () => {
         await repository.delete(record.id);
-        router.back();
       }}
+      onDeleted={() => router.replace('/')}
     />
   );
 }
@@ -88,8 +94,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: spacing.lg,
-    backgroundColor: colors.background,
+    padding: space[5],
+    backgroundColor: colors.bg,
   },
-  text: { fontSize: 16, color: colors.text },
 });
