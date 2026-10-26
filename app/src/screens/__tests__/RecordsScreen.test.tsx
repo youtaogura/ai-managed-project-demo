@@ -4,7 +4,7 @@ import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-li
 import { MediaSearchContextProvider } from '../../hooks/useMediaSearch';
 import type { MediaSearchProvider } from '../../lib/mediaSearch/MediaSearchProvider';
 import { withRepository, withSettings } from '../../testProviders';
-import { createSortOrderStore } from '../../lib/sortOrderStore';
+import { createSortOrderStore, SORT_ORDER_STORAGE_KEY } from '../../lib/sortOrderStore';
 import { createFakeRepository, createMemoryStorage, makeRecord } from '../../testUtils';
 import type { MediaKind, MediaRecord } from '../../types/record';
 import type { RecordRepository } from '../../lib/recordRepository';
@@ -299,5 +299,97 @@ describe('RecordsScreen', () => {
     await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
     await fireEvent.press(screen.getByRole('button', { name: '閉じる' }));
     expect(screen.queryByText('何を記録しますか')).toBeNull();
+  });
+});
+
+describe('RecordsScreen（記録する項目のオフ）', () => {
+  const KINDS: MediaKind[] = ['book', 'manga', 'movie', 'drama', 'anime'];
+  const setupFields = (
+    fields: Parameters<typeof withSettings>[2],
+    repository: RecordRepository,
+    storage = createMemoryStorage().storage,
+  ) =>
+    renderRouter({
+      index: () =>
+        withSettings(
+          KINDS,
+          withRepository(
+            repository,
+            <RecordsScreen sortOrderStore={createSortOrderStore(storage)} />,
+          ),
+          fields,
+        ),
+    });
+  const storageWith = (order: string) =>
+    createMemoryStorage({ [SORT_ORDER_STORAGE_KEY]: order }).storage;
+
+  it('終えた日・始めた日・レーティングがオフなら並び替えの行が出ない', async () => {
+    await setupFields(
+      { endDate: false, startDate: false, rating: false },
+      createFakeRepository(records).repository,
+    );
+    await screen.findByText('すべての記録');
+    await fireEvent.press(screen.getByRole('button', { name: '並び替え' }));
+    expect(screen.getByText('タイトル')).toBeTruthy();
+    expect(screen.getByText('登録日時')).toBeTruthy();
+    expect(screen.queryByText('終了日')).toBeNull();
+    expect(screen.queryByText('開始日')).toBeNull();
+    expect(screen.queryByText('レーティング')).toBeNull();
+  });
+
+  it('保存された並び順がオフの項目のものなら、初期の並び順で並ぶ。保存値は変えない', async () => {
+    const storage = storageWith('rating_asc');
+    await setupFields({ rating: false }, createFakeRepository(records).repository, storage);
+    expect(await screen.findByText('終了日が新しい順')).toBeTruthy();
+    expect(titles().slice(-3)).toEqual(['ガンマ', 'アルファ', 'ベータ']);
+    expect(await storage.getItem(SORT_ORDER_STORAGE_KEY)).toBe('rating_asc');
+  });
+
+  it('終えた日がオフなら初期の並び順は登録が新しい順', async () => {
+    await setupFields(
+      { endDate: false },
+      createFakeRepository(records).repository,
+      storageWith('endDate_asc'),
+    );
+    expect(await screen.findByText('登録が新しい順')).toBeTruthy();
+  });
+
+  it('オフにしていない項目の並び順は保たれる', async () => {
+    await setupFields(
+      { startDate: false },
+      createFakeRepository(records).repository,
+      storageWith('rating_desc'),
+    );
+    expect(await screen.findByText('評価が高い順')).toBeTruthy();
+    expect(titles().slice(-3)).toEqual(['アルファ', 'ガンマ', 'ベータ']);
+  });
+
+  it('終えた日がオフなら、完了済みの記録が登録日時で最近の段・カウンターに入る', async () => {
+    const created = (iso: string) => new Date(iso).toISOString();
+    const dated = [
+      makeRecord({
+        id: 'a',
+        title: 'アルファ',
+        status: 'completed',
+        endDate: null,
+        createdAt: created(`${thisMonth}-10T12:00:00`),
+      }),
+      makeRecord({
+        id: 'b',
+        title: 'ベータ',
+        status: 'planned',
+        endDate: `${thisMonth}-01`,
+        createdAt: created(`${thisMonth}-11T12:00:00`),
+      }),
+    ];
+    await setupFields({ endDate: false }, createFakeRepository(dated).repository);
+    expect(await screen.findByText('最近読み終えた・見終えた')).toBeTruthy();
+    expect(screen.getByLabelText('今年 1 作品 · 今月 1')).toBeTruthy();
+  });
+
+  it('終えた日がオフで完了済みの記録がなければ最近の段を出さない', async () => {
+    await setupFields({ endDate: false }, createFakeRepository(records.slice(1, 2)).repository);
+    expect(await screen.findByText('すべての記録')).toBeTruthy();
+    expect(screen.queryByText('最近読み終えた・見終えた')).toBeNull();
   });
 });

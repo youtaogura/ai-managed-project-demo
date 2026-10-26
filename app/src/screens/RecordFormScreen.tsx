@@ -9,6 +9,8 @@ import { useCoverResolver } from '../hooks/useCoverResolver';
 import { useSettings } from '../hooks/useSettings';
 import { useRecordRepository } from '../hooks/useRecordRepository';
 import { resolveInitialKind } from '../lib/enabledKinds';
+import { newRecordDefaults } from '../lib/recordFields';
+import { todayString } from '../lib/recordForm';
 import { needsCover } from '../lib/coverLookup/needsCover';
 import type { MediaRecord, NewRecordInput } from '../types/record';
 
@@ -60,6 +62,7 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
     return (
       <RecordForm
         initialValues={{
+          ...newRecordDefaults(settings.enabledFields, todayString()),
           ...initialValues,
           kind: resolveInitialKind(initialValues?.kind, settings.enabledKinds),
         }}

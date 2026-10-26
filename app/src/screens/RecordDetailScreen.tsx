@@ -12,6 +12,7 @@ import { RecordInfoSection } from '../components/RecordInfoSection';
 import { colors, radius, shadows, size, space } from '../design/tokens';
 import { useCoverResolver } from '../hooks/useCoverResolver';
 import { useBottomInset } from '../hooks/useBottomInset';
+import { useSettings } from '../hooks/useSettings';
 import { usePhotoPicker } from '../hooks/usePhotoPicker';
 import { usePhotoService } from '../hooks/usePhotoService';
 import { useRecordRepository } from '../hooks/useRecordRepository';
@@ -52,6 +53,7 @@ export function RecordDetailScreen({
   onBack,
 }: RecordDetailScreenProps) {
   const bottomInset = useBottomInset();
+  const { enabledFields } = useSettings().settings;
   const repository = useRecordRepository();
   const photoService = usePhotoService();
   const resolveCover = useCoverResolver();
@@ -183,7 +185,9 @@ export function RecordDetailScreen({
     <View style={styles.container}>
       <ScrollView
         ref={scrollRef}
-        contentContainerStyle={{ paddingBottom: size.buttonHeight + BAR_PADDING * 2 + bottomInset + space[6] }}
+        contentContainerStyle={{
+          paddingBottom: size.buttonHeight + BAR_PADDING * 2 + bottomInset + space[6],
+        }}
       >
         <View style={[styles.hero, { backgroundColor: getHeroBackground(record.kind) }]}>
           <View style={styles.cover}>
@@ -193,9 +197,11 @@ export function RecordDetailScreen({
             <Button variant="icon" onImage accessibilityLabel="戻る" onPress={() => onBack?.()}>
               <AppText variant="sectionTitle">‹</AppText>
             </Button>
-            <Button variant="icon" onImage accessibilityLabel="写真を変更" onPress={openPhoto}>
-              <AppText variant="label">写真</AppText>
-            </Button>
+            {enabledFields.photo ? (
+              <Button variant="icon" onImage accessibilityLabel="写真を変更" onPress={openPhoto}>
+                <AppText variant="label">写真</AppText>
+              </Button>
+            ) : null}
           </View>
         </View>
         <View style={styles.body} onLayout={(e) => setBodyY(e.nativeEvent.layout.y)}>
@@ -204,16 +210,24 @@ export function RecordDetailScreen({
             <AppText variant="body" style={{ color: colors.textSecondary }}>
               {byline}
             </AppText>
-            {record.rating !== null ? (
+            {enabledFields.rating && record.rating !== null ? (
               <RatingStars rating={record.rating} size={STARS_SIZE} valueVariant="displayNumber" />
             ) : null}
           </View>
-          <InfoCellRow>
-            <InfoCell label="ステータス" value={getStatusLabel(record.kind, record.status)} />
-            <InfoCell label={labels.start} value={record.startDate} />
-            <InfoCell label={labels.end} value={record.endDate} />
-          </InfoCellRow>
-          {record.review ? (
+          {enabledFields.status || enabledFields.startDate || enabledFields.endDate ? (
+            <InfoCellRow>
+              {enabledFields.status ? (
+                <InfoCell label="ステータス" value={getStatusLabel(record.kind, record.status)} />
+              ) : null}
+              {enabledFields.startDate ? (
+                <InfoCell label={labels.start} value={record.startDate} />
+              ) : null}
+              {enabledFields.endDate ? (
+                <InfoCell label={labels.end} value={record.endDate} />
+              ) : null}
+            </InfoCellRow>
+          ) : null}
+          {enabledFields.review && record.review ? (
             <AppText variant="body" numberOfLines={REVIEW_LINES}>
               {record.review}
             </AppText>
@@ -262,7 +276,11 @@ export function RecordDetailScreen({
         </View>
       </BottomSheet>
 
-      <BottomSheet visible={photoOpen} onClose={() => setPhotoOpen(false)} title="写真を変更">
+      <BottomSheet
+        visible={enabledFields.photo && photoOpen}
+        onClose={() => setPhotoOpen(false)}
+        title="写真を変更"
+      >
         <View style={styles.sheetBody}>
           <Button
             variant="outline"
@@ -308,7 +326,11 @@ const styles = StyleSheet.create({
     gap: space[4],
     backgroundColor: colors.bg,
   },
-  hero: { height: size.detailHeroHeight, alignItems: 'center', justifyContent: 'center' },
+  hero: {
+    height: size.detailHeroHeight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   cover: { boxShadow: shadows.cover },
   heroButtons: {
     position: 'absolute',

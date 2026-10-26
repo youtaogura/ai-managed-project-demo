@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { colors, radius, space } from '../design/tokens';
+import { useSettings } from '../hooks/useSettings';
 import { buildInfoRows } from '../lib/recordInfo';
 import type { MediaRecord } from '../types/record';
 import { AppText } from './AppText';
@@ -15,6 +16,7 @@ type RecordInfoSectionProps = {
 };
 
 export function RecordInfoSection({ record, onDelete }: RecordInfoSectionProps) {
+  const { enabledFields } = useSettings().settings;
   return (
     <View style={styles.section}>
       <View style={styles.header}>
@@ -23,7 +25,7 @@ export function RecordInfoSection({ record, onDelete }: RecordInfoSectionProps) 
           {record.title}
         </AppText>
       </View>
-      {record.review ? <AppText variant="body">{record.review}</AppText> : null}
+      {enabledFields.review && record.review ? <AppText variant="body">{record.review}</AppText> : null}
       <View style={styles.rows}>
         <AppText variant="sectionTitle">作品の情報</AppText>
         {buildInfoRows(record).map((row) => (

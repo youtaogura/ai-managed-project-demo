@@ -119,3 +119,42 @@ describe('summarizeYear / formatPeriod / monthLabel', () => {
     expect(monthLabel('2026-01')).toBe('1月');
   });
 });
+
+describe('aggregateMonthlyCompletions（終えた日がオフ）', () => {
+  const off = {
+    rating: true,
+    status: true,
+    startDate: true,
+    endDate: false,
+    review: true,
+    photo: true,
+  };
+  const now = new Date(2026, 9, 15);
+
+  it('完了済みの記録を登録日の月で数え、日付なしの通知は 0', () => {
+    const records = [
+      makeRecord({
+        id: '1',
+        status: 'completed',
+        endDate: null,
+        createdAt: new Date(2026, 9, 2, 12).toISOString(),
+      }),
+      makeRecord({
+        id: '2',
+        status: 'completed',
+        endDate: '2000-01-01',
+        createdAt: new Date(2026, 8, 2, 12).toISOString(),
+      }),
+      makeRecord({
+        id: '3',
+        status: 'planned',
+        endDate: null,
+        createdAt: new Date(2026, 9, 2, 12).toISOString(),
+      }),
+    ];
+    const result = aggregateMonthlyCompletions(records, now, off);
+    expect(result.undatedCompleted).toBe(0);
+    expect(result.months.find((m) => m.month === '2026-10')?.total).toBe(1);
+    expect(result.months.find((m) => m.month === '2026-09')?.total).toBe(1);
+  });
+});

@@ -39,7 +39,7 @@ export function ReviewScreen({ onAdd, onOpenRecords }: ReviewScreenProps) {
     [allRecords, settings.enabledKinds],
   );
   const summary = useMemo(() => {
-    const monthly = aggregateMonthlyCompletions(records, new Date());
+    const monthly = aggregateMonthlyCompletions(records, new Date(), settings.enabledFields);
     return {
       monthly,
       period: formatPeriod(monthly.months),
@@ -47,7 +47,7 @@ export function ReviewScreen({ onAdd, onOpenRecords }: ReviewScreenProps) {
       currentMonth: monthly.months[monthly.months.length - 1].month,
       ratings: summarizeRatings(records),
     };
-  }, [records]);
+  }, [records, settings.enabledFields]);
 
   if (loading) return null;
 
@@ -70,6 +70,7 @@ export function ReviewScreen({ onAdd, onOpenRecords }: ReviewScreenProps) {
   }
 
   const { monthly, period, yearCount, currentMonth, ratings } = summary;
+  const { rating: showRating, endDate: hasEndDate } = settings.enabledFields;
 
   return (
     <ScreenContainer>
@@ -97,12 +98,14 @@ export function ReviewScreen({ onAdd, onOpenRecords }: ReviewScreenProps) {
               </AppText>
             </View>
           </View>
-          <View style={styles.card}>
-            <AppText variant="label" style={styles.secondary}>
-              平均レーティング
-            </AppText>
-            <AppText variant="displayNumber">{formatAverage(ratings.average)}</AppText>
-          </View>
+          {showRating ? (
+            <View style={styles.card}>
+              <AppText variant="label" style={styles.secondary}>
+                平均レーティング
+              </AppText>
+              <AppText variant="displayNumber">{formatAverage(ratings.average)}</AppText>
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.section}>
@@ -114,7 +117,7 @@ export function ReviewScreen({ onAdd, onOpenRecords }: ReviewScreenProps) {
           />
         </View>
 
-        {monthly.undatedCompleted > 0 ? (
+        {hasEndDate && monthly.undatedCompleted > 0 ? (
           <View style={styles.notice}>
             <AppText variant="label" style={styles.secondary}>
               {`終了日が未入力の記録: ${monthly.undatedCompleted} 件`}
@@ -132,34 +135,38 @@ export function ReviewScreen({ onAdd, onOpenRecords }: ReviewScreenProps) {
           </View>
         ) : null}
 
-        <View style={styles.section}>
-          <AppText variant="sectionTitle">レーティング</AppText>
-          <RatingDistribution distribution={ratings.distribution} />
-        </View>
+        {showRating ? (
+          <>
+            <View style={styles.section}>
+              <AppText variant="sectionTitle">レーティング</AppText>
+              <RatingDistribution distribution={ratings.distribution} />
+            </View>
 
-        <View style={styles.section}>
-          <AppText variant="label" style={styles.secondary}>
-            種別ごとの平均
-          </AppText>
-          <View>
-            {enabledKinds.map((kind) => {
-              const entry = ratings.byKind[kind];
-              return entry ? (
-                <View key={kind} style={styles.kindRow}>
-                  <AppText variant="body" style={styles.kindName}>
-                    {KIND_LABELS[kind]}
-                  </AppText>
-                  <AppText variant="label" style={styles.secondary}>
-                    {`${entry.count} 作品`}
-                  </AppText>
-                  <AppText variant="value" style={styles.kindAverage}>
-                    {formatAverage(entry.average)}
-                  </AppText>
-                </View>
-              ) : null;
-            })}
-          </View>
-        </View>
+            <View style={styles.section}>
+              <AppText variant="label" style={styles.secondary}>
+                種別ごとの平均
+              </AppText>
+              <View>
+                {enabledKinds.map((kind) => {
+                  const entry = ratings.byKind[kind];
+                  return entry ? (
+                    <View key={kind} style={styles.kindRow}>
+                      <AppText variant="body" style={styles.kindName}>
+                        {KIND_LABELS[kind]}
+                      </AppText>
+                      <AppText variant="label" style={styles.secondary}>
+                        {`${entry.count} 作品`}
+                      </AppText>
+                      <AppText variant="value" style={styles.kindAverage}>
+                        {formatAverage(entry.average)}
+                      </AppText>
+                    </View>
+                  ) : null;
+                })}
+              </View>
+            </View>
+          </>
+        ) : null}
       </ScrollView>
     </ScreenContainer>
   );

@@ -1,21 +1,30 @@
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppText } from '../components/AppText';
 import { ChipMultiGroup, type ChipOption } from '../components/Chip';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { SettingsCard } from '../components/SettingsCard';
+import { Toggle } from '../components/Toggle';
 import { colors, space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useSettings } from '../hooks/useSettings';
 import { toggleKind } from '../lib/enabledKinds';
+import { RECORD_FIELD_LABELS, withFieldToggled } from '../lib/recordFields';
 import { KIND_LABELS } from '../lib/statusLabel';
 import { MEDIA_KINDS, type MediaKind } from '../types/record';
+import { RECORD_FIELDS, type RecordFieldKey } from '../types/settings';
 
 const KIND_OPTIONS: readonly ChipOption<MediaKind>[] = MEDIA_KINDS.map((value) => ({
   value,
   label: KIND_LABELS[value],
 }));
 const KIND_COLUMNS = 3;
+
+const FIELD_DESCRIPTIONS: Partial<Record<RecordFieldKey, string>> = {
+  startDate: '本・漫画は「読み始めた日」、映画・ドラマ・アニメは「見始めた日」と表示されます',
+  endDate: '本・漫画は「読み終えた日」、映画・ドラマ・アニメは「見終えた日」と表示されます',
+  photo: '書影の自動取得はオフになりません',
+};
 
 export function SettingsScreen() {
   const { settings, update } = useSettings();
@@ -31,6 +40,10 @@ export function SettingsScreen() {
       return;
     }
     update({ enabledKinds: next });
+  };
+
+  const onToggleField = (key: RecordFieldKey, value: boolean) => {
+    update({ enabledFields: withFieldToggled(settings.enabledFields, key, value) });
   };
 
   return (
@@ -56,6 +69,23 @@ export function SettingsScreen() {
             最低 1 つは選んでおく必要があります
           </AppText>
         </SettingsCard>
+        <View style={styles.section}>
+          <SettingsCard title="記録する項目">
+            {RECORD_FIELDS.map((key, index) => (
+              <View key={key} style={index > 0 ? styles.divider : undefined}>
+                <Toggle
+                  label={RECORD_FIELD_LABELS[key]}
+                  description={FIELD_DESCRIPTIONS[key]}
+                  value={settings.enabledFields[key]}
+                  onChange={(value) => onToggleField(key, value)}
+                />
+              </View>
+            ))}
+          </SettingsCard>
+          <AppText variant="micro" style={styles.footnote}>
+            オフにした項目は、入力欄にも表示にも出なくなります。入力済みの内容は消えません。
+          </AppText>
+        </View>
       </ScrollView>
     </ScreenContainer>
   );
@@ -64,5 +94,8 @@ export function SettingsScreen() {
 const styles = StyleSheet.create({
   content: { paddingHorizontal: space[5], gap: space[5] },
   title: { paddingVertical: space[3] },
+  section: { gap: space[2] },
+  divider: { borderTopWidth: 1, borderTopColor: colors.line },
+  footnote: { color: colors.textTertiary },
   note: { color: colors.textTertiary, marginTop: space[1] },
 });

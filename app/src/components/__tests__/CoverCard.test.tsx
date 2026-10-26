@@ -2,9 +2,14 @@ import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
 import { colors, radius, size } from '../../design/tokens';
+import { withSettings } from '../../testProviders';
 import { makeRecord } from '../../testUtils';
-import { MEDIA_KINDS, RECORD_STATUSES } from '../../types/record';
+import { MEDIA_KINDS, RECORD_STATUSES, type MediaKind } from '../../types/record';
 import { CoverCard } from '../CoverCard';
+
+jest.mock('@react-native-async-storage/async-storage', () =>
+  jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
+);
 
 const imageOf = () =>
   screen.getAllByLabelText('タイトル').filter((e) => e.props.accessibilityRole === 'image')[0];
@@ -60,7 +65,11 @@ describe('CoverCard', () => {
 
   it('hero は欠損した情報を出さない', async () => {
     const { rerender } = await render(
-      <CoverCard record={makeRecord({ endDate: '2024-05-01' })} variant="hero" onPress={jest.fn()} />,
+      <CoverCard
+        record={makeRecord({ endDate: '2024-05-01' })}
+        variant="hero"
+        onPress={jest.fn()}
+      />,
     );
     expect(screen.queryByText(/★/)).toBeNull();
     expect(screen.getByText('2024-05-01')).toBeTruthy();
@@ -126,5 +135,68 @@ describe('CoverCard', () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+});
+
+describe('CoverCard（記録する項目のオフ）', () => {
+  const KINDS: MediaKind[] = ['book', 'manga', 'movie', 'drama', 'anime'];
+  const record = makeRecord({
+    coverUrl: 'http://c',
+    rating: 4.2,
+    endDate: '2024-05-01',
+    status: 'in_progress',
+  });
+  const renderWith = (
+    fields: Parameters<typeof withSettings>[2],
+    variant: 'hero' | 'thumb' = 'hero',
+  ) =>
+    render(
+      withSettings(
+        KINDS,
+        variant === 'hero' ? (
+          <CoverCard record={record} variant="hero" onPress={jest.fn()} />
+        ) : (
+          <CoverCard record={record} variant="thumb" width={80} onPress={jest.fn()} />
+        ),
+        fields,
+      ),
+    );
+
+  it('すべてオンなら評価・終了日・点を出す', async () => {
+    await renderWith({});
+    expect(await screen.findByText('★ 4.2')).toBeTruthy();
+    expect(screen.getByText('2024-05-01')).toBeTruthy();
+    expect(screen.getByTestId('status-dot')).toBeTruthy();
+  });
+
+  it('レーティングがオフなら評価を出さない（終了日は残る）', async () => {
+    await renderWith({ rating: false });
+    expect(await screen.findByText('2024-05-01')).toBeTruthy();
+    expect(screen.queryByText('★ 4.2')).toBeNull();
+  });
+
+  it('終えた日がオフなら終了日を出さない（評価は残る）', async () => {
+    await renderWith({ endDate: false });
+    expect(await screen.findByText('★ 4.2')).toBeTruthy();
+    expect(screen.queryByText('2024-05-01')).toBeNull();
+  });
+
+  it('レーティングも終えた日もオフなら情報の行ごと出さない', async () => {
+    await renderWith({ rating: false, endDate: false });
+    await screen.findByTestId('cover-card-body');
+    expect(screen.queryByText('★ 4.2')).toBeNull();
+    expect(screen.queryByText('2024-05-01')).toBeNull();
+  });
+
+  it('ステータスがオフなら点を出さない', async () => {
+    await renderWith({ status: false });
+    await screen.findByTestId('cover-card-body');
+    expect(screen.queryByTestId('status-dot')).toBeNull();
+  });
+
+  it('thumb は情報を出さず、点だけステータスの設定に従う', async () => {
+    await renderWith({}, 'thumb');
+    expect(await screen.findByTestId('status-dot')).toBeTruthy();
+    expect(screen.queryByText('★ 4.2')).toBeNull();
   });
 });

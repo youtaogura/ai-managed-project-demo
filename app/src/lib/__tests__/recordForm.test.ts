@@ -230,7 +230,9 @@ describe('paramsToInitialValues', () => {
       coverUrl: 'U',
       source: { provider: 'manual' },
     });
-    expect(paramsToInitialValues({ kind: 'x', title: ['a', 'b'], isbn: '' })).toEqual({ source: { provider: 'manual' } });
+    expect(paramsToInitialValues({ kind: 'x', title: ['a', 'b'], isbn: '' })).toEqual({
+      source: { provider: 'manual' },
+    });
   });
 });
 
@@ -284,7 +286,9 @@ describe('source', () => {
       source: { provider: 'openbd', isbn: '9784065199817' },
     });
     expect(toNewRecordInput(v).source).toEqual({ provider: 'openbd', isbn: '9784065199817' });
-    expect(toNewRecordInput({ ...v, isbn: '9784101010013' }).source).toEqual({ provider: 'manual' });
+    expect(toNewRecordInput({ ...v, isbn: '9784101010013' }).source).toEqual({
+      provider: 'manual',
+    });
     expect(toNewRecordInput({ ...v, isbn: '' }).source).toEqual({ provider: 'manual' });
     expect(toNewRecordInput({ ...v, kind: 'movie' }).source).toEqual({ provider: 'manual' });
   });
@@ -316,7 +320,11 @@ describe('source', () => {
       kind: 'movie',
       source: { provider: 'tmdb', mediaType: 'movie', tmdbId: '1' },
     });
-    expect(toNewRecordInput(v).source).toEqual({ provider: 'tmdb', mediaType: 'movie', tmdbId: '1' });
+    expect(toNewRecordInput(v).source).toEqual({
+      provider: 'tmdb',
+      mediaType: 'movie',
+      tmdbId: '1',
+    });
   });
 
   it('paramsToInitialValues はクエリから source を作る', () => {
@@ -325,5 +333,40 @@ describe('source', () => {
       ndlId: '5',
     });
     expect(paramsToInitialValues({ sourceProvider: 'ndl' }).source).toEqual({ provider: 'manual' });
+  });
+});
+
+describe('項目のオフ（enabledFields）', () => {
+  const allOn = {
+    rating: true,
+    status: true,
+    startDate: true,
+    endDate: true,
+    review: true,
+    photo: true,
+  };
+
+  it('applyStatusChange はオフの日付を書き換えない', () => {
+    const noEnd = { ...allOn, endDate: false };
+    expect(applyStatusChange(base(), 'completed', '2024-05-01', noEnd).endDate).toBe('');
+    const noStart = { ...allOn, startDate: false };
+    expect(applyStatusChange(base(), 'in_progress', '2024-05-01', noStart).startDate).toBe('');
+    expect(applyStatusChange(base(), 'completed', '2024-05-01', noStart).endDate).toBe(
+      '2024-05-01',
+    );
+  });
+
+  it('validateForm はオフの項目（レーティング・日付）を検証しない', () => {
+    const v = { ...base(), title: 'a', rating: '9', startDate: 'x', endDate: 'y' };
+    expect(Object.keys(validateForm(v))).toEqual(['startDate', 'endDate', 'rating']);
+    expect(validateForm(v, { ...allOn, rating: false, startDate: false, endDate: false })).toEqual(
+      {},
+    );
+  });
+
+  it('片方の日付だけオフなら、もう片方だけを検証し、順序エラーも出ない', () => {
+    const v = { ...base(), title: 'a', startDate: '2024-05-02', endDate: '2024-05-01' };
+    expect(validateForm(v, { ...allOn, startDate: false })).toEqual({});
+    expect(validateForm(v, { ...allOn, endDate: false })).toEqual({});
   });
 });

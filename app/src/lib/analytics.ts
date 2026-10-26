@@ -1,11 +1,16 @@
 import { MEDIA_KINDS, type MediaKind, type MediaRecord } from '../types/record';
+import { completionDate } from './completion';
+import { ALL_FIELDS_ENABLED, type EnabledFields } from './recordFields';
 
 export type MonthlyCompletion = {
   month: string;
   total: number;
   byKind: Record<MediaKind, number>;
 };
-export type MonthlyCompletionResult = { months: MonthlyCompletion[]; undatedCompleted: number };
+export type MonthlyCompletionResult = {
+  months: MonthlyCompletion[];
+  undatedCompleted: number;
+};
 
 const MONTH_COUNT = 12;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}/;
@@ -22,6 +27,7 @@ function monthKey(year: number, monthIndex: number): string {
 export function aggregateMonthlyCompletions(
   records: MediaRecord[],
   now: Date,
+  enabledFields: EnabledFields = ALL_FIELDS_ENABLED,
 ): MonthlyCompletionResult {
   const months: MonthlyCompletion[] = [];
   for (let i = MONTH_COUNT - 1; i >= 0; i--) {
@@ -35,11 +41,12 @@ export function aggregateMonthlyCompletions(
   let undatedCompleted = 0;
   for (const record of records) {
     if (record.status !== 'completed') continue;
-    if (record.endDate === null || !DATE_PATTERN.test(record.endDate)) {
+    const date = completionDate(record, enabledFields);
+    if (date === null || !DATE_PATTERN.test(date)) {
       undatedCompleted += 1;
       continue;
     }
-    const bucket = byMonth.get(record.endDate.slice(0, 7));
+    const bucket = byMonth.get(date.slice(0, 7));
     if (!bucket) continue;
     bucket.total += 1;
     bucket.byKind[record.kind] += 1;
@@ -60,7 +67,13 @@ function average(sum: number, count: number): number {
 }
 
 export function summarizeRatings(records: MediaRecord[]): RatingSummary {
-  const distribution: Record<RatingBucket, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  const distribution: Record<RatingBucket, number> = {
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0,
+  };
   const sums: Partial<Record<MediaKind, { count: number; sum: number }>> = {};
   let count = 0;
   let sum = 0;
@@ -79,9 +92,18 @@ export function summarizeRatings(records: MediaRecord[]): RatingSummary {
   const byKind: RatingSummary['byKind'] = {};
   for (const kind of MEDIA_KINDS) {
     const entry = sums[kind];
-    if (entry) byKind[kind] = { count: entry.count, average: average(entry.sum, entry.count) };
+    if (entry)
+      byKind[kind] = {
+        count: entry.count,
+        average: average(entry.sum, entry.count),
+      };
   }
-  return { distribution, count, average: count === 0 ? null : average(sum, count), byKind };
+  return {
+    distribution,
+    count,
+    average: count === 0 ? null : average(sum, count),
+    byKind,
+  };
 }
 
 export function formatAverage(value: number | null): string {

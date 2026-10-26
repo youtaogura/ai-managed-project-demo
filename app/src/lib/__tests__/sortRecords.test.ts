@@ -1,4 +1,4 @@
-import { SORT_ORDERS } from '../../types/sort';
+import { effectiveSortOrder, SORT_ORDERS } from '../../types/sort';
 import { SORT_ORDER_LABELS, sortRecords } from '../sortRecords';
 import { makeRecord } from '../../testUtils';
 
@@ -112,5 +112,37 @@ describe('sortRecords', () => {
 
   it('全ての並び順に表示文言がある', () => {
     for (const order of SORT_ORDERS) expect(SORT_ORDER_LABELS[order]).toBeTruthy();
+  });
+});
+
+describe('effectiveSortOrder', () => {
+  const on = {
+    rating: true,
+    status: true,
+    startDate: true,
+    endDate: true,
+    review: true,
+    photo: true,
+  };
+
+  it('項目がオンなら保存された並び順のまま', () => {
+    for (const order of SORT_ORDERS) expect(effectiveSortOrder(order, on)).toBe(order);
+  });
+
+  it('オフの項目の並び順は、初期の並び順（endDate_desc）に戻す', () => {
+    expect(effectiveSortOrder('startDate_asc', { ...on, startDate: false })).toBe('endDate_desc');
+    expect(effectiveSortOrder('rating_desc', { ...on, rating: false })).toBe('endDate_desc');
+  });
+
+  it('終えた日がオフなら登録日時の新しい順になる', () => {
+    expect(effectiveSortOrder('endDate_asc', { ...on, endDate: false })).toBe('createdAt_desc');
+    expect(effectiveSortOrder('rating_asc', { ...on, rating: false, endDate: false })).toBe(
+      'createdAt_desc',
+    );
+  });
+
+  it('オフにしていない項目の並び順は保たれる', () => {
+    expect(effectiveSortOrder('title_asc', { ...on, endDate: false })).toBe('title_asc');
+    expect(effectiveSortOrder('rating_asc', { ...on, startDate: false })).toBe('rating_asc');
   });
 });

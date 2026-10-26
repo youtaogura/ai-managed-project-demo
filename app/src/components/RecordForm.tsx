@@ -55,6 +55,7 @@ export function RecordForm({
 }: RecordFormProps) {
   const bottomInset = useBottomInset();
   const { settings } = useSettings();
+  const fields = settings.enabledFields;
   const [values, setValues] = useState<RecordFormValues>(() => createFormValues(initialValues));
   // 元の種別はマウント時点の値で固定し、切り替えても選択肢に残す
   const [originalKind] = useState(() => createFormValues(initialValues).kind);
@@ -108,7 +109,7 @@ export function RecordForm({
   }));
 
   const changeStatus = (status: RecordFormValues['status']) => {
-    setValues((prev) => applyStatusChange(prev, status, todayString()));
+    setValues((prev) => applyStatusChange(prev, status, todayString(), fields));
     setErrors((prev) => ({
       ...prev,
       startDate: undefined,
@@ -129,7 +130,7 @@ export function RecordForm({
   };
 
   const handleSubmit = async () => {
-    const found = validateForm(values);
+    const found = validateForm(values, fields);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
     await run(async () => {
@@ -163,7 +164,7 @@ export function RecordForm({
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <PhotoField record={preview} onChange={changePhoto} />
+        {fields.photo ? <PhotoField record={preview} onChange={changePhoto} /> : null}
 
         {kindOptions.length > 1 ? (
           <View>
@@ -207,57 +208,70 @@ export function RecordForm({
           </>
         ) : null}
 
-        <View>
-          <AppText variant="label" style={styles.heading}>
-            ステータス
-          </AppText>
-          <ChipGroup
-            label="ステータス"
-            options={statusOptions}
-            value={values.status}
-            columns={2}
-            onChange={changeStatus}
-          />
-        </View>
-
-        <View>
-          <View style={styles.dates}>
-            <View style={styles.date}>
-              <DateFieldButton
-                label={labels.start}
-                value={values.startDate ? formatDateDisplay(values.startDate) : ''}
-                error={errors.startDate}
-                onPress={() => setOpenDate('start')}
-              />
-            </View>
-            <View style={styles.date}>
-              <DateFieldButton
-                label={labels.end}
-                value={values.endDate ? formatDateDisplay(values.endDate) : ''}
-                error={errors.endDate}
-                onPress={() => setOpenDate('end')}
-              />
-            </View>
+        {fields.status ? (
+          <View>
+            <AppText variant="label" style={styles.heading}>
+              ステータス
+            </AppText>
+            <ChipGroup
+              label="ステータス"
+              options={statusOptions}
+              value={values.status}
+              columns={2}
+              onChange={changeStatus}
+            />
           </View>
-          <AppText variant="micro" style={styles.hint}>
-            {getDateHint(values.kind)}
-          </AppText>
-        </View>
+        ) : null}
 
-        <RatingInput
-          value={values.rating}
-          error={errors.rating}
-          onChange={(text) => setField('rating', text)}
-        />
+        {fields.startDate || fields.endDate ? (
+          <View>
+            <View style={styles.dates}>
+              {fields.startDate ? (
+                <View style={styles.date}>
+                  <DateFieldButton
+                    label={labels.start}
+                    value={values.startDate ? formatDateDisplay(values.startDate) : ''}
+                    error={errors.startDate}
+                    onPress={() => setOpenDate('start')}
+                  />
+                </View>
+              ) : null}
+              {fields.endDate ? (
+                <View style={styles.date}>
+                  <DateFieldButton
+                    label={labels.end}
+                    value={values.endDate ? formatDateDisplay(values.endDate) : ''}
+                    error={errors.endDate}
+                    onPress={() => setOpenDate('end')}
+                  />
+                </View>
+              ) : null}
+              {fields.startDate && fields.endDate ? null : <View style={styles.date} />}
+            </View>
+            <AppText variant="micro" style={styles.hint}>
+              {getDateHint(values.kind)}
+            </AppText>
+          </View>
+        ) : null}
 
-        <TextField
-          label="感想"
-          optionalLabel
-          multiline
-          placeholder="感じたことを自由に"
-          value={values.review}
-          onChangeText={(text) => setField('review', text)}
-        />
+        {fields.rating ? (
+          <RatingInput
+            value={values.rating}
+            error={errors.rating}
+            onChange={(text) => setField('rating', text)}
+          />
+        ) : null}
+
+        {fields.review ? (
+          <TextField
+            label="感想"
+            optionalLabel
+            multiline
+            placeholder="感じたことを自由に"
+            value={values.review}
+            onChangeText={(text) => setField('review', text)}
+          />
+        ) : null}
 
         {onDelete ? (
           <Button

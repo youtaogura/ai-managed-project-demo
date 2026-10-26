@@ -6,6 +6,7 @@ import {
   type RecordSource,
   type RecordStatus,
 } from '../types/record';
+import { ALL_FIELDS_ENABLED, type EnabledFields } from './recordFields';
 import { paramsToSource } from './recordSource';
 import { isValidDateString, isValidRating } from './validation';
 
@@ -109,28 +110,41 @@ export function applyStatusChange(
   values: RecordFormValues,
   status: RecordStatus,
   today: string,
+  enabledFields: EnabledFields = ALL_FIELDS_ENABLED,
 ): RecordFormValues {
   const next = { ...values, status };
-  if (status === 'in_progress' && next.startDate.trim() === '') next.startDate = today;
-  if ((status === 'completed' || status === 'dropped') && next.endDate.trim() === '') {
+  if (enabledFields.startDate && status === 'in_progress' && next.startDate.trim() === '') {
+    next.startDate = today;
+  }
+  if (
+    enabledFields.endDate &&
+    (status === 'completed' || status === 'dropped') &&
+    next.endDate.trim() === ''
+  ) {
     next.endDate = today;
   }
   return next;
 }
 
-export function validateForm(values: RecordFormValues): RecordFormErrors {
+// オフの項目（見えない項目）は検証しない
+export function validateForm(
+  values: RecordFormValues,
+  enabledFields: EnabledFields = ALL_FIELDS_ENABLED,
+): RecordFormErrors {
   const errors: RecordFormErrors = {};
   if (values.title.trim() === '') errors.title = ERROR_TITLE_REQUIRED;
 
-  const start = values.startDate.trim();
-  const end = values.endDate.trim();
+  const start = enabledFields.startDate ? values.startDate.trim() : '';
+  const end = enabledFields.endDate ? values.endDate.trim() : '';
   if (start !== '' && !isValidDateString(start)) errors.startDate = ERROR_DATE_FORMAT;
   if (end !== '' && !isValidDateString(end)) errors.endDate = ERROR_DATE_FORMAT;
   if (!errors.startDate && !errors.endDate && start !== '' && end !== '' && end < start) {
     errors.endDate = ERROR_DATE_ORDER;
   }
 
-  if (!isValidRating(parseRating(values.rating))) errors.rating = ERROR_RATING;
+  if (enabledFields.rating && !isValidRating(parseRating(values.rating))) {
+    errors.rating = ERROR_RATING;
+  }
   return errors;
 }
 

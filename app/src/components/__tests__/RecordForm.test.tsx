@@ -649,3 +649,124 @@ describe('RecordForm（使う種別）', () => {
     expect(screen.queryByRole('radio', { name: '漫画' })).toBeNull();
   });
 });
+
+describe('RecordForm（記録する項目のオフ）', () => {
+  const KINDS: MediaKind[] = ['book', 'manga', 'movie', 'drama', 'anime'];
+  const saved: Partial<NewRecordInput> = {
+    kind: 'book',
+    title: '吾輩',
+    status: 'in_progress',
+    startDate: '2024-01-05',
+    endDate: '2024-02-10',
+    rating: 4.5,
+    review: '良い本',
+    photoUri: 'file:///documents/photos/p.jpg',
+  };
+  const renderWith = (
+    fields: Parameters<typeof withSettings>[2],
+    initial: Partial<NewRecordInput> = {},
+    onSubmit = jest.fn().mockResolvedValue(undefined),
+  ) =>
+    render(withSettings(KINDS, <RecordForm initialValues={initial} onSubmit={onSubmit} />, fields));
+  const hint = '「読み終わった」を選ぶと、終えた日に今日が入ります';
+
+  it('レーティングがオフならレーティングが出ない', async () => {
+    await renderWith({ rating: false });
+    await screen.findByLabelText('タイトル（必須）');
+    expect(screen.queryByLabelText('レーティング')).toBeNull();
+  });
+
+  it('ステータスがオフならステータスのチップが出ない', async () => {
+    await renderWith({ status: false });
+    await screen.findByLabelText('タイトル（必須）');
+    expect(screen.queryByText('ステータス')).toBeNull();
+    expect(screen.queryByRole('radio', { name: '読み終わった' })).toBeNull();
+  });
+
+  it('感想がオフなら感想欄が出ない', async () => {
+    await renderWith({ review: false });
+    await screen.findByLabelText('タイトル（必須）');
+    expect(screen.queryByLabelText('感想（任意）')).toBeNull();
+    expect(screen.queryByPlaceholderText('感じたことを自由に')).toBeNull();
+  });
+
+  it('写真がオフなら写真の取得ボタンが出ない', async () => {
+    await renderWith({ photo: false });
+    await screen.findByLabelText('タイトル（必須）');
+    expect(screen.queryByRole('button', { name: 'カメラで撮影' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'ライブラリから選択' })).toBeNull();
+  });
+
+  it('始めた日だけオフなら、終えた日だけが残る', async () => {
+    await renderWith({ startDate: false });
+    expect(
+      await screen.findByRole('button', { name: '読み終えた日 選択してください' }),
+    ).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '読み始めた日 選択してください' })).toBeNull();
+    expect(screen.getByText(hint)).toBeTruthy();
+  });
+
+  it('終えた日だけオフなら、始めた日だけが残る', async () => {
+    await renderWith({ endDate: false });
+    expect(
+      await screen.findByRole('button', { name: '読み始めた日 選択してください' }),
+    ).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '読み終えた日 選択してください' })).toBeNull();
+  });
+
+  it('日付が両方オフなら日付の行もヒントも出ない', async () => {
+    await renderWith({ startDate: false, endDate: false });
+    await screen.findByLabelText('タイトル（必須）');
+    expect(screen.queryByRole('button', { name: /読み(始め|終え)た日/ })).toBeNull();
+    expect(screen.queryByText(hint)).toBeNull();
+  });
+
+  it('オフの項目の保存済みの値は、編集して保存しても変わらない', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    await renderWith(
+      {
+        rating: false,
+        status: false,
+        startDate: false,
+        endDate: false,
+        review: false,
+        photo: false,
+      },
+      saved,
+      onSubmit,
+    );
+    await type('タイトル（必須）', '吾輩は猫');
+    await press('記録する');
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({
+      title: '吾輩は猫',
+      status: 'in_progress',
+      startDate: '2024-01-05',
+      endDate: '2024-02-10',
+      rating: 4.5,
+      review: '良い本',
+      photoUri: 'file:///documents/photos/p.jpg',
+    });
+  });
+
+  it('非表示の項目の不正な値で保存が止まらない', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    await renderWith(
+      { rating: false, startDate: false, endDate: false },
+      { ...saved, startDate: '2024-03-01', endDate: '2024-01-01', rating: 9 },
+      onSubmit,
+    );
+    await press('記録する');
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(screen.queryByText(/レーティングは|終了日は/)).toBeNull();
+  });
+
+  it('終えた日がオフのとき、ステータスを「読み終わった」にしても終了日を入れない', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    await renderWith({ endDate: false }, { title: 'a' }, onSubmit);
+    await fireEvent.press(await screen.findByRole('radio', { name: '読み終わった' }));
+    await press('記録する');
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({ status: 'completed', endDate: null });
+  });
+});

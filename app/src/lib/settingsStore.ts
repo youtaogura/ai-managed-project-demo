@@ -1,5 +1,5 @@
 import { MEDIA_KINDS, type MediaKind } from '../types/record';
-import { DEFAULT_SETTINGS, type AppSettings } from '../types/settings';
+import { DEFAULT_SETTINGS, RECORD_FIELDS, type AppSettings } from '../types/settings';
 import type { KeyValueStorage } from './storage';
 
 export const SETTINGS_STORAGE_KEY = 'appSettings.v1';
@@ -10,7 +10,10 @@ export type SettingsStore = {
 };
 
 function defaults(): AppSettings {
-  return { enabledKinds: [...DEFAULT_SETTINGS.enabledKinds] };
+  return {
+    enabledKinds: [...DEFAULT_SETTINGS.enabledKinds],
+    enabledFields: { ...DEFAULT_SETTINGS.enabledFields },
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -37,6 +40,12 @@ export function parseSettings(raw: string | null): AppSettings {
   if (!isRecord(parsed)) return result;
   const enabledKinds = parseEnabledKinds(parsed.enabledKinds);
   if (enabledKinds) result.enabledKinds = enabledKinds;
+  if (isRecord(parsed.enabledFields)) {
+    for (const key of RECORD_FIELDS) {
+      const value = parsed.enabledFields[key];
+      if (typeof value === 'boolean') result.enabledFields[key] = value;
+    }
+  }
   return result;
 }
 

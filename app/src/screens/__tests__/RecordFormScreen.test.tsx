@@ -5,6 +5,7 @@ import { withRepository, withSettings } from '../../testProviders';
 import { paramsToInitialValues } from '../../lib/recordForm';
 import { createRecordRepository } from '../../lib/recordRepository';
 import type { KeyValueStorage } from '../../lib/storage';
+import type { MediaKind } from '../../types/record';
 import { RecordFormScreen } from '../RecordFormScreen';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -386,5 +387,71 @@ describe('RecordFormScreen（使う種別）', () => {
     await waitFor(() => expect(router.back).toHaveBeenCalled());
     const [saved] = await repository.getAll();
     expect(saved).toMatchObject({ title: '変更後', kind: 'book' });
+  });
+});
+
+describe('RecordFormScreen（ステータスがオフ）', () => {
+  const KINDS: MediaKind[] = ['book', 'manga', 'movie', 'drama', 'anime'];
+  const renderScreen = (
+    fields: Parameters<typeof withSettings>[2],
+    repository: ReturnType<typeof memoryRepository>,
+    element = <RecordFormScreen initialValues={{ title: 'T' }} />,
+  ) => render(withSettings(KINDS, withRepository(repository, element), fields));
+
+  beforeEach(() => {
+    jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
+    jest.setSystemTime(new Date(2024, 4, 10, 12, 0, 0));
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('ステータスがオンなら今までどおり planned', async () => {
+    const repository = memoryRepository();
+    await renderScreen({}, repository);
+    await press('記録する');
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
+    expect((await repository.getAll())[0]).toMatchObject({ status: 'planned', endDate: null });
+  });
+
+  it('ステータスがオフなら completed。終えた日がオンなら今日が入る', async () => {
+    const repository = memoryRepository();
+    await renderScreen({ status: false }, repository);
+    await press('記録する');
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
+    expect((await repository.getAll())[0]).toMatchObject({
+      status: 'completed',
+      endDate: '2024-05-10',
+    });
+  });
+
+  it('ステータスも終えた日もオフなら、completed で終了日は null', async () => {
+    const repository = memoryRepository();
+    await renderScreen({ status: false, endDate: false }, repository);
+    await press('記録する');
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
+    expect((await repository.getAll())[0]).toMatchObject({ status: 'completed', endDate: null });
+  });
+
+  it('渡された initialValues.status を優先する', async () => {
+    const repository = memoryRepository();
+    await renderScreen(
+      { status: false },
+      repository,
+      <RecordFormScreen initialValues={{ title: 'T', status: 'in_progress' }} />,
+    );
+    await press('記録する');
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
+    expect((await repository.getAll())[0]?.status).toBe('in_progress');
+  });
+
+  it('編集では記録のステータスを変えない', async () => {
+    const repository = memoryRepository();
+    const added = await repository.add(baseInput);
+    await renderScreen({ status: false }, repository, <RecordFormScreen recordId={added.id} />);
+    await fireEvent.changeText(await screen.findByLabelText('タイトル（必須）'), '変更');
+    await press('保存する');
+    await waitFor(() => expect(router.back).toHaveBeenCalled());
+    expect((await repository.getAll())[0]).toMatchObject({ title: '変更', status: 'planned' });
   });
 });

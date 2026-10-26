@@ -29,6 +29,7 @@ import { SORT_ORDER_LABELS, sortRecords } from '../lib/sortRecords';
 import { asyncKeyValueStorage } from '../lib/storage';
 import { countCompletions, recentlyFinished } from '../lib/yearCounter';
 import type { MediaRecord } from '../types/record';
+import { effectiveSortOrder } from '../types/sort';
 
 const defaultSortOrderStore = createSortOrderStore(asyncKeyValueStorage);
 
@@ -49,7 +50,8 @@ export function RecordsScreen({
 }: RecordsScreenProps) {
   const { records: allRecords, loading } = useRecords();
   const { settings } = useSettings();
-  const [order, setOrder] = useSortOrder(sortOrderStore);
+  const [storedOrder, setOrder] = useSortOrder(sortOrderStore);
+  const order = effectiveSortOrder(storedOrder, settings.enabledFields);
   const { addOpen, openAdd, closeAdd, select, enabledKinds, mediaSearchEnabled } =
     useAddSheet(onAdd);
   const [sortOpen, setSortOpen] = useState(false);
@@ -63,8 +65,14 @@ export function RecordsScreen({
     [allRecords, settings.enabledKinds],
   );
   const sorted = useMemo(() => sortRecords(records, order), [records, order]);
-  const recent = useMemo(() => recentlyFinished(records, RECENT_LIMIT), [records]);
-  const counts = useMemo(() => countCompletions(records, new Date()), [records]);
+  const recent = useMemo(
+    () => recentlyFinished(records, RECENT_LIMIT, settings.enabledFields),
+    [records, settings.enabledFields],
+  );
+  const counts = useMemo(
+    () => countCompletions(records, new Date(), settings.enabledFields),
+    [records, settings.enabledFields],
+  );
 
   if (loading) {
     return (

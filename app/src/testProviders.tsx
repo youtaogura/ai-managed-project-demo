@@ -9,6 +9,7 @@ import type { PhotoService } from './lib/photo/PhotoService';
 import type { RecordRepository } from './lib/recordRepository';
 import { createSettingsStore, SETTINGS_STORAGE_KEY, type SettingsStore } from './lib/settingsStore';
 import type { MediaKind } from './types/record';
+import { DEFAULT_SETTINGS, type AppSettings } from './types/settings';
 import { createMemoryStorage, createMockPhotoService } from './testUtils';
 
 const noCover: CoverResolver = async () => null;
@@ -28,12 +29,26 @@ export function withRepository(
   );
 }
 
-/** 設定を注入する。MediaKind[] を渡すと、その種別だけを使う設定で始まる。 */
-export function withSettings(settings: SettingsStore | MediaKind[], children: ReactNode) {
+/**
+ * 設定を注入する。MediaKind[] を渡すと、その種別だけを使う設定で始まる。
+ * 項目のオン・オフを渡すと、渡した項目だけを変えた設定で始まる。
+ */
+export function withSettings(
+  settings: SettingsStore | MediaKind[],
+  children: ReactNode,
+  enabledFields: Partial<AppSettings['enabledFields']> = {},
+) {
   const store: SettingsStore = Array.isArray(settings)
     ? createSettingsStore(
-        createMemoryStorage({ [SETTINGS_STORAGE_KEY]: JSON.stringify({ enabledKinds: settings }) })
-          .storage,
+        createMemoryStorage({
+          [SETTINGS_STORAGE_KEY]: JSON.stringify({
+            enabledKinds: settings,
+            enabledFields: {
+              ...DEFAULT_SETTINGS.enabledFields,
+              ...enabledFields,
+            },
+          }),
+        }).storage,
       )
     : settings;
   return <SettingsContextProvider store={store}>{children}</SettingsContextProvider>;

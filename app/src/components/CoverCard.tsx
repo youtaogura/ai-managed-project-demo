@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Animated, Pressable, StyleSheet, View } from 'react-native';
 
 import { colors, radius, size, space } from '../design/tokens';
+import { useSettings } from '../hooks/useSettings';
 import { getStatusLabel } from '../lib/statusLabel';
 import type { MediaRecord } from '../types/record';
 import { AppText } from './AppText';
@@ -17,14 +18,19 @@ const PRESS_DURATION = 100;
 const DOT_SIZE = 8;
 
 export function CoverCard({ record, variant, width, onPress }: CoverCardProps) {
+  const { enabledFields } = useSettings().settings;
   const [scale] = useState(() => new Animated.Value(1));
   const animateTo = (toValue: number) =>
-    Animated.timing(scale, { toValue, duration: PRESS_DURATION, useNativeDriver: false }).start();
+    Animated.timing(scale, {
+      toValue,
+      duration: PRESS_DURATION,
+      useNativeDriver: false,
+    }).start();
 
   const cardWidth = variant === 'hero' ? size.heroCardWidth : width;
   const cardRadius = variant === 'hero' ? radius.card : radius.thumb;
-  const showRating = variant === 'hero' && record.rating !== null;
-  const showEndDate = variant === 'hero' && record.endDate !== null;
+  const showRating = variant === 'hero' && enabledFields.rating && record.rating !== null;
+  const showEndDate = variant === 'hero' && enabledFields.endDate && record.endDate !== null;
 
   return (
     <Pressable
@@ -37,7 +43,7 @@ export function CoverCard({ record, variant, width, onPress }: CoverCardProps) {
       <Animated.View testID="cover-card-body" style={{ width: cardWidth, transform: [{ scale }] }}>
         <View>
           <Cover record={record} width={cardWidth} radius={cardRadius} />
-          {record.status === 'in_progress' ? (
+          {enabledFields.status && record.status === 'in_progress' ? (
             <View
               testID="status-dot"
               accessible
@@ -48,10 +54,10 @@ export function CoverCard({ record, variant, width, onPress }: CoverCardProps) {
         </View>
         {showRating || showEndDate ? (
           <View style={styles.info}>
-            {record.rating !== null ? (
+            {showRating && record.rating !== null ? (
               <AppText variant="value">{`★ ${record.rating.toFixed(1)}`}</AppText>
             ) : null}
-            {record.endDate !== null ? (
+            {showEndDate ? (
               <AppText variant="label" style={styles.endDate}>
                 {record.endDate}
               </AppText>

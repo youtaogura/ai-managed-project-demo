@@ -4,8 +4,8 @@ import { Linking, ScrollView } from 'react-native';
 import { triggerImpactHaptic } from '../../lib/haptics';
 import type { PhotoService } from '../../lib/photo/PhotoService';
 import type { RecordRepository } from '../../lib/recordRepository';
-import type { MediaRecord } from '../../types/record';
-import { withRepository } from '../../testProviders';
+import type { MediaKind, MediaRecord } from '../../types/record';
+import { withRepository, withSettings } from '../../testProviders';
 import { createFakeRepository, createMockPhotoService, makeRecord } from '../../testUtils';
 import { RecordDetailScreen } from '../RecordDetailScreen';
 
@@ -94,7 +94,16 @@ describe('RecordDetailScreen の表示', () => {
 
   it('作品の情報に空でない項目だけ出す', async () => {
     await show();
-    for (const text of ['種別', '作者・著者', '出版社', '新潮社', 'ISBN', '9784101010014', '登録日時', '更新日時']) {
+    for (const text of [
+      '種別',
+      '作者・著者',
+      '出版社',
+      '新潮社',
+      'ISBN',
+      '9784101010014',
+      '登録日時',
+      '更新日時',
+    ]) {
       expect(screen.getAllByText(text).length).toBeGreaterThan(0);
     }
   });
@@ -122,8 +131,13 @@ describe('RecordDetailScreen の表示', () => {
   it('「作品の情報」で、情報セクションの位置（body の位置を含む）へスクロールする', async () => {
     await show();
     const scrollTo = jest.fn();
-    Object.defineProperty(ScrollView.prototype, 'scrollTo', { value: scrollTo, configurable: true });
-    const layout = (y: number) => ({ nativeEvent: { layout: { x: 0, y, width: 100, height: 100 } } });
+    Object.defineProperty(ScrollView.prototype, 'scrollTo', {
+      value: scrollTo,
+      configurable: true,
+    });
+    const layout = (y: number) => ({
+      nativeEvent: { layout: { x: 0, y, width: 100, height: 100 } },
+    });
     const withLayout = (start: TestInstance | null) => {
       let node = start;
       while (node && node.props.onLayout === undefined) node = node.parent;
@@ -209,7 +223,9 @@ describe('削除の確認', () => {
     const del = jest.spyOn(repository, 'delete');
     await fireEvent.press(screen.getByText('この記録を削除'));
     await screen.findByText('この記録を削除しますか？');
-    await fireEvent.press(screen.getByTestId('bottom-sheet-scrim', { includeHiddenElements: true }));
+    await fireEvent.press(
+      screen.getByTestId('bottom-sheet-scrim', { includeHiddenElements: true }),
+    );
     await waitFor(() => expect(screen.queryByText('この記録を削除しますか？')).toBeNull());
     expect(del).not.toHaveBeenCalled();
   });
@@ -353,6 +369,65 @@ describe('写真の変更', () => {
     await open();
     await fireEvent.press(await screen.findByText('ライブラリから選択'));
     expect(await screen.findByText('写真を保存できませんでした')).toBeTruthy();
+  });
+});
+
+describe('記録する項目のオフ', () => {
+  const KINDS: MediaKind[] = ['book', 'manga', 'movie', 'drama', 'anime'];
+  const withPhoto = { ...full, photoUri: PHOTO };
+  const showWith = async (fields: Parameters<typeof withSettings>[2], record = withPhoto) => {
+    const fake = createFakeRepository([record]);
+    await renderRouter({
+      index: () =>
+        withSettings(
+          KINDS,
+          withRepository(fake.repository, <RecordDetailScreen recordId="x" />),
+          fields,
+        ),
+    });
+    await waitFor(() => expect(screen.getAllByText(record.title, { exact: false })).toBeTruthy(), {
+      timeout: 5000,
+    });
+    return fake;
+  };
+
+  it('レーティングがオフなら星が出ない。オンなら出る', async () => {
+    await showWith({ rating: false });
+    expect(screen.queryByLabelText('レーティング 4.5')).toBeNull();
+  });
+
+  it('ステータス・始めた日・終えた日がオフなら、そのセルが出ず残りで並ぶ', async () => {
+    await showWith({ status: false, startDate: false });
+    expect(screen.queryByText('読み終わった')).toBeNull();
+    expect(screen.queryByText('読み始めた')).toBeNull();
+    expect(screen.getByText('読み終えた')).toBeTruthy();
+    expect(screen.getByText('2024-02-10')).toBeTruthy();
+  });
+
+  it('3 つともオフなら InfoCellRow ごと出ない。作品の情報は変わらない', async () => {
+    await showWith({ status: false, startDate: false, endDate: false });
+    expect(screen.queryByText('読み終えた')).toBeNull();
+    expect(screen.queryByText('2024-01-05')).toBeNull();
+    expect(screen.getAllByText('作品の情報').length).toBeGreaterThan(0);
+  });
+
+  it('感想がオフなら感想の本文が出ない', async () => {
+    await showWith({ review: false });
+    expect(screen.queryByText(/一行目/)).toBeNull();
+  });
+
+  it('写真がオフなら「写真を変更」ボタンが出ない。書影の表示はそのまま', async () => {
+    await showWith({ photo: false });
+    expect(screen.queryByRole('button', { name: '写真を変更' })).toBeNull();
+    expect(screen.getAllByLabelText('吾輩は猫である').length).toBeGreaterThan(0);
+  });
+
+  it('すべてオンなら、星・セル・感想・写真ボタンが出る', async () => {
+    await showWith({});
+    expect(screen.getByLabelText('レーティング 4.5')).toBeTruthy();
+    expect(screen.getByText('読み終わった')).toBeTruthy();
+    expect(screen.getAllByText(/一行目/).length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: '写真を変更' })).toBeTruthy();
   });
 });
 

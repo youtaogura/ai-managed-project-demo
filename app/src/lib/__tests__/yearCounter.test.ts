@@ -30,3 +30,43 @@ describe('recentlyFinished', () => {
     expect(recentlyFinished(records, 2).map((r) => r.id)).toEqual(['b', 'd']);
   });
 });
+
+describe('終えた日がオフ', () => {
+  const off = {
+    rating: true,
+    status: true,
+    startDate: true,
+    endDate: false,
+    review: true,
+    photo: true,
+  };
+  const created = (y: number, m: number, d: number) => new Date(y, m - 1, d, 12).toISOString();
+  const records = [
+    makeRecord({
+      id: 'a',
+      status: 'completed',
+      endDate: '2000-01-01',
+      createdAt: created(2026, 10, 2),
+    }),
+    makeRecord({ id: 'b', status: 'completed', endDate: null, createdAt: created(2026, 3, 2) }),
+    makeRecord({
+      id: 'c',
+      status: 'planned',
+      endDate: '2026-10-01',
+      createdAt: created(2026, 10, 5),
+    }),
+    makeRecord({ id: 'd', status: 'completed', endDate: null, createdAt: created(2025, 10, 5) }),
+  ];
+
+  it('完了済みの記録を登録日で数える', () => {
+    expect(countCompletions(records, new Date(2026, 9, 15), off)).toEqual({ year: 2, month: 1 });
+  });
+
+  it('完了済みの記録を登録日の新しい順に出す', () => {
+    expect(recentlyFinished(records, 10, off).map((r) => r.id)).toEqual(['a', 'b', 'd']);
+  });
+
+  it('完了済みがなければ空', () => {
+    expect(recentlyFinished([records[2]].filter(Boolean) as typeof records, 10, off)).toEqual([]);
+  });
+});

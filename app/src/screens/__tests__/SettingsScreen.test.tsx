@@ -50,3 +50,64 @@ describe('SettingsScreen', () => {
     );
   });
 });
+
+describe('SettingsScreen（記録する項目）', () => {
+  const FIELD_NAMES = ['レーティング', 'ステータス', '始めた日', '終えた日', '感想', '写真'];
+  const sw = (name: string) => screen.getByRole('switch', { name });
+
+  it('6 つのスイッチがこの順に、すべてオンで出る。タイトルなどは出ない', async () => {
+    await render(
+      withSettings(createSettingsStore(createMemoryStorage().storage), <SettingsScreen />),
+    );
+    await screen.findByText('記録する項目');
+    const switches = screen.getAllByRole('switch');
+    expect(switches.map((s) => s.props.accessibilityLabel)).toEqual(FIELD_NAMES);
+    for (const name of FIELD_NAMES) {
+      expect(sw(name).props.accessibilityState).toMatchObject({ checked: true });
+    }
+    expect(screen.queryByRole('switch', { name: 'タイトル' })).toBeNull();
+  });
+
+  it('補足と、カード下の説明を出す', async () => {
+    await render(
+      withSettings(createSettingsStore(createMemoryStorage().storage), <SettingsScreen />),
+    );
+    expect(
+      await screen.findByText(/読み始めた日」、映画・ドラマ・アニメは「見始めた日/),
+    ).toBeTruthy();
+    expect(screen.getByText(/読み終えた日」、映画・ドラマ・アニメは「見終えた日/)).toBeTruthy();
+    expect(screen.getByText('書影の自動取得はオフになりません')).toBeTruthy();
+    expect(
+      screen.getByText(
+        'オフにした項目は、入力欄にも表示にも出なくなります。入力済みの内容は消えません。',
+      ),
+    ).toBeTruthy();
+  });
+
+  it('タップで切り替わり、保存され、開き直しても保たれる。種別は変わらない', async () => {
+    const { storage } = createMemoryStorage();
+    const first = await render(withSettings(createSettingsStore(storage), <SettingsScreen />));
+    await fireEvent.press(await screen.findByRole('switch', { name: '感想' }));
+    expect(sw('感想').props.accessibilityState).toMatchObject({ checked: false });
+    expect(sw('レーティング').props.accessibilityState).toMatchObject({ checked: true });
+    await first.unmount();
+
+    await render(withSettings(createSettingsStore(storage), <SettingsScreen />));
+    const review = await screen.findByRole('switch', { name: '感想' });
+    expect(review.props.accessibilityState).toMatchObject({ checked: false });
+    expect(chip('本').props.accessibilityState).toMatchObject({ checked: true });
+    await fireEvent.press(review);
+    expect(sw('感想').props.accessibilityState).toMatchObject({ checked: true });
+  });
+
+  it('6 項目すべてオフにできる', async () => {
+    await render(
+      withSettings(createSettingsStore(createMemoryStorage().storage), <SettingsScreen />),
+    );
+    await screen.findByText('記録する項目');
+    for (const name of FIELD_NAMES) await fireEvent.press(sw(name));
+    for (const name of FIELD_NAMES) {
+      expect(sw(name).props.accessibilityState).toMatchObject({ checked: false });
+    }
+  });
+});

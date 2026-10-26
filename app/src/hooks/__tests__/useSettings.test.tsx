@@ -3,6 +3,7 @@ import { Text } from 'react-native';
 
 import { createSettingsStore, type SettingsStore } from '../../lib/settingsStore';
 import { createMemoryStorage } from '../../testUtils';
+import { DEFAULT_SETTINGS, type AppSettings } from '../../types/settings';
 import { SettingsContextProvider, useSettings } from '../useSettings';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -39,7 +40,7 @@ describe('useSettings', () => {
   });
 
   it('読み込みが終わるまで子を描画しない', async () => {
-    let release: (v: { enabledKinds: ['movie'] }) => void = () => undefined;
+    let release: (v: AppSettings) => void = () => undefined;
     const store: SettingsStore = {
       load: () => new Promise((r) => (release = r)),
       save: async () => undefined,
@@ -50,7 +51,7 @@ describe('useSettings', () => {
       </SettingsContextProvider>,
     );
     expect(screen.queryByText('子')).toBeNull();
-    await act(async () => release({ enabledKinds: ['movie'] }));
+    await act(async () => release({ ...DEFAULT_SETTINGS, enabledKinds: ['movie'] }));
     expect(screen.getByText('子')).toBeTruthy();
   });
 
@@ -77,11 +78,28 @@ describe('useSettings', () => {
     await waitFor(() => expect(second.get().settings.enabledKinds).toEqual(['manga', 'anime']));
   });
 
+  it('項目の変更が保存され、作り直したストアで読み込むと同じ設定になる。種別は変わらない', async () => {
+    const { storage } = createMemoryStorage();
+    const first = await mount(createSettingsStore(storage));
+    await waitFor(() => expect(first.get().settings.enabledKinds).toHaveLength(5));
+    await act(async () =>
+      first
+        .get()
+        .update({ enabledFields: { ...first.get().settings.enabledFields, review: false } }),
+    );
+    await first.unmount();
+
+    const second = await mount(createSettingsStore(storage));
+    await waitFor(() => expect(second.get().settings.enabledFields.review).toBe(false));
+    expect(second.get().settings.enabledFields.rating).toBe(true);
+    expect(second.get().settings.enabledKinds).toHaveLength(5);
+  });
+
   it('保存は直列化され、最後の呼び出しが勝つ。保存に失敗しても状態は保たれる', async () => {
     const saved: string[][] = [];
     let calls = 0;
     const store: SettingsStore = {
-      load: async () => ({ enabledKinds: ['book'] }),
+      load: async () => ({ ...DEFAULT_SETTINGS, enabledKinds: ['book'] }),
       save: async (s) => {
         calls += 1;
         if (calls === 1) throw new Error('fail');

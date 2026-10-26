@@ -176,3 +176,55 @@ describe('ReviewScreen', () => {
     expect(content.paddingBottom).toBe(space[6] + 34);
   });
 });
+
+describe('ReviewScreen（記録する項目のオフ）', () => {
+  const KINDS: MediaKind[] = ['book', 'manga', 'movie', 'drama', 'anime'];
+  beforeEach(() => {
+    jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
+    jest.setSystemTime(new Date(2026, 9, 15));
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const setupFields = (fields: Parameters<typeof withSettings>[2], records: MediaRecord[]) =>
+    render(
+      withSettings(
+        KINDS,
+        withRepository(createFakeRepository(records).repository, <ReviewScreen />),
+        fields,
+      ),
+    );
+
+  it('レーティングがオフなら平均・分布・種別ごとの平均が出ない。1 枚のカードは残る', async () => {
+    await setupFields({ rating: false }, sample);
+    expect(await screen.findByText('この1年で終えた')).toBeTruthy();
+    expect(screen.queryByText('平均レーティング')).toBeNull();
+    expect(screen.queryByText('レーティング')).toBeNull();
+    expect(screen.queryByText('種別ごとの平均')).toBeNull();
+    expect(screen.getByText('月別の完了数')).toBeTruthy();
+  });
+
+  it('終えた日がオフなら、完了済みの記録を登録日時で数え、未入力の通知は出さない', async () => {
+    const records = [
+      done('1', { endDate: null, createdAt: new Date(2026, 9, 2, 12).toISOString() }),
+      done('2', { endDate: null, createdAt: new Date(2026, 8, 2, 12).toISOString() }),
+      makeRecord({ id: '3', status: 'planned', createdAt: new Date(2026, 9, 2, 12).toISOString() }),
+    ];
+    await setupFields({ endDate: false }, records);
+    expect(await screen.findByLabelText('10月 1 作品')).toBeTruthy();
+    expect(screen.getByLabelText('9月 1 作品')).toBeTruthy();
+    expect(screen.queryByText(/終了日が未入力/)).toBeNull();
+  });
+
+  it('日付とステータスがオフでも落ちず、記録があれば空の状態にならない', async () => {
+    await setupFields({ startDate: false, endDate: false, status: false }, sample);
+    expect(await screen.findByText('月別の完了数')).toBeTruthy();
+    expect(screen.queryByText('記録がたまると、ここに振り返りが表示されます')).toBeNull();
+  });
+
+  it('日付・ステータスがオフでも、記録が 0 件なら空の状態', async () => {
+    await setupFields({ startDate: false, endDate: false, status: false }, []);
+    expect(await screen.findByText('記録がたまると、ここに振り返りが表示されます')).toBeTruthy();
+  });
+});
