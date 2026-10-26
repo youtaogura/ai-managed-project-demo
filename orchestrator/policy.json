@@ -11,7 +11,9 @@
     "app/eslint.config.js",
     "app/tsconfig.json",
     "app/.npmrc",
-    "app/eas.json"
+    "app/eas.json",
+    "docs/design-system/",
+    "app/src/design/tokens.ts"
   ],
   "agentAllowedPaths": ["app/", "docs/specs/"],
   "agentBranchPrefix": "agent/issue-",

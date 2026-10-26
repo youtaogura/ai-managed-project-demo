@@ -104,3 +104,5 @@ jobs:
         run: bash test/e2e/run.sh
       - name: CI スクリプト
         run: node --test .github/scripts/*.test.mjs
+      - name: デザイントークンが正本と一致しているか
+        run: node .github/scripts/gen-design-tokens.mjs --check
