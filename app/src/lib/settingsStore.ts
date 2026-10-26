@@ -1,11 +1,11 @@
 import { MEDIA_KINDS, type MediaKind } from '../types/record';
 import {
   DEFAULT_SETTINGS,
-  RECORD_FIELDS,
   HERO_CRITERIA_IDS,
   type AppSettings,
   type HeroCriterion,
 } from '../types/settings';
+import { RECORD_FIELDS } from './recordFields';
 import type { KeyValueStorage } from './storage';
 
 export const SETTINGS_STORAGE_KEY = 'appSettings.v1';

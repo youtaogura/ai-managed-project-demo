@@ -1,15 +1,8 @@
 import { MEDIA_KINDS, type MediaKind } from './record';
 
-/** 記録するかどうかを選べる項目。設定画面に出す順。 */
-export const RECORD_FIELDS = [
-  'rating',
-  'status',
-  'startDate',
-  'endDate',
-  'review',
-  'photo',
-] as const;
-export type RecordFieldKey = (typeof RECORD_FIELDS)[number];
+/** 記録するかどうかを選べる項目。 */
+export type RecordFieldKey = 'rating' | 'status' | 'startDate' | 'endDate' | 'review' | 'photo';
+
 export const HERO_CRITERIA_IDS = ['recent', 'inProgress', 'highRated', 'planned', 'none'] as const;
 export type HeroCriterion = (typeof HERO_CRITERIA_IDS)[number];
 

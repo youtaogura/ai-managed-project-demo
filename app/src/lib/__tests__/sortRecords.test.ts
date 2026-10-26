@@ -1,5 +1,5 @@
-import { effectiveSortOrder, SORT_ORDERS } from '../../types/sort';
-import { SORT_ORDER_LABELS, sortRecords } from '../sortRecords';
+import { SORT_ORDERS } from '../../types/sort';
+import { SORT_ORDER_LABELS, effectiveSortOrder, sortRecords } from '../sortRecords';
 import { makeRecord } from '../../testUtils';
 
 const ids = (order: Parameters<typeof sortRecords>[1], records = sample) =>

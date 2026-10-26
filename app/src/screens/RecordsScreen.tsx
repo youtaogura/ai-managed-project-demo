@@ -26,11 +26,10 @@ import { useSortOrder } from '../hooks/useSortOrder';
 import { filterRecordsByKinds } from '../lib/enabledKinds';
 import { HERO_CRITERIA, selectHeroRecords } from '../lib/heroCriteria';
 import { createSortOrderStore, type SortOrderStore } from '../lib/sortOrderStore';
-import { SORT_ORDER_LABELS, sortRecords } from '../lib/sortRecords';
+import { SORT_ORDER_LABELS, effectiveSortOrder, sortRecords } from '../lib/sortRecords';
 import { asyncKeyValueStorage } from '../lib/storage';
 import { countCompletions } from '../lib/yearCounter';
 import type { MediaRecord } from '../types/record';
-import { effectiveSortOrder } from '../types/sort';
 
 const defaultSortOrderStore = createSortOrderStore(asyncKeyValueStorage);
 

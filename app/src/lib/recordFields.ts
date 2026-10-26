@@ -1,5 +1,15 @@
 import type { NewRecordInput } from '../types/record';
-import { RECORD_FIELDS, type RecordFieldKey } from '../types/settings';
+import type { RecordFieldKey } from '../types/settings';
+
+/** 記録するかどうかを選べる項目。設定画面に出す順。 */
+export const RECORD_FIELDS: readonly RecordFieldKey[] = [
+  'rating',
+  'status',
+  'startDate',
+  'endDate',
+  'review',
+  'photo',
+];
 
 export type EnabledFields = Record<RecordFieldKey, boolean>;
 

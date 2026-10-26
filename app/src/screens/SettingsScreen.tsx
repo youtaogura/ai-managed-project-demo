@@ -16,7 +16,8 @@ import { HERO_CRITERIA } from '../lib/heroCriteria';
 import { RECORD_FIELD_LABELS, withFieldToggled } from '../lib/recordFields';
 import { KIND_LABELS } from '../lib/statusLabel';
 import { MEDIA_KINDS, type MediaKind } from '../types/record';
-import { RECORD_FIELDS, type RecordFieldKey } from '../types/settings';
+import type { RecordFieldKey } from '../types/settings';
+import { RECORD_FIELDS } from '../lib/recordFields';
 
 const KIND_OPTIONS: readonly ChipOption<MediaKind>[] = MEDIA_KINDS.map((value) => ({
   value,
