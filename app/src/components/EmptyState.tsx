@@ -41,7 +41,6 @@ export function EmptyState({
           accessibilityRole="button"
           accessibilityLabel="記録する"
           onPress={onAction}
-          hitSlop={{ top: 0, bottom: 0 }}
           style={styles.ghostTouch}
         >
           {box}
