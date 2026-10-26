@@ -1,6 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { router } from 'expo-router';
-import { Linking } from 'react-native';
+import { Linking, StyleSheet } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { BookLookupContextProvider } from '../../hooks/useBookLookup';
 import type { BookLookupProvider } from '../../lib/bookLookup/BookLookupProvider';
@@ -177,5 +178,30 @@ describe('BarcodeScanScreen', () => {
     expect(openSettings).toHaveBeenCalled();
     await fireEvent.press(screen.getByRole('button', { name: 'ISBN を手入力する' }));
     expect(router.replace).toHaveBeenCalledWith('/record/isbn');
+  });
+
+  it.each([
+    ['カメラ表示', { granted: true, canAskAgain: true }, 'camera'],
+    ['権限要求', { granted: false, canAskAgain: true }, 'カメラを許可する'],
+  ])('%s は上端インセット分の余白を確保する', async (_name, permission, target) => {
+    mockPermission = permission;
+    const metrics = {
+      frame: { x: 0, y: 0, width: 390, height: 844 },
+      insets: { top: 47, left: 0, right: 0, bottom: 0 },
+    };
+    await render(
+      <SafeAreaProvider initialMetrics={metrics}>
+        <BookLookupContextProvider provider={{ lookupByIsbn: jest.fn() }}>
+          <BarcodeScanScreen />
+        </BookLookupContextProvider>
+      </SafeAreaProvider>,
+    );
+    let node = (screen.queryByTestId(target) ?? screen.getByText(target)).parent;
+    let paddingTop: unknown;
+    while (node && paddingTop !== 47) {
+      paddingTop = StyleSheet.flatten(node.props.style)?.paddingTop;
+      node = node.parent;
+    }
+    expect(paddingTop).toBe(47);
   });
 });
