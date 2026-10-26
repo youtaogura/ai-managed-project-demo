@@ -23,7 +23,6 @@ import { useBottomInset } from '../hooks/useBottomInset';
 import { useSettings } from '../hooks/useSettings';
 import { useRecords } from '../hooks/useRecords';
 import { useSortOrder } from '../hooks/useSortOrder';
-import { filterRecordsByKinds } from '../lib/enabledKinds';
 import { HERO_CRITERIA, selectHeroRecords } from '../lib/heroCriteria';
 import { createSortOrderStore, type SortOrderStore } from '../lib/sortOrderStore';
 import { SORT_ORDER_LABELS, sortRecords } from '../lib/sortRecords';
@@ -47,21 +46,16 @@ export function RecordsScreen({
   onAdd,
   onOpen,
 }: RecordsScreenProps) {
-  const { records: allRecords, loading } = useRecords();
+  const { records, loading } = useRecords();
   const { settings } = useSettings();
   const [order, setOrder] = useSortOrder(sortOrderStore);
-  const { addOpen, openAdd, closeAdd, select, enabledKinds, mediaSearchEnabled } =
-    useAddSheet(onAdd);
+  const { addOpen, openAdd, closeAdd, select } = useAddSheet(onAdd);
   const [sortOpen, setSortOpen] = useState(false);
   const { width } = useWindowDimensions();
   const bottomInset = useBottomInset();
   const listRef = useRef<FlatList<MediaRecord>>(null);
   useScrollToTop(listRef);
 
-  const records = useMemo(
-    () => filterRecordsByKinds(allRecords, settings.enabledKinds),
-    [allRecords, settings.enabledKinds],
-  );
   const sorted = useMemo(() => sortRecords(records, order), [records, order]);
   const hero = useMemo(
     () => selectHeroRecords(records, settings.heroCriterion),
@@ -88,8 +82,6 @@ export function RecordsScreen({
         visible={addOpen}
         onClose={closeAdd}
         onSelect={select}
-        mediaSearchEnabled={mediaSearchEnabled}
-        enabledKinds={enabledKinds}
       />
       <SortSheet
         visible={sortOpen}
@@ -108,7 +100,7 @@ export function RecordsScreen({
         </View>
         <EmptyState
           title="最初の1作品を記録しよう"
-          description="読み終えた本や、見終えた映画を記録するとここに並んでいきます"
+          description="読み終えた本を記録するとここに並んでいきます"
           onAction={() => openAdd()}
         />
         {sheets}

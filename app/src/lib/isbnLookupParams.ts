@@ -3,7 +3,6 @@ import { sourceToParams } from './recordSource';
 
 export function bookInfoToParams(book: BookInfo): Record<string, string> {
   const params: Record<string, string> = {
-    kind: 'book',
     title: book.title,
     isbn: book.isbn,
     ...sourceToParams({ provider: 'openbd', isbn: book.isbn }),
@@ -15,7 +14,7 @@ export function bookInfoToParams(book: BookInfo): Record<string, string> {
 }
 
 export function isbnOnlyParams(isbn: string | null): Record<string, string> {
-  return isbn === null ? { kind: 'book' } : { kind: 'book', isbn };
+  return isbn === null ? {} : { isbn };
 }
 
 export function notFoundParams(isbn: string): { isbn: string; notFound: '1' } {

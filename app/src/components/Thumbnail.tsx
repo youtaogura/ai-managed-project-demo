@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
-import { getThumbnailCandidates, PLACEHOLDER_LABELS } from '../lib/thumbnail';
+import { getThumbnailCandidates, PLACEHOLDER_LABEL } from '../lib/thumbnail';
 import { colors } from '../theme';
 import type { MediaRecord } from '../types/record';
 
 type ThumbnailProps = {
-  record: Pick<MediaRecord, 'kind' | 'photoUri' | 'coverUrl'>;
+  record: Pick<MediaRecord, 'photoUri' | 'coverUrl'>;
   width?: number;
   height?: number;
 };
@@ -20,7 +20,7 @@ export function Thumbnail({ record, width = 56, height = 80 }: ThumbnailProps) {
   if (uri === undefined) {
     return (
       <View style={[styles.box, styles.placeholder, size]} testID="thumbnail-placeholder">
-        <Text style={{ fontSize: Math.round(width / 2) }}>{PLACEHOLDER_LABELS[record.kind]}</Text>
+        <Text style={{ fontSize: Math.round(width / 2) }}>{PLACEHOLDER_LABEL}</Text>
       </View>
     );
   }

@@ -64,16 +64,16 @@ describe('設定タブ', () => {
     await screen.findByText('最初の1作品を記録しよう');
     expect(screen.getAllByRole('tab')).toHaveLength(3);
     await fireEvent.press(screen.getByRole('tab', { name: '設定' }));
-    expect(await screen.findByText('使う種別')).toBeTruthy();
+    expect(await screen.findByText('ステータスの初期値')).toBeTruthy();
+    expect(screen.queryByText('使う種別')).toBeNull();
     expect(screen.getByRole('tab', { name: '設定' }).props.accessibilityState.selected).toBe(true);
   });
 
-  it('種別を外すと、フォームの選択肢から消える', async () => {
+  it('フォームに種別の選択肢はない', async () => {
     await renderRouter(routes);
-    await fireEvent.press(await screen.findByRole('tab', { name: '設定' }));
-    await fireEvent.press(await screen.findByRole('checkbox', { name: '漫画' }));
     await act(async () => router.push('/record/new'));
-    expect(await screen.findByRole('radio', { name: '本' })).toBeTruthy();
+    expect(await screen.findByLabelText('タイトル（必須）')).toBeTruthy();
+    expect(screen.queryByText('種別')).toBeNull();
     expect(screen.queryByRole('radio', { name: '漫画' })).toBeNull();
   });
 });
@@ -169,11 +169,11 @@ describe('ISBN で探して追加', () => {
     return Array.isArray(saved) ? saved : [];
   }
 
-  it('取得結果がフォームに入力済みで表示され、coverUrl も含めて種別「本」で保存される', async () => {
+  it('取得結果がフォームに入力済みで表示され、coverUrl も含めて（kind なしで）保存される', async () => {
     const saved = await lookupAndSave('https://example.com/c.jpg');
     expect(saved).toHaveLength(1);
+    expect(saved[0]).not.toHaveProperty('kind');
     expect(saved[0]).toMatchObject({
-      kind: 'book',
       title: '取得した本',
       coverUrl: 'https://example.com/c.jpg',
     });
@@ -182,7 +182,7 @@ describe('ISBN で探して追加', () => {
   it('表紙画像がない場合は coverUrl が null で保存される', async () => {
     const saved = await lookupAndSave('');
     expect(saved).toHaveLength(1);
-    expect(saved[0]).toMatchObject({ kind: 'book', coverUrl: null });
+    expect(saved[0]).toMatchObject({ coverUrl: null });
   });
 });
 

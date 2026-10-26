@@ -17,7 +17,7 @@ async function mount(store: SettingsStore) {
   const latest: Latest = { current: null };
   function Probe() {
     latest.current = useSettings();
-    return <Text>{latest.current.settings.enabledKinds.join(',')}</Text>;
+    return <Text>{latest.current.settings.heroCriterion}</Text>;
   }
   const view = await render(
     <SettingsContextProvider store={store}>
@@ -34,9 +34,9 @@ async function mount(store: SettingsStore) {
 describe('useSettings', () => {
   it('Provider が無いと既定の設定が返り、更新は何もしない', async () => {
     const { result } = await renderHook(() => useSettings());
-    expect(result.current.settings.enabledKinds).toHaveLength(5);
-    await act(async () => result.current.update({ enabledKinds: ['book'] }));
-    expect(result.current.settings.enabledKinds).toHaveLength(5);
+    expect(result.current.settings.heroCriterion).toBe('recent');
+    await act(async () => result.current.update({ heroCriterion: 'none' }));
+    expect(result.current.settings.heroCriterion).toBe('recent');
   });
 
   it('読み込みが終わるまで子を描画しない', async () => {
@@ -52,7 +52,7 @@ describe('useSettings', () => {
     );
     expect(screen.queryByText('子')).toBeNull();
     await act(async () =>
-      release({ enabledKinds: ['movie'], heroCriterion: 'recent', defaultStatus: 'completed' }),
+      release({ heroCriterion: 'recent', defaultStatus: 'completed' }),
     );
     expect(screen.getByText('子')).toBeTruthy();
   });
@@ -65,56 +65,52 @@ describe('useSettings', () => {
       save: async () => undefined,
     };
     const { get } = await mount(store);
-    await waitFor(() => expect(get().settings.enabledKinds).toHaveLength(5));
+    await waitFor(() => expect(get().settings.heroCriterion).toBe('recent'));
   });
 
   it('変更が保存され、作り直したストアで読み込むと同じ設定になる', async () => {
     const { storage } = createMemoryStorage();
     const first = await mount(createSettingsStore(storage));
-    await waitFor(() => expect(first.get().settings.enabledKinds).toHaveLength(5));
-    await act(async () => first.get().update({ enabledKinds: ['manga', 'anime'] }));
-    expect(first.get().settings.enabledKinds).toEqual(['manga', 'anime']);
+    await waitFor(() => expect(first.get().settings.heroCriterion).toBe('recent'));
+    await act(async () => first.get().update({ heroCriterion: 'planned' }));
+    expect(first.get().settings.heroCriterion).toBe('planned');
     await first.unmount();
 
     const second = await mount(createSettingsStore(storage));
-    await waitFor(() => expect(second.get().settings.enabledKinds).toEqual(['manga', 'anime']));
+    await waitFor(() => expect(second.get().settings.heroCriterion).toBe('planned'));
   });
 
   it('保存は直列化され、最後の呼び出しが勝つ。保存に失敗しても状態は保たれる', async () => {
-    const saved: string[][] = [];
+    const saved: string[] = [];
     let calls = 0;
     const store: SettingsStore = {
-      load: async () => ({
-        enabledKinds: ['book'],
-        heroCriterion: 'recent',
-        defaultStatus: 'completed',
-      }),
+      load: async () => ({ heroCriterion: 'recent', defaultStatus: 'completed' }),
       save: async (s) => {
         calls += 1;
         if (calls === 1) throw new Error('fail');
-        saved.push(s.enabledKinds);
+        saved.push(s.heroCriterion);
       },
     };
     const { get } = await mount(store);
-    await waitFor(() => expect(get().settings.enabledKinds).toEqual(['book']));
+    await waitFor(() => expect(get().settings.heroCriterion).toBe('recent'));
     await act(async () => {
-      get().update({ enabledKinds: ['movie'] });
-      get().update({ enabledKinds: ['anime'] });
+      get().update({ heroCriterion: 'planned' });
+      get().update({ heroCriterion: 'inProgress' });
     });
-    await waitFor(() => expect(saved).toEqual([['anime']]));
-    expect(get().settings.enabledKinds).toEqual(['anime']);
+    await waitFor(() => expect(saved).toEqual(['inProgress']));
+    expect(get().settings.heroCriterion).toBe('inProgress');
   });
 
   it('replace で設定全体が置き換わる（保存は呼び出し側）', async () => {
     const save = jest.fn(async () => undefined);
     const store: SettingsStore = {
-      load: async () => ({ enabledKinds: ['book'], heroCriterion: 'recent', defaultStatus: 'completed' }),
+      load: async () => ({ heroCriterion: 'recent', defaultStatus: 'completed' }),
       save,
     };
     const { get } = await mount(store);
-    await waitFor(() => expect(get().settings.enabledKinds).toEqual(['book']));
-    await act(async () => get().replace({ enabledKinds: ['movie'], heroCriterion: 'none', defaultStatus: 'completed' }));
-    expect(get().settings).toEqual({ enabledKinds: ['movie'], heroCriterion: 'none', defaultStatus: 'completed' });
+    await waitFor(() => expect(get().settings.heroCriterion).toBe('recent'));
+    await act(async () => get().replace({ heroCriterion: 'none', defaultStatus: 'completed' }));
+    expect(get().settings).toEqual({ heroCriterion: 'none', defaultStatus: 'completed' });
     expect(save).not.toHaveBeenCalled();
   });
 });

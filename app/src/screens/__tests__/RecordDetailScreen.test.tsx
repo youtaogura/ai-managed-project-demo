@@ -29,7 +29,6 @@ function renderDetail(
 
 const full = makeRecord({
   id: 'x',
-  kind: 'book',
   title: '吾輩は猫である',
   creator: '夏目漱石',
   publisher: '新潮社',
@@ -60,9 +59,9 @@ async function show(record = full, photoService?: PhotoService, onDeleted = jest
 }
 
 describe('RecordDetailScreen の表示', () => {
-  it('タイトル・「作者 · 種別」・評価・InfoCell を出す', async () => {
+  it('タイトル・作者・評価・InfoCell を出す', async () => {
     await show();
-    expect(screen.getByText('夏目漱石 · 本')).toBeTruthy();
+    expect(screen.getAllByText('夏目漱石').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('レーティング 4.5')).toBeTruthy();
     expect(screen.getByText('読み終わった')).toBeTruthy();
     expect(screen.getByText('読み始めた')).toBeTruthy();
@@ -71,17 +70,18 @@ describe('RecordDetailScreen の表示', () => {
     expect(screen.getByText('2024-02-10')).toBeTruthy();
   });
 
-  it('映画は「見始めた／見終えた」', async () => {
-    await show(makeRecord({ id: 'x', kind: 'movie', title: '七人の侍' }));
-    expect(screen.getByText('見始めた')).toBeTruthy();
-    expect(screen.getByText('見終えた')).toBeTruthy();
+  it('映画・ドラマ・アニメの文言や「種別」は出ない', async () => {
+    await show();
+    expect(screen.queryByText('見始めた')).toBeNull();
+    expect(screen.queryByText('見終えた')).toBeNull();
+    expect(screen.queryByText('種別')).toBeNull();
+    expect(screen.queryByText('監督など')).toBeNull();
   });
 
-  it('評価・感想・日付・作者が空なら星と感想を出さず、日付は「—」、種別のみ出る', async () => {
+  it('評価・感想・日付・作者が空なら星と感想を出さず、日付は「—」', async () => {
     await show(makeRecord({ id: 'x', title: '空' }));
     expect(screen.queryByLabelText(/レーティング/)).toBeNull();
     expect(screen.getAllByText('—').length).toBe(2);
-    expect(screen.getAllByText('本').length).toBeGreaterThan(0);
     expect(screen.queryByText('感想', { exact: false })).toBeNull();
   });
 
@@ -94,16 +94,9 @@ describe('RecordDetailScreen の表示', () => {
 
   it('作品の情報に空でない項目だけ出す', async () => {
     await show();
-    for (const text of ['種別', '作者・著者', '出版社', '新潮社', 'ISBN', '9784101010014', '登録日時', '更新日時']) {
+    for (const text of ['作者・著者', '出版社', '新潮社', 'ISBN', '9784101010014', '登録日時', '更新日時']) {
       expect(screen.getAllByText(text).length).toBeGreaterThan(0);
     }
-  });
-
-  it('映画では出版社と ISBN を出さない', async () => {
-    await show(makeRecord({ id: 'x', kind: 'movie', title: '映画', creator: '監督' }));
-    expect(screen.queryByText('出版社')).toBeNull();
-    expect(screen.queryByText('ISBN')).toBeNull();
-    expect(screen.getByText('監督など')).toBeTruthy();
   });
 
   it.each([
@@ -416,7 +409,6 @@ describe('書影の自動取得', () => {
     ['書影がある', { coverUrl: 'https://cover.openbd.jp/c.jpg' }],
     ['写真がある', { photoUri: PHOTO }],
     ['ISBN がない', { isbn: null }],
-    ['映画', { kind: 'movie' as const }],
   ])('%s ときは取得せず、クレジットを出さない', async (_name, override) => {
     const resolver = jest.fn(async (_isbn: string) => FOUND);
     await open(resolver, { ...target, ...override });

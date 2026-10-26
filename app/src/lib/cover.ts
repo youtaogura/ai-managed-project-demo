@@ -1,5 +1,4 @@
 import { colors, typography } from '../design/tokens';
-import type { MediaKind } from '../types/record';
 
 export const COVER_ASPECT_RATIO = 2 / 3;
 
@@ -13,15 +12,8 @@ export function coverHeight(width: number): number {
   return width / COVER_ASPECT_RATIO;
 }
 
-export function getCoverColors(kind: MediaKind): { bg: string; ink: string } {
-  const table: Record<MediaKind, { bg: string; ink: string }> = {
-    book: { bg: colors.coverBookBg, ink: colors.coverBookInk },
-    manga: { bg: colors.coverMangaBg, ink: colors.coverMangaInk },
-    movie: { bg: colors.coverMovieBg, ink: colors.coverMovieInk },
-    drama: { bg: colors.coverDramaBg, ink: colors.coverDramaInk },
-    anime: { bg: colors.coverAnimeBg, ink: colors.coverAnimeInk },
-  };
-  return table[kind];
+export function getCoverColors(): { bg: string; ink: string } {
+  return { bg: colors.coverBookBg, ink: colors.coverBookInk };
 }
 
 export function getCoverTitleVariant(width: number): CoverTitleVariant {

@@ -95,7 +95,7 @@ bash test/e2e/run.sh        # 偽の gh / claude で Ready → Done と異常系
 
 ```bash
 cp .env.example .env        # この時点ではトークンは空のままでよい（DRY_RUN=1 になっている）
-# アプリが読む環境変数（TMDb の API キーなど）は別ファイル: cp app/.env.example app/.env
+# アプリが読む環境変数（`EXPO_PUBLIC_PREVIEW_INSETS` など）は別ファイル: cp app/.env.example app/.env
 mkdir -p agent-logs
 # AGENT_REPO_PATH は一旦このディレクトリなど、存在するパスにしておく
 docker compose build

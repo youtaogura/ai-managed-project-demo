@@ -2,13 +2,12 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
 import { AppText } from '../components/AppText';
-import { ChipMultiGroup, type ChipOption } from '../components/Chip';
 import { HeroCriterionSheet } from '../components/HeroCriterionSheet';
 import { StatusDefaultSheet } from '../components/StatusDefaultSheet';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { SettingsCard } from '../components/SettingsCard';
 import { SettingsRow } from '../components/SettingsRow';
-import { colors, space } from '../design/tokens';
+import { space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useSettings } from '../hooks/useSettings';
 import { formatVersion, getAppInfo } from '../lib/appInfo';
@@ -16,17 +15,9 @@ import { useLastExportedAt } from '../hooks/useLastExportedAt';
 import { createExportStore, type ExportStore } from '../lib/exportStore';
 import { formatDate } from '../lib/format';
 import { asyncKeyValueStorage } from '../lib/storage';
-import { toggleKind } from '../lib/enabledKinds';
 import { HERO_CRITERIA } from '../lib/heroCriteria';
 import { STATUS_DEFAULT_LABELS } from '../lib/statusDefault';
-import { KIND_LABELS } from '../lib/statusLabel';
-import { MEDIA_KINDS, type MediaKind } from '../types/record';
 
-const KIND_OPTIONS: readonly ChipOption<MediaKind>[] = MEDIA_KINDS.map((value) => ({
-  value,
-  label: KIND_LABELS[value],
-}));
-const KIND_COLUMNS = 3;
 
 const defaultExportStore = createExportStore(asyncKeyValueStorage);
 
@@ -50,18 +41,6 @@ export function SettingsScreen({
   const [heroOpen, setHeroOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
 
-  const onToggle = (kind: MediaKind) => {
-    const next = toggleKind(settings.enabledKinds, kind);
-    // 最後の 1 つは外せない（状態も保存も変えない）
-    if (
-      next.length === settings.enabledKinds.length &&
-      next.every((k, i) => k === settings.enabledKinds[i])
-    ) {
-      return;
-    }
-    update({ enabledKinds: next });
-  };
-
   return (
     <ScreenContainer>
       <ScrollView
@@ -70,21 +49,6 @@ export function SettingsScreen({
         <AppText variant="screenTitle" style={styles.title}>
           設定
         </AppText>
-        <SettingsCard title="使う種別">
-          <ChipMultiGroup
-            label="使う種別"
-            options={KIND_OPTIONS}
-            values={settings.enabledKinds}
-            onChange={onToggle}
-            columns={KIND_COLUMNS}
-          />
-          <AppText variant="micro" style={styles.note}>
-            使わない種別は、入力欄・一覧・振り返りに出なくなります。記録は消えず、戻せば元どおり表示されます。
-          </AppText>
-          <AppText variant="micro" style={styles.note}>
-            最低 1 つは選んでおく必要があります
-          </AppText>
-        </SettingsCard>
         <SettingsCard title="記録するとき">
           <SettingsRow
             label="ステータスの初期値"
@@ -141,5 +105,4 @@ export function SettingsScreen({
 const styles = StyleSheet.create({
   content: { paddingHorizontal: space[5], gap: space[5] },
   title: { paddingVertical: space[3] },
-  note: { color: colors.textTertiary, marginTop: space[1] },
 });

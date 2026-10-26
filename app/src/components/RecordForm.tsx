@@ -3,14 +3,11 @@ import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
 import { colors, space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
-import { useSettings } from '../hooks/useSettings';
-import { formKindOptions } from '../lib/enabledKinds';
 import { usePhotoService } from '../hooks/usePhotoService';
 import { formatDateDisplay } from '../lib/date';
 import {
   applyStatusChange,
   createFormValues,
-  hasPublisherFields,
   todayString,
   toNewRecordInput,
   validateForm,
@@ -22,7 +19,6 @@ import {
   getDateHint,
   getDateLabels,
   getStatusLabel,
-  KIND_LABELS,
 } from '../lib/statusLabel';
 import { RECORD_STATUSES, type NewRecordInput } from '../types/record';
 import { AppText } from './AppText';
@@ -54,14 +50,7 @@ export function RecordForm({
   onDeleted,
 }: RecordFormProps) {
   const bottomInset = useBottomInset();
-  const { settings } = useSettings();
   const [values, setValues] = useState<RecordFormValues>(() => createFormValues(initialValues));
-  // 元の種別はマウント時点の値で固定し、切り替えても選択肢に残す
-  const [originalKind] = useState(() => createFormValues(initialValues).kind);
-  const kindOptions = formKindOptions(settings.enabledKinds, originalKind).map((value) => ({
-    value,
-    label: KIND_LABELS[value],
-  }));
   const [errors, setErrors] = useState<RecordFormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
@@ -104,7 +93,7 @@ export function RecordForm({
 
   const statusOptions = RECORD_STATUSES.map((value) => ({
     value,
-    label: getStatusLabel(values.kind, value),
+    label: getStatusLabel(value),
   }));
 
   const changeStatus = (status: RecordFormValues['status']) => {
@@ -152,7 +141,7 @@ export function RecordForm({
     }, '削除に失敗しました');
   };
 
-  const labels = getDateLabels(values.kind);
+  const labels = getDateLabels();
   const openLabel = openDate === 'start' ? labels.start : labels.end;
   const openValue = openDate === 'start' ? values.startDate : values.endDate;
   const preview = {
@@ -165,20 +154,6 @@ export function RecordForm({
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <PhotoField record={preview} onChange={changePhoto} />
 
-        {kindOptions.length > 1 ? (
-          <View>
-            <AppText variant="label" style={styles.heading}>
-              種別
-            </AppText>
-            <ChipGroup
-              label="種別"
-              options={kindOptions}
-              value={values.kind}
-              onChange={(kind) => setField('kind', kind)}
-            />
-          </View>
-        ) : null}
-
         <TextField
           label="タイトル"
           required
@@ -187,12 +162,11 @@ export function RecordForm({
           onChangeText={(text) => setField('title', text)}
         />
         <TextField
-          label={getCreatorLabel(values.kind)}
+          label={getCreatorLabel()}
           value={values.creator}
           onChangeText={(text) => setField('creator', text)}
         />
-        {hasPublisherFields(values.kind) ? (
-          <>
+        <>
             <TextField
               label="出版社"
               value={values.publisher}
@@ -204,8 +178,7 @@ export function RecordForm({
               value={values.isbn}
               onChangeText={(text) => setField('isbn', text)}
             />
-          </>
-        ) : null}
+        </>
 
         <View>
           <AppText variant="label" style={styles.heading}>
@@ -240,7 +213,7 @@ export function RecordForm({
             </View>
           </View>
           <AppText variant="micro" style={styles.hint}>
-            {getDateHint(values.kind)}
+            {getDateHint()}
           </AppText>
         </View>
 

@@ -1,12 +1,6 @@
-import type { MediaKind, MediaRecord } from '../types/record';
+import type { MediaRecord } from '../types/record';
 
-export const PLACEHOLDER_LABELS: Record<MediaKind, string> = {
-  book: '📖',
-  manga: '📚',
-  movie: '🎬',
-  drama: '📺',
-  anime: '🎞',
-};
+export const PLACEHOLDER_LABEL = '📖';
 
 export type ThumbnailSource = {
   kind: 'photo' | 'cover' | 'placeholder';

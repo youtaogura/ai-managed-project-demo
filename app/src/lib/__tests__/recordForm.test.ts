@@ -158,31 +158,24 @@ describe('toNewRecordInput', () => {
     expect(toNewRecordInput(base()).rating).toBeNull();
     expect(toNewRecordInput({ ...base(), rating: 'x' }).rating).toBeNull();
   });
-  it('本・漫画以外では isbn / publisher を null にする', () => {
-    const v = { ...base(), publisher: '出版', isbn: '978' };
-    expect(toNewRecordInput({ ...v, kind: 'manga' }).isbn).toBe('978');
-    const movie = toNewRecordInput({ ...v, kind: 'movie' });
-    expect(movie.isbn).toBeNull();
-    expect(movie.publisher).toBeNull();
+  it('isbn / publisher は空なら null、あれば trim して入れる', () => {
+    const v = { ...base(), publisher: ' 出版 ', isbn: '978' };
+    const input = toNewRecordInput(v);
+    expect(input.isbn).toBe('978');
+    expect(input.publisher).toBe('出版');
+    expect(input).not.toHaveProperty('kind');
   });
 });
 
 describe('createFormValues / recordToFormValues', () => {
   it('既定値と初期値の反映', () => {
-    expect(createFormValues()).toMatchObject({
-      kind: 'book',
-      status: 'planned',
-      rating: '',
-    });
-    expect(createFormValues({ kind: 'anime', rating: 4 })).toMatchObject({
-      kind: 'anime',
-      rating: '4.0',
-    });
+    expect(createFormValues()).toMatchObject({ status: 'planned', rating: '' });
+    expect(createFormValues()).not.toHaveProperty('kind');
+    expect(createFormValues({ rating: 4 })).toMatchObject({ rating: '4.0' });
   });
   it('記録からフォーム値に変換する', () => {
     const record: MediaRecord = {
       id: '1',
-      kind: 'book',
       title: 'T',
       creator: 'C',
       publisher: null,
@@ -211,7 +204,7 @@ describe('createFormValues / recordToFormValues', () => {
 });
 
 describe('paramsToInitialValues', () => {
-  it('文字列の値だけを取り出し、不正な kind は無視する', () => {
+  it('文字列の値だけを取り出し、古い kind は無視する', () => {
     expect(
       paramsToInitialValues({
         kind: 'movie',
@@ -222,7 +215,6 @@ describe('paramsToInitialValues', () => {
         coverUrl: 'U',
       }),
     ).toEqual({
-      kind: 'movie',
       title: 'T',
       creator: 'C',
       publisher: 'P',
@@ -230,7 +222,7 @@ describe('paramsToInitialValues', () => {
       coverUrl: 'U',
       source: { provider: 'manual' },
     });
-    expect(paramsToInitialValues({ kind: 'x', title: ['a', 'b'], isbn: '' })).toEqual({ source: { provider: 'manual' } });
+    expect(paramsToInitialValues({ title: ['a', 'b'], isbn: '' })).toEqual({ source: { provider: 'manual' } });
   });
 });
 
@@ -269,7 +261,7 @@ describe('crossesInteger', () => {
 });
 
 describe('source', () => {
-  const base = createFormValues({ title: 'T', kind: 'book' });
+  const base = createFormValues({ title: 'T' });
 
   it('初期値の source を保持し、なければ manual', () => {
     expect(base.source).toEqual({ provider: 'manual' });
@@ -286,7 +278,6 @@ describe('source', () => {
     expect(toNewRecordInput(v).source).toEqual({ provider: 'openbd', isbn: '9784065199817' });
     expect(toNewRecordInput({ ...v, isbn: '9784101010013' }).source).toEqual({ provider: 'manual' });
     expect(toNewRecordInput({ ...v, isbn: '' }).source).toEqual({ provider: 'manual' });
-    expect(toNewRecordInput({ ...v, kind: 'movie' }).source).toEqual({ provider: 'manual' });
   });
 
   it('ndl は ISBN を書き換えても保持される', () => {
@@ -294,29 +285,10 @@ describe('source', () => {
     expect(toNewRecordInput({ ...v, isbn: '2' }).source).toEqual({ provider: 'ndl', ndlId: '9' });
   });
 
-  it('paramsToInitialValues は tmdb の source・kind・coverUrl を受ける', () => {
+  it('paramsToInitialValues は古い tmdb の source を manual にする', () => {
     expect(
-      paramsToInitialValues({
-        kind: 'drama',
-        coverUrl: 'https://image.tmdb.org/t/p/w185/p.jpg',
-        sourceProvider: 'tmdb',
-        sourceType: 'tv',
-        sourceId: '7',
-      }),
-    ).toMatchObject({
-      kind: 'drama',
-      coverUrl: 'https://image.tmdb.org/t/p/w185/p.jpg',
-      source: { provider: 'tmdb', mediaType: 'tv', tmdbId: '7' },
-    });
-  });
-
-  it('tmdb は kind が映画などでも、ISBN 欄が空でも保持される', () => {
-    const v = createFormValues({
-      title: 'T',
-      kind: 'movie',
-      source: { provider: 'tmdb', mediaType: 'movie', tmdbId: '1' },
-    });
-    expect(toNewRecordInput(v).source).toEqual({ provider: 'tmdb', mediaType: 'movie', tmdbId: '1' });
+      paramsToInitialValues({ sourceProvider: 'tmdb', sourceType: 'tv', sourceId: '7' }).source,
+    ).toEqual({ provider: 'manual' });
   });
 
   it('paramsToInitialValues はクエリから source を作る', () => {

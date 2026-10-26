@@ -12,7 +12,6 @@ describe('candidateToParams', () => {
         ndlId: null,
       }),
     ).toEqual({
-      kind: 'book',
       title: 'T',
       creator: 'A',
       publisher: 'P',
@@ -33,7 +32,6 @@ describe('candidateToParams', () => {
         ndlId: '123',
       }),
     ).toEqual({
-      kind: 'book',
       title: 'T',
       isbn: '9784065199817',
       sourceProvider: 'ndl',
@@ -44,15 +42,15 @@ describe('candidateToParams', () => {
   it('null の項目は省略する', () => {
     expect(
       candidateToParams({ title: 'T', author: null, publisher: null, publishedYear: null, isbn: null, ndlId: null }),
-    ).toEqual({ kind: 'book', title: 'T' });
+    ).toEqual({ title: 'T' });
   });
 });
 
 describe('titleOnlyParams', () => {
   it('キーワードをタイトルにする', () => {
-    expect(titleOnlyParams(' ワン ')).toEqual({ kind: 'book', title: 'ワン' });
+    expect(titleOnlyParams(' ワン ')).toEqual({ title: 'ワン' });
   });
-  it('空なら kind のみ', () => {
-    expect(titleOnlyParams('  ')).toEqual({ kind: 'book' });
+  it('空なら空のパラメータ', () => {
+    expect(titleOnlyParams('  ')).toEqual({});
   });
 });

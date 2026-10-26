@@ -1,4 +1,4 @@
-import { MEDIA_KINDS, RECORD_STATUSES, type MediaKind, type RecordStatus } from '../types/record';
+import { RECORD_STATUSES, type RecordStatus } from '../types/record';
 import {
   DEFAULT_SETTINGS,
   HERO_CRITERIA_IDS,
@@ -16,7 +16,6 @@ export type SettingsStore = {
 
 function defaults(): AppSettings {
   return {
-    enabledKinds: [...DEFAULT_SETTINGS.enabledKinds],
     heroCriterion: DEFAULT_SETTINGS.heroCriterion,
     defaultStatus: DEFAULT_SETTINGS.defaultStatus,
   };
@@ -24,13 +23,6 @@ function defaults(): AppSettings {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-// 未知の種別を捨て、重複を除き、MEDIA_KINDS の順にそろえる。1 つも残らなければ null
-function parseEnabledKinds(value: unknown): MediaKind[] | null {
-  if (!Array.isArray(value)) return null;
-  const kinds = MEDIA_KINDS.filter((kind) => value.includes(kind));
-  return kinds.length > 0 ? kinds : null;
 }
 
 function parseHeroCriterion(value: unknown): HeroCriterion | null {
@@ -52,8 +44,6 @@ export function parseSettings(raw: string | null): AppSettings {
     return result;
   }
   if (!isRecord(parsed)) return result;
-  const enabledKinds = parseEnabledKinds(parsed.enabledKinds);
-  if (enabledKinds) result.enabledKinds = enabledKinds;
   const heroCriterion = parseHeroCriterion(parsed.heroCriterion);
   if (heroCriterion) result.heroCriterion = heroCriterion;
   const defaultStatus = parseDefaultStatus(parsed.defaultStatus);

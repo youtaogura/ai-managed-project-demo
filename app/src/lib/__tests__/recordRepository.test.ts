@@ -18,7 +18,6 @@ function createMemoryStorage(initial: Record<string, string> = {}) {
 }
 
 const input: NewRecordInput = {
-  kind: 'book',
   title: '吾輩は猫である',
   creator: '夏目漱石',
   publisher: null,

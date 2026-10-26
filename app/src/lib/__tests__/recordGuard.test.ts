@@ -2,7 +2,6 @@ import { isMediaRecord, parseRecords } from '../recordGuard';
 
 const valid = {
   id: 'a',
-  kind: 'book',
   title: 'タイトル',
   creator: null,
   publisher: null,
@@ -31,7 +30,6 @@ describe('isMediaRecord', () => {
     ['文字列', 'x'],
     ['id なし', { ...valid, id: undefined }],
     ['id 空', { ...valid, id: '' }],
-    ['kind 不正', { ...valid, kind: 'game' }],
     ['title 空白', { ...valid, title: ' ' }],
     ['title 数値', { ...valid, title: 1 }],
     ['status 不正', { ...valid, status: 'done' }],
@@ -56,10 +54,25 @@ describe('parseRecords', () => {
   });
 
   it('不正な記録を読み飛ばし、有効なものだけ返す', () => {
-    expect(parseRecords([valid, { ...valid, id: 'b', kind: 'x' }, 1, { ...valid, id: 'c' }])).toEqual([
+    expect(parseRecords([valid, { ...valid, id: 'b', title: '' }, 1, { ...valid, id: 'c' }])).toEqual([
       valid,
       { ...valid, id: 'c' },
     ]);
+  });
+
+  it('古い kind は無視し、出力に含めない', () => {
+    const [record] = parseRecords([{ ...valid, kind: 'movie' }]);
+    expect(record).toEqual(valid);
+    expect(record).not.toHaveProperty('kind');
+  });
+
+  it('古い tmdb の source は isbn から補う', () => {
+    const tmdb = { provider: 'tmdb', mediaType: 'movie', tmdbId: '1' };
+    expect(parseRecords([{ ...valid, source: tmdb }])).toEqual([valid]);
+    expect(parseRecords([{ ...valid, isbn: '9784101010014', source: tmdb }])[0]?.source).toEqual({
+      provider: 'openbd',
+      isbn: '9784101010014',
+    });
   });
 
   it('未知のフィールドを除去する', () => {

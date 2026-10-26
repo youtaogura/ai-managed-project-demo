@@ -72,10 +72,10 @@ describe('selectHeroRecords', () => {
 describe('HERO_CRITERIA', () => {
   it('見出し・補足・選択肢の並び', () => {
     expect(HERO_CRITERION_OPTIONS.map((o) => o.id)).toEqual(['recent', 'inProgress', 'highRated', 'planned', 'none']);
-    expect(HERO_CRITERIA.recent.title).toBe('最近読み終えた・見終えた');
-    expect(HERO_CRITERIA.inProgress.title).toBe('今読んでる・見てる');
+    expect(HERO_CRITERIA.recent.title).toBe('最近読み終えた');
+    expect(HERO_CRITERIA.inProgress.title).toBe('今読んでる');
     expect(HERO_CRITERIA.highRated.title).toBe('評価の高い作品');
-    expect(HERO_CRITERIA.planned.title).toBe('読みたい・見たい');
+    expect(HERO_CRITERIA.planned.title).toBe('読みたい');
     expect(HERO_CRITERIA.none.title).toBeNull();
     expect(HERO_CRITERIA.none.description).toBeNull();
   });

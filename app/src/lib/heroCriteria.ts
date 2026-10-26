@@ -47,16 +47,16 @@ function planned(records: readonly MediaRecord[]): MediaRecord[] {
 export const HERO_CRITERIA: Record<HeroCriterion, HeroCriterionDef> = {
   recent: {
     id: 'recent',
-    label: '最近読み終えた・見終えた',
-    title: '最近読み終えた・見終えた',
+    label: '最近読み終えた',
+    title: '最近読み終えた',
     description: '終えた日の新しい順',
     select: (records) => recentlyFinished(records, records.length),
   },
   inProgress: {
     id: 'inProgress',
-    label: '今読んでる・見てる',
-    title: '今読んでる・見てる',
-    description: '読んでる・見てるの作品',
+    label: '今読んでる',
+    title: '今読んでる',
+    description: '読んでる作品',
     select: inProgress,
   },
   highRated: {
@@ -68,9 +68,9 @@ export const HERO_CRITERIA: Record<HeroCriterion, HeroCriterionDef> = {
   },
   planned: {
     id: 'planned',
-    label: '読みたい・見たい',
-    title: '読みたい・見たい',
-    description: 'これから読む・見る作品',
+    label: '読みたい',
+    title: '読みたい',
+    description: 'これから読む作品',
     select: planned,
   },
   none: { id: 'none', label: '表示しない', title: null, description: null, select: () => [] },

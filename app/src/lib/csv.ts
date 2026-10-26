@@ -1,10 +1,9 @@
 import type { MediaRecord } from '../types/record';
-import { KIND_LABELS, getStatusLabel } from './statusLabel';
+import { getStatusLabel } from './statusLabel';
 
 const BOM = '﻿';
 const EOL = '\r\n';
 const HEADERS = [
-  '種別',
   'タイトル',
   '作者',
   '出版社',
@@ -33,12 +32,11 @@ function textCell(value: string | null): string {
 
 function row(record: MediaRecord): string {
   return [
-    textCell(KIND_LABELS[record.kind]),
     textCell(record.title),
     textCell(record.creator),
     textCell(record.publisher),
     textCell(record.isbn),
-    textCell(getStatusLabel(record.kind, record.status)),
+    textCell(getStatusLabel(record.status)),
     textCell(record.startDate),
     textCell(record.endDate),
     record.rating === null ? '' : String(record.rating),

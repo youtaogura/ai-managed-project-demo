@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 
 import { colors, radius, size } from '../../design/tokens';
 import { makeRecord } from '../../testUtils';
-import { MEDIA_KINDS, RECORD_STATUSES } from '../../types/record';
+import { RECORD_STATUSES } from '../../types/record';
 import { CoverCard } from '../CoverCard';
 
 const imageOf = () =>
@@ -19,19 +19,18 @@ describe('CoverCard', () => {
     expect(onPress).toHaveBeenCalledWith(record);
   });
 
-  describe.each(MEDIA_KINDS)('%s', (kind) => {
+  describe('進行中の点', () => {
     it.each(RECORD_STATUSES)('status=%s の点', async (status) => {
       await render(
         <CoverCard
-          record={makeRecord({ kind, status })}
+          record={makeRecord({ status })}
           variant="thumb"
           width={80}
           onPress={jest.fn()}
         />,
       );
       if (status === 'in_progress') {
-        const label = kind === 'book' || kind === 'manga' ? '読んでる' : '見てる';
-        const dot = screen.getByLabelText(label);
+        const dot = screen.getByLabelText('読んでる');
         const style = StyleSheet.flatten(dot.props.style);
         expect(style.backgroundColor).toBe(colors.accent);
         expect(style.position).toBe('absolute');

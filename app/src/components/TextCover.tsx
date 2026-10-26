@@ -9,19 +9,17 @@ import {
   getCoverColors,
   getCoverTitleVariant,
 } from '../lib/cover';
-import type { MediaRecord } from '../types/record';
 import { AppText } from './AppText';
 
 type TextCoverProps = {
-  kind: MediaRecord['kind'];
   title: string;
   creator: string | null;
   width: number;
   radius?: number;
 };
 
-export function TextCover({ kind, title, creator, width, radius = 0 }: TextCoverProps) {
-  const { bg, ink } = getCoverColors(kind);
+export function TextCover({ title, creator, width, radius = 0 }: TextCoverProps) {
+  const { bg, ink } = getCoverColors();
   const variant = getCoverTitleVariant(width);
   const t = COVER_TITLE_STYLES[variant];
   const padding = Math.max(space['1'], Math.round(width * 0.08));
@@ -31,7 +29,13 @@ export function TextCover({ kind, title, creator, width, radius = 0 }: TextCover
       testID="text-cover"
       style={[
         styles.box,
-        { width, height: coverHeight(width), backgroundColor: bg, borderRadius: radius, padding },
+        {
+          width,
+          height: coverHeight(width),
+          backgroundColor: bg,
+          borderRadius: radius,
+          padding,
+        },
       ]}
     >
       <AppText

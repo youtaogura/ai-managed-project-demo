@@ -20,7 +20,7 @@ export function buildBackup(
     version: BACKUP_VERSION,
     exportedAt,
     records: records.map((record) => ({ ...record, photoUri: null })),
-    settings: { ...settings, enabledKinds: [...settings.enabledKinds] },
+    settings: { ...settings },
   };
 }
 
@@ -56,9 +56,17 @@ export function parseBackup(text: string): ParseBackupResult {
   }
   const records = parseRecords(rawRecords);
   if (!hasUniqueIds(records)) return { ok: false, reason: 'invalid' };
-  const settings = isObject(parsed.settings) ? parseSettings(JSON.stringify(parsed.settings)) : null;
+  const settings = isObject(parsed.settings)
+    ? parseSettings(JSON.stringify(parsed.settings))
+    : null;
   return {
     ok: true,
-    backup: { format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt, records, settings },
+    backup: {
+      format: BACKUP_FORMAT,
+      version: BACKUP_VERSION,
+      exportedAt,
+      records,
+      settings,
+    },
   };
 }

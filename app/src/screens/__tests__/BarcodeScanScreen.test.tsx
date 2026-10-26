@@ -183,7 +183,6 @@ describe('BarcodeScanScreen', () => {
     expect(router.replace).toHaveBeenCalledWith({
       pathname: '/record/new',
       params: {
-        kind: 'book',
         title: 'T',
         isbn: ISBN,
         creator: 'A',

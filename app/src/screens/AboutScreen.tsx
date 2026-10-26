@@ -9,19 +9,17 @@ import { SettingsRow } from '../components/SettingsRow';
 import { colors, radius, space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { formatVersion, getAppInfo } from '../lib/appInfo';
-import { TMDB_ATTRIBUTION } from '../lib/mediaSearch/tmdb/TmdbSearchProvider';
 
-type Source = { name: string; note: string; extra?: string };
+type Source = { name: string; note: string };
 
 const SOURCES: readonly Source[] = [
   { name: 'openBD', note: '書誌情報・書影（ISBN から）' },
   { name: '国立国会図書館サーチ', note: 'タイトル検索' },
-  { name: 'TMDb', note: '映画などの検索', extra: TMDB_ATTRIBUTION },
   { name: 'Noto Sans JP / しっぽり明朝', note: 'フォント（SIL Open Font License）' },
 ];
 
 const PRIVACY =
-  '記録はこの端末の中にだけ保存され、外部に送られることはありません。書誌情報や映画情報を探すときだけ、ISBN やキーワードを上の出典に問い合わせます。';
+  '記録はこの端末の中にだけ保存され、外部に送られることはありません。書誌情報を探すときだけ、ISBN やキーワードを上の出典に問い合わせます。';
 
 const BAR_HEIGHTS = [space[5], space[6], space[4]] as const;
 
@@ -54,11 +52,6 @@ export function AboutScreen() {
               <AppText variant="label" style={styles.secondary}>
                 {source.note}
               </AppText>
-              {source.extra ? (
-                <AppText variant="micro" style={styles.tertiary}>
-                  {source.extra}
-                </AppText>
-              ) : null}
             </View>
           ))}
         </SettingsCard>
