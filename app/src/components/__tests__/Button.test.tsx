@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
 import { colors, radius, size } from '../../design/tokens';
-import { Button, pressedStyle } from '../Button';
+import { Button } from '../Button';
 
 function flat(node: { props: { style?: unknown } }, pressed = false) {
   const style = node.props.style;
@@ -77,9 +77,25 @@ describe('Button', () => {
     expect(onPress).not.toHaveBeenCalled();
   });
 
-  it('押下中は opacity 0.8・scale 0.97', async () => {
-    const s = pressedStyle;
-    expect(s.opacity).toBe(0.8);
-    expect(s.transform).toEqual([{ scale: 0.97 }]);
+  it('押下中は opacity 0.8・scale 0.97（通常時は未設定）', async () => {
+    await render(
+      <>
+        <Button label="保存" onPress={jest.fn()} />
+        <Button variant="icon" accessibilityLabel="戻る" onPress={jest.fn()}>
+          <></>
+        </Button>
+        <Button variant="record" onPress={jest.fn()} />
+      </>,
+    );
+    const nodes = screen.getAllByRole('button');
+    expect(nodes).toHaveLength(3);
+    for (let i = 0; i < nodes.length; i++) {
+      const event = { nativeEvent: { touches: [], changedTouches: [], timestamp: 0 }, persist: () => {} };
+      expect(flat(screen.getAllByRole('button')[i]).opacity).toBeUndefined();
+      await fireEvent(screen.getAllByRole('button')[i], 'responderGrant', event);
+      const pressed = flat(screen.getAllByRole('button')[i]);
+      expect(pressed.opacity).toBe(0.8);
+      expect(pressed.transform).toEqual([{ scale: 0.97 }]);
+    }
   });
 });
