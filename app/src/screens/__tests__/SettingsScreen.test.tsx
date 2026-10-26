@@ -62,8 +62,9 @@ describe('SettingsScreen（上に大きく出す作品）', () => {
     });
     await fireEvent.press(row);
     expect(screen.getAllByRole('radio')).toHaveLength(5);
-    expect(screen.getByRole('radio', { name: '最近読み終えた・見終えた' }).props.accessibilityState)
-      .toMatchObject({ selected: true });
+    expect(
+      screen.getByRole('radio', { name: '最近読み終えた・見終えた' }).props.accessibilityState,
+    ).toMatchObject({ selected: true });
   });
 
   it('選ぶとすぐ保存されてシートが閉じ、開き直しても保たれる', async () => {
@@ -78,6 +79,39 @@ describe('SettingsScreen（上に大きく出す作品）', () => {
     await render(withSettings(createSettingsStore(storage), <SettingsScreen />));
     expect(
       await screen.findByRole('button', { name: '上に大きく出す作品、表示しない' }),
+    ).toBeTruthy();
+  });
+});
+
+describe('SettingsScreen（ステータスの初期値）', () => {
+  it('行の 2 行目に今の値を出し、タップで 4 択のシートが開く', async () => {
+    await render(
+      withSettings(createSettingsStore(createMemoryStorage().storage), <SettingsScreen />),
+    );
+    expect(await screen.findByText('記録するとき')).toBeTruthy();
+    await fireEvent.press(
+      screen.getByRole('button', { name: 'ステータスの初期値、読み終わった・見終わった' }),
+    );
+    expect(screen.getAllByRole('radio')).toHaveLength(4);
+    expect(
+      screen.getByRole('radio', { name: '読み終わった・見終わった' }).props.accessibilityState,
+    ).toMatchObject({ selected: true });
+  });
+
+  it('選ぶとすぐ保存されてシートが閉じ、開き直しても保たれる', async () => {
+    const { storage } = createMemoryStorage();
+    const first = await render(withSettings(createSettingsStore(storage), <SettingsScreen />));
+    await fireEvent.press(await screen.findByRole('button', { name: /^ステータスの初期値、/ }));
+    await fireEvent.press(screen.getByRole('radio', { name: '読んでる・見てる' }));
+    expect(screen.queryAllByRole('radio')).toHaveLength(0);
+    expect(
+      screen.getByRole('button', { name: 'ステータスの初期値、読んでる・見てる' }),
+    ).toBeTruthy();
+    await first.unmount();
+
+    await render(withSettings(createSettingsStore(storage), <SettingsScreen />));
+    expect(
+      await screen.findByRole('button', { name: 'ステータスの初期値、読んでる・見てる' }),
     ).toBeTruthy();
   });
 });
