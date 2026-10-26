@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import { router } from 'expo-router';
 
 import { BookLookupContextProvider } from '../../hooks/useBookLookup';
@@ -79,12 +79,14 @@ describe('TitleSearchScreen の書影補完', () => {
     await setup(async () => ok(withIsbn), async () => ({ status: 'found', book }), resolveCover);
     await enter('本');
     await press(/検索/);
-    await press(/本A/);
+    fireEvent.press(await screen.findByRole('button', { name: /本A/ }));
+    await waitFor(() =>
+      expect(router.replace).toHaveBeenCalledWith({
+        pathname: '/record/new',
+        params: expect.objectContaining({ coverUrl: 'https://cover/x.jpg' }),
+      }),
+    );
     expect(resolveCover).toHaveBeenCalledWith('9784065199817');
-    expect(router.replace).toHaveBeenCalledWith({
-      pathname: '/record/new',
-      params: expect.objectContaining({ coverUrl: 'https://cover/x.jpg' }),
-    });
   });
 
   it('書影があれば取得しない', async () => {
@@ -96,7 +98,8 @@ describe('TitleSearchScreen の書影補完', () => {
     );
     await enter('本');
     await press(/検索/);
-    await press(/本A/);
+    fireEvent.press(await screen.findByRole('button', { name: /本A/ }));
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
     expect(resolveCover).not.toHaveBeenCalled();
   });
 });
