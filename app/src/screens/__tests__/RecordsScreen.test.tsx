@@ -221,21 +221,21 @@ describe('RecordsScreen', () => {
     expect(await screen.findByText('最初の1冊を、棚に並べよう')).toBeTruthy();
     expect(screen.getByText('本棚')).toBeTruthy();
     expect(screen.getByRole('button', { name: '本を追加' })).toBeTruthy();
-    expect(screen.queryByText('何を記録しますか')).toBeNull();
+    expect(screen.queryByText('本の裏のバーコードを映すだけ')).toBeNull();
     await fireEvent.press(screen.getByRole('button', { name: '本を追加する' }));
-    expect(screen.getByText('何を記録しますか')).toBeTruthy();
+    expect(screen.getByText('本の裏のバーコードを映すだけ')).toBeTruthy();
   });
 
   it('追加ボタンで追加シートが開く', async () => {
     await setup(createFakeRepository(records).repository);
     await ready();
     await fireEvent.press(screen.getByRole('button', { name: '本を追加' }));
-    expect(screen.getByText('何を記録しますか')).toBeTruthy();
+    expect(screen.getByText('本の裏のバーコードを映すだけ')).toBeTruthy();
   });
 
   it.each([
     ['バーコードを読み取る', '/record/scan'],
-    ['本をタイトルで探す', '/record/search'],
+    ['タイトルで探す', '/record/search'],
     ['ISBN を入力する', '/record/isbn'],
   ])('追加シートの「%s」で %s へ遷移する', async (label, path) => {
     await setup(createFakeRepository(records).repository);
@@ -250,16 +250,16 @@ describe('RecordsScreen', () => {
     await setup(createFakeRepository(records).repository, undefined, { onAdd });
     await ready();
     await fireEvent.press(screen.getByRole('button', { name: '本を追加' }));
-    await fireEvent.press(screen.getByRole('button', { name: '本を手で入力する' }));
+    await fireEvent.press(screen.getByRole('button', { name: '手で入力する' }));
     expect(onAdd).toHaveBeenCalledTimes(1);
-    expect(screen.queryByText('何を記録しますか')).toBeNull();
+    expect(screen.queryByText('本の裏のバーコードを映すだけ')).toBeNull();
   });
 
   it('onAdd 未指定でも「手で入力する」を押して落ちない', async () => {
     await setup(createFakeRepository(records).repository);
     await ready();
     await fireEvent.press(screen.getByRole('button', { name: '本を追加' }));
-    await fireEvent.press(screen.getByRole('button', { name: '本を手で入力する' }));
+    await fireEvent.press(screen.getByRole('button', { name: '手で入力する' }));
     expect(screen.getByLabelText('ベータ、読みたい')).toBeTruthy();
   });
 
@@ -268,6 +268,6 @@ describe('RecordsScreen', () => {
     await ready();
     await fireEvent.press(screen.getByRole('button', { name: '本を追加' }));
     await fireEvent.press(screen.getByRole('button', { name: '閉じる' }));
-    expect(screen.queryByText('何を記録しますか')).toBeNull();
+    expect(screen.queryByText('本の裏のバーコードを映すだけ')).toBeNull();
   });
 });

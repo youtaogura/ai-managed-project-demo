@@ -46,7 +46,7 @@ function ErrorText({ error }: { error?: string }) {
 }
 
 export type TextFieldProps = Omit<TextInputProps, 'style' | 'accessibilityLabel'> &
-  FieldChrome & { variant?: 'default' | 'isbn'; multiline?: boolean };
+  FieldChrome & { variant?: 'default' | 'isbn' | 'reading'; multiline?: boolean };
 
 export function TextField({
   label,
@@ -61,7 +61,8 @@ export function TextField({
 }: TextFieldProps) {
   const [focused, setFocused] = useState(false);
   const isbn = variant === 'isbn';
-  const body = typography.body;
+  const reading = variant === 'reading';
+  const body = reading ? typography.reading : typography.body;
   const borderColor = error ? colors.danger : focused ? colors.accent : colors.line;
   return (
     <View>

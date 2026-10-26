@@ -1,8 +1,11 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 
 import { CoverResolverContextProvider } from '../../hooks/useCoverResolver';
 import { withRepository, withSettings } from '../../testProviders';
+import { createShelfRepository } from '../../lib/shelfRepository';
+import { colors } from '../../design/tokens';
 import { paramsToInitialValues, todayString } from '../../lib/recordForm';
 import { createRecordRepository } from '../../lib/recordRepository';
 import type { KeyValueStorage } from '../../lib/storage';
@@ -65,7 +68,7 @@ describe('RecordFormScreen（新規）', () => {
     const add = jest.spyOn(repository, 'add');
     await render(withRepository(repository, <RecordFormScreen />));
     await fireEvent.changeText(screen.getByLabelText('タイトル（必須）'), '新しい本');
-    await press('記録する');
+    await press('棚に並べる');
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
     const [created] = await repository.getAll();
     expect(router.replace).toHaveBeenCalledWith('/records/' + created?.id);
@@ -78,7 +81,7 @@ describe('RecordFormScreen（新規）', () => {
     const repository = memoryRepository();
     const add = jest.spyOn(repository, 'add');
     await render(withRepository(repository, <RecordFormScreen />));
-    await press('記録する');
+    await press('棚に並べる');
     expect(screen.getByText('タイトルを入力してください')).toBeTruthy();
     expect(add).not.toHaveBeenCalled();
     expect(router.replace).not.toHaveBeenCalled();
@@ -90,7 +93,7 @@ describe('RecordFormScreen（新規）', () => {
       withRepository(repository, <RecordFormScreen initialValues={{ title: '検索結果', coverUrl: 'http://c' }} />),
     );
     expect(screen.getByLabelText('タイトル（必須）').props.value).toBe('検索結果');
-    await press('記録する');
+    await press('棚に並べる');
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
     expect((await repository.getAll())[0]?.coverUrl).toBe('http://c');
   });
@@ -109,7 +112,7 @@ describe('RecordFormScreen（新規）', () => {
         />,
       ),
     );
-    await press('記録する');
+    await press('棚に並べる');
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
     expect(add).toHaveBeenCalledWith(expect.objectContaining({ source: { provider: 'ndl', ndlId: '5' } }));
   });
@@ -117,7 +120,7 @@ describe('RecordFormScreen（新規）', () => {
   it('手入力は manual で保存される', async () => {
     const repository = memoryRepository();
     await render(withRepository(repository, <RecordFormScreen initialValues={{ title: 'M' }} />));
-    await press('記録する');
+    await press('棚に並べる');
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
     expect((await repository.getAll())[0]?.source).toEqual({
       provider: 'manual',
@@ -128,9 +131,72 @@ describe('RecordFormScreen（新規）', () => {
     const repository = memoryRepository();
     jest.spyOn(repository, 'add').mockRejectedValue(new Error('x'));
     await render(withRepository(repository, <RecordFormScreen initialValues={{ title: 'a' }} />));
-    await press('記録する');
+    await press('棚に並べる');
     expect(await screen.findByText('保存に失敗しました')).toBeTruthy();
     expect(router.replace).not.toHaveBeenCalled();
+  });
+});
+
+describe('RecordFormScreen（背表紙の色と本棚）', () => {
+  const face = () => (StyleSheet.flatten(screen.getByRole('image').props.style as never) as { backgroundColor: string });
+
+  it('新規の初期色は既存の記録数 n に対する spineColorForIndex(n)、選ばずに保存するとその色', async () => {
+    const repository = memoryRepository();
+    await repository.add(baseInput);
+    await repository.add(baseInput);
+    await render(withRepository(repository, <RecordFormScreen initialValues={{ title: 'N' }} />));
+    expect(await screen.findByRole('radio', { name: '背表紙の色 3' })).toBeSelected();
+    expect(face().backgroundColor).toBe(colors.spine3);
+    await press('棚に並べる');
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
+    expect((await repository.getAll())[2]?.spineColor).toBe('spine-3');
+  });
+
+  it('記録の読み込みに失敗したら記録数 0 とみなして spine-1', async () => {
+    const repository = memoryRepository();
+    jest.spyOn(repository, 'getAll').mockRejectedValue(new Error('x'));
+    await render(withRepository(repository, <RecordFormScreen initialValues={{ title: 'N' }} />));
+    expect(await screen.findByRole('radio', { name: '背表紙の色 1' })).toBeSelected();
+  });
+
+  it('色を選んで保存すると記録の spineColor に入る。編集は元の色で開き、選ぶと変わる', async () => {
+    const repository = memoryRepository();
+    await render(withRepository(repository, <RecordFormScreen initialValues={{ title: 'N' }} />));
+    await fireEvent.press(await screen.findByRole('radio', { name: '背表紙の色 8' }));
+    await press('棚に並べる');
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
+    const [saved] = await repository.getAll();
+    expect(saved?.spineColor).toBe('spine-8');
+    await cleanup();
+    await render(withRepository(repository, <RecordFormScreen recordId={saved?.id} />));
+    expect(await screen.findByRole('radio', { name: '背表紙の色 8' })).toBeSelected();
+    await fireEvent.press(screen.getByRole('radio', { name: '背表紙の色 2' }));
+    await press('保存する');
+    await waitFor(() => expect(router.back).toHaveBeenCalled());
+    expect((await repository.getAll())[0]?.spineColor).toBe('spine-2');
+  });
+
+  it('本棚をチップで選んで保存でき、編集では選択済みで開く', async () => {
+    const memory = createMemoryStorage();
+    const shelfRepository = createShelfRepository(memory.storage);
+    const shelf = await shelfRepository.create('小説');
+    const repository = memoryRepository();
+    await render(withRepository(repository, <RecordFormScreen initialValues={{ title: 'N' }} />, undefined, undefined, shelfRepository));
+    await fireEvent.press(await screen.findByRole('checkbox', { name: '小説' }));
+    await press('棚に並べる');
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
+    const [saved] = await repository.getAll();
+    expect(saved?.shelfIds).toEqual([shelf.id]);
+    await cleanup();
+    await render(withRepository(repository, <RecordFormScreen recordId={saved?.id} />, undefined, undefined, shelfRepository));
+    expect(await screen.findByRole('checkbox', { name: '小説' })).toBeSelected();
+  });
+
+  it('本棚の読み込みに失敗したら本棚なしで開く', async () => {
+    const shelfRepository = createShelfRepository(createMemoryStorage().storage);
+    jest.spyOn(shelfRepository, 'getAll').mockRejectedValue(new Error('x'));
+    await render(withRepository(memoryRepository(), <RecordFormScreen initialValues={{ title: 'N' }} />, undefined, undefined, shelfRepository));
+    expect(await screen.findByText('本棚はまだありません')).toBeTruthy();
   });
 });
 
@@ -182,7 +248,7 @@ describe('RecordFormScreen（編集）', () => {
     const { repository, record } = await setup();
     await screen.findByDisplayValue('既存');
     const del = jest.spyOn(repository, 'delete');
-    await press('この記録を削除');
+    await press('この本を削除');
     expect(screen.getByText('この記録を削除しますか？')).toBeTruthy();
     await press('削除する');
     await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/'));
@@ -194,7 +260,7 @@ describe('RecordFormScreen（編集）', () => {
     const { repository } = await setup();
     await screen.findByDisplayValue('既存');
     const del = jest.spyOn(repository, 'delete');
-    await press('この記録を削除');
+    await press('この本を削除');
     await press('キャンセル');
     expect(del).not.toHaveBeenCalled();
     expect(router.replace).not.toHaveBeenCalled();
@@ -205,7 +271,7 @@ describe('RecordFormScreen（編集）', () => {
     const { repository } = await setup();
     await screen.findByDisplayValue('既存');
     jest.spyOn(repository, 'delete').mockRejectedValue(new Error('x'));
-    await press('この記録を削除');
+    await press('この本を削除');
     await press('削除する');
     expect(await screen.findByText('削除に失敗しました')).toBeTruthy();
     expect(router.replace).not.toHaveBeenCalled();
@@ -225,7 +291,7 @@ describe('RecordFormScreen の書影取得', () => {
   ) => {
     const repository = memoryRepository();
     await render(withRepository(repository, <RecordFormScreen initialValues={initialValues} />, undefined, resolver));
-    await press('記録する');
+    await press('棚に並べる');
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
     return repository;
   };
@@ -243,7 +309,7 @@ describe('RecordFormScreen の書影取得', () => {
     await render(withRepository(repository, <RecordFormScreen />, undefined, resolver));
     await fireEvent.changeText(screen.getByLabelText('タイトル（必須）'), 'a');
     await fireEvent.changeText(screen.getByLabelText('ISBN'), ISBN);
-    await press('記録する');
+    await press('棚に並べる');
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
     expect((await repository.getAll())[0]?.coverUrl).toBe('https://cover/y.jpg');
   });
@@ -283,7 +349,7 @@ describe('RecordFormScreen の書影取得', () => {
       );
       await fireEvent.changeText(screen.getByLabelText('タイトル（必須）'), 'a');
       await fireEvent.changeText(screen.getByLabelText('ISBN'), ISBN);
-      await press('記録する');
+      await press('棚に並べる');
       await waitFor(() => expect(router.replace).toHaveBeenCalled());
       return repository;
     };
@@ -343,7 +409,7 @@ describe('RecordFormScreen（古い tmdb の候補）', () => {
       ),
     );
     expect(screen.queryByText('種別')).toBeNull();
-    await press('記録する');
+    await press('棚に並べる');
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
     const [saved] = await repository.getAll();
     expect(saved).toMatchObject({
@@ -374,7 +440,7 @@ describe('RecordFormScreen（ステータスの初期値）', () => {
       ),
     );
     await screen.findByLabelText('タイトル（必須）');
-    await press('記録する');
+    await press('棚に並べる');
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
     return (await repository.getAll())[0];
   };

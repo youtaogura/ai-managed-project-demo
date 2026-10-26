@@ -7,7 +7,7 @@ import { getSpineSize } from '../lib/spineLayout';
 import type { MediaRecord, SpineColor } from '../types/record';
 import { AppText } from './AppText';
 
-const SPINE_FACES: Record<SpineColor, string> = {
+export const SPINE_FACES: Record<SpineColor, string> = {
   'spine-1': colors.spine1,
   'spine-2': colors.spine2,
   'spine-3': colors.spine3,
@@ -30,13 +30,18 @@ const NARROW_FONT_SIZE = 12;
 const TITLE_TOP = 28;
 const PRESS_LIFT = -4;
 
-type SpineProps = {
-  record: MediaRecord;
-  onPress: (record: MediaRecord) => void;
+type SpineRecord = Pick<MediaRecord, 'id' | 'title' | 'creator' | 'status' | 'favorite' | 'spineColor'>;
+
+type SpineProps<R extends SpineRecord> = {
+  record: R;
+  /** 渡さないときは押せない（プレビュー・検索結果用） */
+  onPress?: (record: R) => void;
+  /** 大きさを ID ではなく指定したいとき（検索結果の小さな背表紙） */
+  dimensions?: { width: number; height: number };
 };
 
-export function Spine({ record, onPress }: SpineProps) {
-  const { width, height } = getSpineSize(record.id);
+export function Spine<R extends SpineRecord>({ record, onPress, dimensions }: SpineProps<R>) {
+  const { width, height } = dimensions ?? getSpineSize(record.id);
   const narrow = width < NARROW_WIDTH;
   const fontSize = narrow ? NARROW_FONT_SIZE : typography.spineTitle.fontSize;
   const lineHeight = narrow ? NARROW_FONT_SIZE + 3 : typography.spineTitle.lineHeight;
@@ -44,9 +49,10 @@ export function Spine({ record, onPress }: SpineProps) {
 
   return (
     <Pressable
-      accessibilityRole="button"
+      accessibilityRole={onPress ? 'button' : 'image'}
       accessibilityLabel={getSpineAccessibilityLabel(record)}
-      onPress={() => onPress(record)}
+      disabled={!onPress}
+      onPress={() => onPress?.(record)}
       style={({ pressed }) => [
         styles.base,
         { width, height, backgroundColor: SPINE_FACES[record.spineColor] },

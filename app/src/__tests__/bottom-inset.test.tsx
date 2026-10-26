@@ -68,7 +68,7 @@ describe.each([
 ])('下端インセット %i', (bottom, extra) => {
   it('記録フォームの主ボタン領域の下端にインセットが加わる', async () => {
     await render(withInsets(bottom, <RecordForm onSubmit={jest.fn()} />));
-    let node = (await screen.findByRole('button', { name: '記録する' })).parent;
+    let node = (await screen.findByRole('button', { name: '棚に並べる' })).parent;
     let padding: number | undefined;
     while (node && padding === undefined) {
       padding = (StyleSheet.flatten(node.props.style) as Padded | undefined)?.paddingBottom;

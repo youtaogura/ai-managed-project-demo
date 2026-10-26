@@ -1,13 +1,9 @@
 import {
-  crossesInteger,
   applyStatusChange,
   createFormValues,
   paramsToInitialValues,
-  parseRating,
-  ratingFromPosition,
   recordToFormValues,
   starFills,
-  stepRating,
   todayString,
   toNewRecordInput,
   validateForm,
@@ -52,50 +48,8 @@ describe('validateForm', () => {
     ).toEqual({});
   });
 
-  it.each(['0.9', '5.1', '3.25', 'abc', '1e1'])('レーティング %s はエラー', (rating) => {
-    expect(validateForm({ ...base(), rating }).rating).toBe(
-      'レーティングは 1.0〜5.0 の範囲で、小数第1位まで入力してください',
-    );
-  });
-
-  it.each(['', '1', '1.0', '3.7', '5.0', '５．０'])('レーティング %s は可', (rating) => {
-    expect(validateForm({ ...base(), rating })).toEqual({});
-  });
 });
 
-describe('parseRating', () => {
-  it('空文字は null、空白は無視', () => {
-    expect(parseRating('')).toBeNull();
-    expect(parseRating('  ')).toBeNull();
-    expect(parseRating(' 3.5 ')).toBe(3.5);
-  });
-  it('全角を半角に正規化する', () => {
-    expect(parseRating('４．５')).toBe(4.5);
-  });
-  it('数値でなければ NaN', () => {
-    expect(parseRating('x')).toBeNaN();
-    expect(parseRating('-1')).toBeNaN();
-  });
-});
-
-describe('stepRating', () => {
-  it('空のとき + で 3.0、− は変化なし', () => {
-    expect(stepRating('', 1)).toBe('3.0');
-    expect(stepRating('', -1)).toBe('');
-    expect(stepRating('abc', 1)).toBe('3.0');
-  });
-  it('0.1 刻みで誤差が出ない', () => {
-    let text = '1.0';
-    for (let i = 0; i < 3; i++) text = stepRating(text, 1);
-    expect(text).toBe('1.3');
-    expect(stepRating('2.3', -1)).toBe('2.2');
-    expect(stepRating('0.7', 1)).toBe('1.0');
-  });
-  it('上下限を超えない', () => {
-    expect(stepRating('5.0', 1)).toBe('5.0');
-    expect(stepRating('1.0', -1)).toBe('1.0');
-  });
-});
 
 describe('todayString', () => {
   it('ローカル日付を YYYY-MM-DD で返す', () => {
@@ -131,14 +85,13 @@ describe('applyStatusChange', () => {
 });
 
 describe('toNewRecordInput', () => {
-  it('trim・空文字→null・rating 変換を行う', () => {
+  it('trim・空文字→null を行う', () => {
     const input = toNewRecordInput({
       ...base(),
       title: ' 本 ',
       creator: ' ',
       publisher: ' 出版 ',
       isbn: '978',
-      rating: '3.5',
       coverUrl: 'http://x/c.png',
     });
     expect(input).toMatchObject({
@@ -146,15 +99,32 @@ describe('toNewRecordInput', () => {
       creator: null,
       publisher: '出版',
       isbn: '978',
-      rating: 3.5,
+      rating: null,
       startDate: null,
       coverUrl: 'http://x/c.png',
       photoUri: null,
     });
   });
-  it('レーティング未入力・不正は null', () => {
-    expect(toNewRecordInput(base()).rating).toBeNull();
-    expect(toNewRecordInput({ ...base(), rating: 'x' }).rating).toBeNull();
+  it('フォームが扱わない値（評価・写真・書影 URL・ひとこと・お気に入りなど）は carried から引き継ぐ', () => {
+    const input = toNewRecordInput(
+      { ...base(), coverUrl: null },
+      { rating: 4.5, photoUri: 'file:///p.jpg', coverUrl: 'http://x/c.png', oneLiner: '良い', favorite: true },
+    );
+    expect(input).toMatchObject({
+      rating: 4.5,
+      photoUri: 'file:///p.jpg',
+      coverUrl: 'http://x/c.png',
+      oneLiner: '良い',
+      favorite: true,
+    });
+  });
+  it('spineColor と shelfIds はフォームの値を使う', () => {
+    const input = toNewRecordInput(
+      { ...base(), spineColor: 'spine-4', shelfIds: ['a'] },
+      { spineColor: 'spine-1', shelfIds: ['z'] },
+    );
+    expect(input.spineColor).toBe('spine-4');
+    expect(input.shelfIds).toEqual(['a']);
   });
   it('isbn / publisher は空なら null、あれば trim して入れる', () => {
     const v = { ...base(), publisher: ' 出版 ', isbn: '978' };
@@ -167,9 +137,14 @@ describe('toNewRecordInput', () => {
 
 describe('createFormValues / recordToFormValues', () => {
   it('既定値と初期値の反映', () => {
-    expect(createFormValues()).toMatchObject({ status: 'planned', rating: '' });
+    expect(createFormValues()).toMatchObject({ status: 'planned', spineColor: 'spine-1', shelfIds: [] });
     expect(createFormValues()).not.toHaveProperty('kind');
-    expect(createFormValues({ rating: 4 })).toMatchObject({ rating: '4.0' });
+    expect(createFormValues()).not.toHaveProperty('rating');
+  });
+  it('背表紙の色は initial → defaultSpineColor の順', () => {
+    expect(createFormValues({}, 'spine-5').spineColor).toBe('spine-5');
+    expect(createFormValues({ spineColor: 'spine-2' }, 'spine-5').spineColor).toBe('spine-2');
+    expect(createFormValues({ shelfIds: ['a'] }).shelfIds).toEqual(['a']);
   });
   it('記録からフォーム値に変換する', () => {
     const record: MediaRecord = {
@@ -201,9 +176,8 @@ describe('createFormValues / recordToFormValues', () => {
       creator: 'C',
       publisher: '',
       startDate: '2024-01-01',
-      rating: '2.5',
       coverUrl: 'u',
-      photoUri: 'p',
+      spineColor: 'spine-1',
     });
   });
 });
@@ -233,37 +207,12 @@ describe('paramsToInitialValues', () => {
   });
 });
 
-describe('ratingFromPosition', () => {
-  it('位置を 0.1 刻みの評価に変換し 1.0〜5.0 にクランプする', () => {
-    expect(ratingFromPosition(148, 200)).toBe(3.7);
-    expect(ratingFromPosition(0, 200)).toBe(1);
-    expect(ratingFromPosition(200, 200)).toBe(5);
-    expect(ratingFromPosition(-10, 200)).toBe(1);
-    expect(ratingFromPosition(260, 200)).toBe(5);
-  });
-  it('幅が 0 以下なら null', () => {
-    expect(ratingFromPosition(10, 0)).toBeNull();
-    expect(ratingFromPosition(10, -5)).toBeNull();
-  });
-});
-
 describe('starFills', () => {
   it('評価を各星の塗り割合に変換する', () => {
     expect(starFills(3.7)).toEqual([1, 1, 1, 0.7, 0]);
     expect(starFills(null)).toEqual([0, 0, 0, 0, 0]);
     expect(starFills(5)).toEqual([1, 1, 1, 1, 1]);
     expect(starFills(1)).toEqual([1, 0, 0, 0, 0]);
-  });
-});
-
-describe('crossesInteger', () => {
-  it('整数の境目をまたぐときだけ true', () => {
-    expect(crossesInteger(2.9, 3.0)).toBe(true);
-    expect(crossesInteger(3.0, 2.9)).toBe(true);
-    expect(crossesInteger(3.1, 2.9)).toBe(true);
-    expect(crossesInteger(3.0, 3.1)).toBe(false);
-    expect(crossesInteger(2.8, 2.9)).toBe(false);
-    expect(crossesInteger(3.0, 3.0)).toBe(false);
   });
 });
 

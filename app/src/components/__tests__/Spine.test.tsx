@@ -76,4 +76,10 @@ describe('Spine', () => {
     expect(flat(screen.getByText('細', { includeHiddenElements: true })).fontSize).toBe(12);
     expect(flat(screen.getByText('太', { includeHiddenElements: true })).fontSize).toBe(13);
   });
+
+  it('onPress がないときは押せない画像で、dimensions で大きさを指定できる', async () => {
+    await render(<Spine record={makeRecord({ title: '本' })} dimensions={{ width: 22, height: 66 }} />);
+    const node = screen.getByRole('image');
+    expect(flat(node)).toMatchObject({ width: 22, height: 66 });
+  });
 });

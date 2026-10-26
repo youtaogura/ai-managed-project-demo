@@ -56,7 +56,7 @@ describe('上端インセットのある端末（タブの画面はヘッダー�
     await renderRouter(routes);
     await screen.findByText('最初の1冊を、棚に並べよう');
     await fireEvent.press(screen.getByRole('button', { name: '本を追加する' }));
-    await fireEvent.press(await screen.findByRole('button', { name: '本を手で入力する' }));
+    await fireEvent.press(await screen.findByRole('button', { name: '手で入力する' }));
     expect(await screen.findByLabelText('タイトル（必須）')).toBeTruthy();
     expect(screen).toHavePathname('/record/new');
   });

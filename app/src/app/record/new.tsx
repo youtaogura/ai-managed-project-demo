@@ -7,7 +7,7 @@ export default function NewRecordRoute() {
   const params = useLocalSearchParams();
   return (
     <>
-      <Stack.Screen options={{ title: '記録を追加' }} />
+      <Stack.Screen options={{ title: '本を登録' }} />
       <RecordFormScreen initialValues={paramsToInitialValues(params)} />
     </>
   );

@@ -8,27 +8,33 @@ import { colors, space } from '../design/tokens';
 import { useCoverResolver } from '../hooks/useCoverResolver';
 import { useSettings } from '../hooks/useSettings';
 import { useRecordRepository } from '../hooks/useRecordRepository';
+import { useShelfRepository } from '../hooks/useShelfRepository';
+import { spineColorForIndex } from '../lib/spineColor';
 import { applyDefaultStatus } from '../lib/statusDefault';
 import { todayString } from '../lib/recordForm';
 import { needsCover } from '../lib/coverLookup/needsCover';
 import type { MediaRecord, NewRecordInput } from '../types/record';
+import type { Shelf } from '../types/shelf';
 
 type RecordFormScreenProps = {
   recordId?: string;
   initialValues?: Partial<NewRecordInput>;
 };
 
-type LoadState = { status: 'loading' } | { status: 'ready'; record: MediaRecord | null };
+type LoadState =
+  | { status: 'loading' }
+  | { status: 'ready'; record: MediaRecord | null; recordCount: number };
 
 export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenProps) {
   const repository = useRecordRepository();
+  const shelfRepository = useShelfRepository();
+  const [shelves, setShelves] = useState<Shelf[]>([]);
   const { settings } = useSettings();
   const resolveCover = useCoverResolver();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const addedId = useRef<string | null>(null);
 
   useEffect(() => {
-    if (recordId === undefined) return;
     let active = true;
     repository
       .getAll()
@@ -37,15 +43,31 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
           setState({
             status: 'ready',
             record: all.find((r) => r.id === recordId) ?? null,
+            recordCount: all.length,
           });
       })
       .catch(() => {
-        if (active) setState({ status: 'ready', record: null });
+        if (active) setState({ status: 'ready', record: null, recordCount: 0 });
       });
     return () => {
       active = false;
     };
   }, [repository, recordId]);
+
+  useEffect(() => {
+    let active = true;
+    shelfRepository
+      .getAll()
+      .then((all) => {
+        if (active) setShelves(all);
+      })
+      .catch(() => {
+        if (active) setShelves([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [shelfRepository]);
 
   const fillCover = async (input: NewRecordInput): Promise<NewRecordInput> => {
     if (!needsCover(input)) return input;
@@ -57,9 +79,19 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
     }
   };
 
+  if (state.status === 'loading') {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator color={colors.textSecondary} />
+      </View>
+    );
+  }
+
   if (recordId === undefined) {
     return (
       <RecordForm
+        initialSpineColor={spineColorForIndex(state.recordCount)}
+        shelves={shelves}
         initialValues={applyDefaultStatus(
           initialValues ?? {},
           settings.defaultStatus,
@@ -76,14 +108,6 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
     );
   }
 
-  if (state.status === 'loading') {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator color={colors.textSecondary} />
-      </View>
-    );
-  }
-
   const { record } = state;
   if (!record) {
     return (
@@ -96,6 +120,8 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
   return (
     <RecordForm
       initialValues={record}
+      recordId={record.id}
+      shelves={shelves}
       submitLabel="保存する"
       onSubmit={async (input) => {
         const updated = await repository.update(record.id, await fillCover(input));

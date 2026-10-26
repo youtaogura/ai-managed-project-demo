@@ -118,15 +118,15 @@ describe('ReviewScreen', () => {
     const onAdd = jest.fn();
     await setup([], { onAdd });
     await fireEvent.press(await screen.findByRole('button', { name: '記録する' }));
-    expect(screen.getByText('何を記録しますか')).toBeTruthy();
-    await fireEvent.press(screen.getByRole('button', { name: '本を手で入力する' }));
+    expect(screen.getByText('本の裏のバーコードを映すだけ')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: '手で入力する' }));
     expect(onAdd).toHaveBeenCalledTimes(1);
   });
 
   it('追加シートの「タイトルで探す」で検索画面へ遷移する', async () => {
     await setup([]);
     await fireEvent.press(await screen.findByRole('button', { name: '記録する' }));
-    await fireEvent.press(screen.getByRole('button', { name: '本をタイトルで探す' }));
+    await fireEvent.press(screen.getByRole('button', { name: 'タイトルで探す' }));
     expect(mockPush).toHaveBeenCalledWith('/record/search');
   });
 

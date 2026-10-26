@@ -96,7 +96,7 @@ export function createRecordRepository(
           id: generateId(),
           createdAt: timestamp,
           updatedAt: timestamp,
-          spineColor: spineColorForIndex(records.length),
+          spineColor: input.spineColor ?? spineColorForIndex(records.length),
         };
         await save([...records, record]);
         return record;
@@ -115,7 +115,7 @@ export function createRecordRepository(
           id: current.id,
           createdAt: current.createdAt,
           updatedAt: now(),
-          spineColor: current.spineColor,
+          spineColor: input.spineColor ?? current.spineColor,
         };
         const next = [...records];
         next[index] = updated;

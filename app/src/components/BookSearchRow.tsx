@@ -1,12 +1,14 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { colors, size, space } from '../design/tokens';
+import { spineColorForTitle } from '../lib/bookSpineColor';
 import type { BookCandidate } from '../types/bookSearch';
 import { AppText } from './AppText';
-import { Cover } from './Cover';
 import { pressedStyle } from './Button';
+import { Spine } from './Spine';
 
-const COVER_WIDTH = 44;
+const SPINE_WIDTH = 22;
+const SPINE_HEIGHT = 66;
 
 type BookSearchRowProps = {
   candidate: BookCandidate;
@@ -15,7 +17,7 @@ type BookSearchRowProps = {
 };
 
 export function BookSearchRow({ candidate, onPress, disabled }: BookSearchRowProps) {
-  const publisherLine = [candidate.publisher, candidate.publishedYear]
+  const detailLine = [candidate.author, candidate.publisher, candidate.publishedYear]
     .filter((part): part is string => part !== null)
     .join(' · ');
   return (
@@ -27,27 +29,24 @@ export function BookSearchRow({ candidate, onPress, disabled }: BookSearchRowPro
       onPress={onPress}
       style={({ pressed }) => [styles.row, disabled && styles.disabled, pressed && pressedStyle]}
     >
-      <Cover
+      <Spine
         record={{
+          id: candidate.title,
           title: candidate.title,
           creator: candidate.author,
-          photoUri: null,
-          coverUrl: null,
+          status: 'planned',
+          favorite: false,
+          spineColor: spineColorForTitle(candidate.title),
         }}
-        width={COVER_WIDTH}
+        dimensions={{ width: SPINE_WIDTH, height: SPINE_HEIGHT }}
       />
       <View style={styles.texts}>
-        <AppText variant="sectionTitle" numberOfLines={2}>
+        <AppText variant="reading" numberOfLines={2}>
           {candidate.title}
         </AppText>
-        {candidate.author !== null ? (
+        {detailLine !== '' ? (
           <AppText variant="label" style={styles.secondary} numberOfLines={1}>
-            {candidate.author}
-          </AppText>
-        ) : null}
-        {publisherLine !== '' ? (
-          <AppText variant="label" style={styles.tertiary} numberOfLines={1}>
-            {publisherLine}
+            {detailLine}
           </AppText>
         ) : null}
       </View>

@@ -89,6 +89,8 @@ async function setup(
                 />
               </FileServiceContextProvider>,
               photoService,
+              undefined,
+              shelfRepository,
             ),
           ),
         ),
