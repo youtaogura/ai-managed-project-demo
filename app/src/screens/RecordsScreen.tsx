@@ -1,18 +1,42 @@
-import { router } from 'expo-router';
-import { useMemo } from 'react';
-import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { router, useScrollToTop } from 'expo-router';
+import { useMemo, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
+import { AddSheet, type AddTarget } from '../components/AddSheet';
+import { AppText } from '../components/AppText';
+import { Button } from '../components/Button';
+import { CoverCard } from '../components/CoverCard';
 import { EmptyState } from '../components/EmptyState';
-import { RecordListItem } from '../components/RecordListItem';
-import { SortSelector } from '../components/SortSelector';
+import { ScreenContainer } from '../components/ScreenContainer';
+import { SortSheet } from '../components/SortSheet';
+import { YearCounter } from '../components/YearCounter';
+import { colors, space } from '../design/tokens';
+import { useBottomInset } from '../hooks/useBottomInset';
 import { useRecords } from '../hooks/useRecords';
 import { useSortOrder } from '../hooks/useSortOrder';
 import { createSortOrderStore, type SortOrderStore } from '../lib/sortOrderStore';
-import { sortRecords } from '../lib/sortRecords';
+import { SORT_ORDER_LABELS, sortRecords } from '../lib/sortRecords';
 import { asyncKeyValueStorage } from '../lib/storage';
-import { colors, spacing } from '../theme';
+import { countCompletions, recentlyFinished } from '../lib/yearCounter';
+import type { MediaRecord } from '../types/record';
 
 const defaultSortOrderStore = createSortOrderStore(asyncKeyValueStorage);
+
+const COLUMNS = 4;
+const GRID_GAP = 10;
+const RECENT_LIMIT = 10;
+const ADD_ROUTES = {
+  scan: '/record/scan',
+  search: '/record/search',
+  isbn: '/record/isbn',
+} as const;
 
 type RecordsScreenProps = {
   sortOrderStore?: SortOrderStore;
@@ -27,90 +51,145 @@ export function RecordsScreen({
 }: RecordsScreenProps) {
   const { records, loading } = useRecords();
   const [order, setOrder] = useSortOrder(sortOrderStore);
+  const [addOpen, setAddOpen] = useState(false);
+  const [sortOpen, setSortOpen] = useState(false);
+  const { width } = useWindowDimensions();
+  const bottomInset = useBottomInset();
+  const listRef = useRef<FlatList<MediaRecord>>(null);
+  useScrollToTop(listRef);
+
   const sorted = useMemo(() => sortRecords(records, order), [records, order]);
+  const recent = useMemo(() => recentlyFinished(records, RECENT_LIMIT), [records]);
+  const counts = useMemo(() => countCompletions(records, new Date()), [records]);
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator accessibilityLabel="読み込み中" />
-      </View>
+      <ScreenContainer>
+        <View style={styles.center}>
+          <ActivityIndicator accessibilityLabel="読み込み中" />
+        </View>
+      </ScreenContainer>
     );
   }
 
-  const addButtons = (
-    <View style={styles.lookupRow}>
-      <Pressable accessibilityRole="button" onPress={onAdd} style={styles.lookupButton}>
-        <Text style={styles.addButtonText}>手入力で追加</Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => router.push('/record/isbn')}
-        style={styles.lookupButton}
-      >
-        <Text style={styles.addButtonText}>ISBN で探して追加</Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => router.push('/record/scan')}
-        style={styles.lookupButton}
-      >
-        <Text style={styles.addButtonText}>バーコードで読み取って追加</Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => router.push('/record/search')}
-        style={styles.lookupButton}
-      >
-        <Text style={styles.addButtonText}>タイトルで探して追加</Text>
-      </Pressable>
-    </View>
+  const open = (record: MediaRecord) => onOpen?.(record.id);
+  const select = (target: AddTarget) => {
+    setAddOpen(false);
+    if (target === 'manual') onAdd?.();
+    else router.push(ADD_ROUTES[target]);
+  };
+  const cellWidth = (width - space[5] * 2 - GRID_GAP * (COLUMNS - 1)) / COLUMNS;
+
+  const sheets = (
+    <>
+      <AddSheet visible={addOpen} onClose={() => setAddOpen(false)} onSelect={select} />
+      <SortSheet
+        visible={sortOpen}
+        value={order}
+        onClose={() => setSortOpen(false)}
+        onChange={setOrder}
+      />
+    </>
   );
 
   if (records.length === 0) {
     return (
-      <View style={styles.container}>
-        {addButtons}
-        <EmptyState title="まだ記録がありません" description="記録を追加するとここに表示されます">
-          <Pressable accessibilityRole="button" onPress={onAdd} style={styles.addButton}>
-            <Text style={styles.addButtonText}>記録を追加する</Text>
-          </Pressable>
-        </EmptyState>
-      </View>
+      <ScreenContainer>
+        <View style={styles.header}>
+          <AppText variant="screenTitle">記録</AppText>
+        </View>
+        <EmptyState
+          title="最初の1作品を記録しよう"
+          description="読み終えた本や、見終えた映画を記録するとここに並んでいきます"
+          onAction={() => setAddOpen(true)}
+        />
+        {sheets}
+      </ScreenContainer>
     );
   }
 
+  const header = (
+    <View>
+      <View style={styles.header}>
+        <AppText variant="screenTitle">記録</AppText>
+        <View style={styles.actions}>
+          <Button
+            variant="icon"
+            accessibilityLabel="並び替え"
+            onPress={() => setSortOpen(true)}
+          >
+            <AppText variant="sectionTitle">⇅</AppText>
+          </Button>
+          <Button variant="record" onPress={() => setAddOpen(true)} />
+        </View>
+      </View>
+      <View style={styles.counter}>
+        <YearCounter year={counts.year} month={counts.month} />
+      </View>
+      {recent.length > 0 ? (
+        <View style={styles.section}>
+          <AppText variant="sectionTitle" style={styles.sectionTitle}>
+            最近読み終えた・見終えた
+          </AppText>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.hero}
+          >
+            {recent.map((record) => (
+              <CoverCard key={record.id} record={record} variant="hero" onPress={open} />
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
+      <View style={[styles.sectionTitleRow, styles.section]}>
+        <AppText variant="sectionTitle">すべての記録</AppText>
+        <AppText variant="label" style={styles.order}>
+          {SORT_ORDER_LABELS[order]}
+        </AppText>
+      </View>
+    </View>
+  );
+
   return (
-    <View style={styles.container}>
-      {addButtons}
-      <SortSelector value={order} onChange={setOrder} />
+    <ScreenContainer>
       <FlatList
+        ref={listRef}
         data={sorted}
+        numColumns={COLUMNS}
         keyExtractor={(item) => item.id}
+        ListHeaderComponent={header}
+        columnWrapperStyle={styles.gridRow}
+        contentContainerStyle={{ paddingBottom: space[6] + bottomInset }}
         renderItem={({ item }) => (
-          <RecordListItem record={item} onPress={(record) => onOpen?.(record.id)} />
+          <CoverCard record={item} variant="thumb" width={cellWidth} onPress={open} />
         )}
       />
-    </View>
+      {sheets}
+    </ScreenContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  lookupRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, padding: spacing.md },
-  lookupButton: {
-    flex: 1,
-    minWidth: 140,
+  header: {
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.tint,
-    padding: spacing.sm,
-    borderRadius: 8,
+    justifyContent: 'space-between',
+    paddingHorizontal: space[5],
+    paddingVertical: space[3],
   },
-  addButton: {
-    backgroundColor: colors.tint,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    borderRadius: 8,
+  actions: { flexDirection: 'row', gap: space[2] },
+  counter: { paddingHorizontal: space[5], marginBottom: space[5] },
+  section: { marginBottom: space[3] },
+  sectionTitle: { paddingHorizontal: space[5], marginBottom: space[3] },
+  sectionTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'space-between',
+    paddingHorizontal: space[5],
   },
-  addButtonText: { color: colors.onTint, fontWeight: '600', textAlign: 'center' },
+  order: { color: colors.textSecondary },
+  hero: { paddingHorizontal: space[5], gap: space[3], marginBottom: space[5] },
+  gridRow: { paddingHorizontal: space[5], gap: GRID_GAP, marginBottom: GRID_GAP },
 });

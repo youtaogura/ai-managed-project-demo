@@ -11,6 +11,7 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 
 jest.mock('expo-router', () => ({
   router: { back: jest.fn(), push: jest.fn() },
+  useScrollToTop: jest.fn(),
   useFocusEffect: (effect: () => void) => jest.requireActual('react').useEffect(effect, [effect]),
 }));
 
@@ -27,8 +28,8 @@ describe('RecordsScreen', () => {
         <RecordsScreen />
       </RecordRepositoryProvider>,
     );
-    expect(await screen.findByText('まだ記録がありません')).toBeTruthy();
-    expect(screen.getByText('記録を追加するとここに表示されます')).toBeTruthy();
+    expect(await screen.findByText('最初の1作品を記録しよう')).toBeTruthy();
+    expect(screen.getByText('読み終えた本や、見終えた映画を記録するとここに並んでいきます')).toBeTruthy();
   });
 });
 

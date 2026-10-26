@@ -46,18 +46,20 @@ describe('記録のルート配線', () => {
     await waitFor(() => expect(screen.getByText('ダミー編集画面')).toBeTruthy());
   });
 
-  it('ヘッダーの「追加」で追加画面へ遷移する', async () => {
+  it('＋ボタンの追加シートから手入力の追加画面へ遷移する', async () => {
     await renderRouter(routes);
     await waitFor(() => expect(screen.getByText('吾輩は猫である')).toBeTruthy());
-    await fireEvent.press(screen.getByText('追加'));
+    await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
+    await fireEvent.press(screen.getByRole('button', { name: '手で入力する' }));
     await waitFor(() => expect(screen.getByText('ダミー追加画面')).toBeTruthy());
   });
 
-  it('0 件のときの「記録を追加する」で追加画面へ遷移する', async () => {
+  it('0 件のときの「記録する」から追加シート経由で追加画面へ遷移する', async () => {
     await AsyncStorage.clear();
     await renderRouter(routes);
-    await waitFor(() => expect(screen.getByText('記録を追加する')).toBeTruthy());
-    await fireEvent.press(screen.getByText('記録を追加する'));
+    await waitFor(() => expect(screen.getByText('最初の1作品を記録しよう')).toBeTruthy());
+    await fireEvent.press(screen.getAllByRole('button', { name: '記録する' }).slice(-1)[0]);
+    await fireEvent.press(screen.getByRole('button', { name: '手で入力する' }));
     await waitFor(() => expect(screen.getByText('ダミー追加画面')).toBeTruthy());
   });
 
@@ -68,7 +70,7 @@ describe('記録のルート配線', () => {
     await fireEvent.press(screen.getByText('削除'));
     const buttons = spy.mock.calls[0]?.[2] as AlertButton[];
     buttons.find((b) => b.text === '削除')?.onPress?.();
-    await waitFor(() => expect(screen.getByText('まだ記録がありません')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('最初の1作品を記録しよう')).toBeTruthy());
     expect(screen).toHavePathname('/');
   });
 
