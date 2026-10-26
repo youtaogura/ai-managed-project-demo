@@ -15,11 +15,3 @@ export function countCompletions(records: readonly MediaRecord[], now: Date): Co
   }
   return { year, month };
 }
-
-// 終了日の新しい順に最大 limit 件
-export function recentlyFinished(records: readonly MediaRecord[], limit: number): MediaRecord[] {
-  return records
-    .filter((record) => record.endDate !== null)
-    .sort((a, b) => (b.endDate ?? '').localeCompare(a.endDate ?? '') || b.createdAt.localeCompare(a.createdAt))
-    .slice(0, limit);
-}

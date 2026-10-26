@@ -59,7 +59,7 @@ describe('deleteAllRecords', () => {
     const settingsStore = createSettingsStore(memory.storage);
     await settingsStore.save({
       ...DEFAULT_SETTINGS,
-      heroCriterion: 'highRated',
+      defaultStatus: 'planned',
     });
     const before = await settingsStore.load();
     await deleteAllRecords({ repository, photoService });

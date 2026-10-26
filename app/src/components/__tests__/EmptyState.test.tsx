@@ -16,13 +16,19 @@ describe('EmptyState', () => {
     expect(screen.queryByText('補足')).toBeNull();
   });
 
-  it('onAction があれば主ボタンと書影から呼べる', async () => {
+  it('点線の空の背表紙が並ぶ', async () => {
+    await render(<EmptyState title="t" />);
+    expect(screen.getAllByTestId('empty-spine').length).toBeGreaterThanOrEqual(5);
+  });
+
+  it('onAction があれば既定の「本を追加する」ボタンだけが出て、押すと呼ばれる', async () => {
     const onAction = jest.fn();
     await render(<EmptyState title="t" onAction={onAction} />);
-    const buttons = screen.getAllByRole('button', { name: '記録する' });
-    expect(buttons).toHaveLength(2);
-    for (const b of buttons) await fireEvent.press(b);
-    expect(onAction).toHaveBeenCalledTimes(2);
+    const buttons = screen.getAllByRole('button');
+    expect(buttons).toHaveLength(1);
+    expect(screen.getByRole('button', { name: '本を追加する' })).toBeTruthy();
+    await fireEvent.press(buttons[0]);
+    expect(onAction).toHaveBeenCalledTimes(1);
   });
 
   it('actionLabel を変えられる', async () => {
@@ -37,7 +43,7 @@ describe('EmptyState', () => {
       </EmptyState>,
     );
     expect(screen.getByText('独自')).toBeTruthy();
-    expect(screen.queryByText('記録する')).toBeNull();
+    expect(screen.queryByText('本を追加する')).toBeNull();
   });
 
   it('onAction がなければボタンを出さない', async () => {

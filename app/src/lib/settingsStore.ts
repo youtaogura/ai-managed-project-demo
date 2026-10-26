@@ -1,10 +1,5 @@
 import { RECORD_STATUSES, type RecordStatus } from '../types/record';
-import {
-  DEFAULT_SETTINGS,
-  HERO_CRITERIA_IDS,
-  type AppSettings,
-  type HeroCriterion,
-} from '../types/settings';
+import { DEFAULT_SETTINGS, type AppSettings } from '../types/settings';
 import type { KeyValueStorage } from './storage';
 
 export const SETTINGS_STORAGE_KEY = 'appSettings.v1';
@@ -16,17 +11,12 @@ export type SettingsStore = {
 
 function defaults(): AppSettings {
   return {
-    heroCriterion: DEFAULT_SETTINGS.heroCriterion,
     defaultStatus: DEFAULT_SETTINGS.defaultStatus,
   };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function parseHeroCriterion(value: unknown): HeroCriterion | null {
-  return HERO_CRITERIA_IDS.find((id) => id === value) ?? null;
 }
 
 function parseDefaultStatus(value: unknown): RecordStatus | null {
@@ -44,8 +34,6 @@ export function parseSettings(raw: string | null): AppSettings {
     return result;
   }
   if (!isRecord(parsed)) return result;
-  const heroCriterion = parseHeroCriterion(parsed.heroCriterion);
-  if (heroCriterion) result.heroCriterion = heroCriterion;
   const defaultStatus = parseDefaultStatus(parsed.defaultStatus);
   if (defaultStatus) result.defaultStatus = defaultStatus;
   return result;

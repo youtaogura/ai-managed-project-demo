@@ -1,13 +1,14 @@
 import type { ReactNode } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
-import { colors, radius, size, space } from '../design/tokens';
+import { colors, radius, shadows, size, space } from '../design/tokens';
 import { AppText } from './AppText';
 import { Button } from './Button';
 
-const GHOST_WIDTH = 48;
-const GHOST_HEIGHT = 72;
-const GHOST_COUNT = 4;
+// 点線の空の背表紙（高さをばらつかせて 5 冊）
+const GHOST_HEIGHTS = [118, 140, 104, 150, 126];
+const GHOST_WIDTH = 32;
+const GHOST_GAP = 3;
 
 type EmptyStateProps = {
   title: string;
@@ -20,46 +21,25 @@ type EmptyStateProps = {
 export function EmptyState({
   title,
   description,
-  actionLabel = '記録する',
+  actionLabel = '本を追加する',
   onAction,
   children,
 }: EmptyStateProps) {
-  const ghosts = Array.from({ length: GHOST_COUNT }, (_, i) => {
-    const box = (
-      <View style={styles.ghost}>
-        {i === 0 ? (
-          <AppText variant="sectionTitle" style={{ color: colors.textSecondary }}>
-            ＋
-          </AppText>
-        ) : null}
-      </View>
-    );
-    if (i === 0 && onAction) {
-      return (
-        <Pressable
-          key={i}
-          accessibilityRole="button"
-          accessibilityLabel="記録する"
-          onPress={onAction}
-          style={styles.ghostTouch}
-        >
-          {box}
-        </Pressable>
-      );
-    }
-    return (
-      <View key={i} style={styles.ghostTouch}>
-        {box}
-      </View>
-    );
-  });
-
   return (
     <View style={styles.container}>
-      <View style={styles.ghosts}>{ghosts}</View>
-      <AppText variant="sectionTitle">{title}</AppText>
+      <View style={styles.shelf}>
+        <View style={styles.ghosts}>
+          {GHOST_HEIGHTS.map((height, i) => (
+            <View key={i} testID="empty-spine" style={[styles.ghost, { height }]} />
+          ))}
+        </View>
+        <View style={styles.board} />
+      </View>
+      <AppText variant="bookTitle" style={styles.title}>
+        {title}
+      </AppText>
       {description ? (
-        <AppText variant="label" style={styles.description}>
+        <AppText variant="body" style={styles.description}>
           {description}
         </AppText>
       ) : null}
@@ -78,17 +58,23 @@ const styles = StyleSheet.create({
     padding: space[6],
     gap: space[3],
   },
-  ghosts: { flexDirection: 'row', gap: space[2], marginBottom: space[2] },
-  ghostTouch: { minHeight: size.touchMin },
+  shelf: { marginBottom: space[3] },
+  ghosts: { flexDirection: 'row', alignItems: 'flex-end', gap: GHOST_GAP },
   ghost: {
     width: GHOST_WIDTH,
-    height: GHOST_HEIGHT,
-    borderRadius: radius.thumb,
-    borderWidth: 1,
+    borderTopLeftRadius: radius.thumb,
+    borderTopRightRadius: radius.thumb,
+    borderWidth: 1.5,
+    borderBottomWidth: 0,
     borderStyle: 'dashed',
-    borderColor: colors.starOff,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderColor: colors.lineStrong,
   },
+  board: {
+    height: size.shelfBoardHeight,
+    backgroundColor: colors.shelfBoard,
+    borderRadius: radius.thumb,
+    boxShadow: shadows.cover,
+  },
+  title: { textAlign: 'center', fontSize: 20, lineHeight: 30 },
   description: { color: colors.textSecondary, textAlign: 'center' },
 });

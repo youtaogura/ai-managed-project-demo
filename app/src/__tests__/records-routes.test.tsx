@@ -38,8 +38,8 @@ describe('記録のルート配線', () => {
 
   it('一覧 → 詳細 → 編集へ遷移できる', async () => {
     await renderRouter(routes);
-    await waitFor(() => expect(screen.getByText('吾輩は猫である')).toBeTruthy());
-    await fireEvent.press(screen.getByText('吾輩は猫である'));
+    await waitFor(() => expect(screen.getByLabelText(/^吾輩は猫である、/)).toBeTruthy());
+    await fireEvent.press(screen.getByLabelText(/^吾輩は猫である、/));
     await waitFor(() => expect(screen.getByText('編集')).toBeTruthy());
     expect(screen).toHavePathname('/records/r1');
     await fireEvent.press(screen.getByText('編集'));
@@ -48,8 +48,8 @@ describe('記録のルート配線', () => {
 
   it('＋ボタンの追加シートから手入力の追加画面へ遷移する', async () => {
     await renderRouter(routes);
-    await waitFor(() => expect(screen.getByText('吾輩は猫である')).toBeTruthy());
-    await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
+    await waitFor(() => expect(screen.getByLabelText(/^吾輩は猫である、/)).toBeTruthy());
+    await fireEvent.press(screen.getByRole('button', { name: '本を追加' }));
     await fireEvent.press(screen.getByRole('button', { name: '本を手で入力する' }));
     await waitFor(() => expect(screen.getByText('ダミー追加画面')).toBeTruthy());
   });
@@ -57,8 +57,8 @@ describe('記録のルート配線', () => {
   it('0 件のときの「記録する」から追加シート経由で追加画面へ遷移する', async () => {
     await AsyncStorage.clear();
     await renderRouter(routes);
-    await waitFor(() => expect(screen.getByText('最初の1作品を記録しよう')).toBeTruthy());
-    await fireEvent.press(screen.getAllByRole('button', { name: '記録する' }).slice(-1)[0]);
+    await waitFor(() => expect(screen.getByText('最初の1冊を、棚に並べよう')).toBeTruthy());
+    await fireEvent.press(screen.getByRole('button', { name: '本を追加する' }));
     await fireEvent.press(screen.getByRole('button', { name: '本を手で入力する' }));
     await waitFor(() => expect(screen.getByText('ダミー追加画面')).toBeTruthy());
   });
@@ -68,7 +68,7 @@ describe('記録のルート配線', () => {
     await waitFor(() => expect(screen.getByText('この記録を削除')).toBeTruthy());
     await fireEvent.press(screen.getByText('この記録を削除'));
     await fireEvent.press(await screen.findByText('削除する'));
-    await waitFor(() => expect(screen.getByText('最初の1作品を記録しよう')).toBeTruthy());
+    await waitFor(() => expect(screen.getByText('最初の1冊を、棚に並べよう')).toBeTruthy());
     expect(screen).toHavePathname('/');
   });
 
@@ -76,6 +76,6 @@ describe('記録のルート配線', () => {
     await renderRouter(routes, { initialUrl: '/records/none' });
     await waitFor(() => expect(screen.getByText('記録が見つかりません')).toBeTruthy());
     await fireEvent.press(screen.getByText('一覧へ戻る'));
-    await waitFor(() => expect(screen.getByText('吾輩は猫である')).toBeTruthy());
+    await waitFor(() => expect(screen.getByLabelText(/^吾輩は猫である、/)).toBeTruthy());
   });
 });

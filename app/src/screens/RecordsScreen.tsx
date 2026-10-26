@@ -3,7 +3,6 @@ import { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  ScrollView,
   StyleSheet,
   useWindowDimensions,
   View,
@@ -12,56 +11,59 @@ import {
 import { AddSheet } from '../components/AddSheet';
 import { AppText } from '../components/AppText';
 import { Button } from '../components/Button';
-import { CoverCard } from '../components/CoverCard';
 import { EmptyState } from '../components/EmptyState';
 import { ScreenContainer } from '../components/ScreenContainer';
+import { Shelf } from '../components/Shelf';
+import { ShelfChips } from '../components/ShelfChips';
 import { SortSheet } from '../components/SortSheet';
-import { YearCounter } from '../components/YearCounter';
-import { colors, space } from '../design/tokens';
+import { StatusTabs } from '../components/StatusTabs';
+import { colors, radius, space } from '../design/tokens';
 import { useAddSheet } from '../hooks/useAddSheet';
 import { useBottomInset } from '../hooks/useBottomInset';
-import { useSettings } from '../hooks/useSettings';
 import { useRecords } from '../hooks/useRecords';
 import { useSortOrder } from '../hooks/useSortOrder';
-import { HERO_CRITERIA, selectHeroRecords } from '../lib/heroCriteria';
+import { countByStatus, filterByStatus, type StatusFilter } from '../lib/countByStatus';
 import { createSortOrderStore, type SortOrderStore } from '../lib/sortOrderStore';
-import { SORT_ORDER_LABELS, sortRecords } from '../lib/sortRecords';
+import { sortRecords } from '../lib/sortRecords';
+import { SHELF_ROW_GAP } from '../lib/spineLayout';
 import { asyncKeyValueStorage } from '../lib/storage';
 import { countCompletions } from '../lib/yearCounter';
 import type { MediaRecord } from '../types/record';
 
 const defaultSortOrderStore = createSortOrderStore(asyncKeyValueStorage);
 
-const COLUMNS = 4;
-const GRID_GAP = 10;
+const RIBBON_MARK_WIDTH = 6;
+const RIBBON_MARK_HEIGHT = 12;
 
 type RecordsScreenProps = {
   sortOrderStore?: SortOrderStore;
   onAdd?: () => void;
   onOpen?: (id: string) => void;
+  onCreateShelf?: () => void;
 };
 
 export function RecordsScreen({
   sortOrderStore = defaultSortOrderStore,
   onAdd,
   onOpen,
+  onCreateShelf,
 }: RecordsScreenProps) {
   const { records, loading } = useRecords();
-  const { settings } = useSettings();
   const [order, setOrder] = useSortOrder(sortOrderStore);
   const { addOpen, openAdd, closeAdd, select } = useAddSheet(onAdd);
   const [sortOpen, setSortOpen] = useState(false);
+  const [filter, setFilter] = useState<StatusFilter>('all');
   const { width } = useWindowDimensions();
   const bottomInset = useBottomInset();
-  const listRef = useRef<FlatList<MediaRecord>>(null);
+  const listRef = useRef<FlatList<null>>(null);
   useScrollToTop(listRef);
 
-  const sorted = useMemo(() => sortRecords(records, order), [records, order]);
-  const hero = useMemo(
-    () => selectHeroRecords(records, settings.heroCriterion),
-    [records, settings.heroCriterion],
+  const visible = useMemo(
+    () => sortRecords(filterByStatus(records, filter), order),
+    [records, filter, order],
   );
-  const counts = useMemo(() => countCompletions(records, new Date()), [records]);
+  const counts = useMemo(() => countByStatus(records), [records]);
+  const yearCount = useMemo(() => countCompletions(records, new Date()).year, [records]);
 
   if (loading) {
     return (
@@ -74,15 +76,10 @@ export function RecordsScreen({
   }
 
   const open = (record: MediaRecord) => onOpen?.(record.id);
-  const cellWidth = (width - space[5] * 2 - GRID_GAP * (COLUMNS - 1)) / COLUMNS;
 
   const sheets = (
     <>
-      <AddSheet
-        visible={addOpen}
-        onClose={closeAdd}
-        onSelect={select}
-      />
+      <AddSheet visible={addOpen} onClose={closeAdd} onSelect={select} />
       <SortSheet
         visible={sortOpen}
         value={order}
@@ -92,15 +89,34 @@ export function RecordsScreen({
     </>
   );
 
+  const heading = (
+    <View style={styles.header}>
+      <View style={styles.titles}>
+        <AppText variant="screenTitle">本棚</AppText>
+        {records.length > 0 ? (
+          <AppText variant="label" style={styles.summary}>
+            {`${records.length} 冊 · 今年読んだ ${yearCount} 冊`}
+          </AppText>
+        ) : null}
+      </View>
+      <View style={styles.actions}>
+        {records.length > 0 ? (
+          <Button variant="icon" accessibilityLabel="並び替え" onPress={() => setSortOpen(true)}>
+            <AppText variant="sectionTitle">⇅</AppText>
+          </Button>
+        ) : null}
+        <Button variant="record" accessibilityLabel="本を追加" onPress={() => openAdd()} />
+      </View>
+    </View>
+  );
+
   if (records.length === 0) {
     return (
       <ScreenContainer>
-        <View style={styles.header}>
-          <AppText variant="screenTitle">記録</AppText>
-        </View>
+        {heading}
         <EmptyState
-          title="最初の1作品を記録しよう"
-          description="読み終えた本を記録するとここに並んでいきます"
+          title="最初の1冊を、棚に並べよう"
+          description="読みたい本も、読んだ本も、ここに並んでいきます"
           onAction={() => openAdd()}
         />
         {sheets}
@@ -110,56 +126,40 @@ export function RecordsScreen({
 
   const header = (
     <View>
-      <View style={styles.header}>
-        <AppText variant="screenTitle">記録</AppText>
-        <View style={styles.actions}>
-          <Button variant="icon" accessibilityLabel="並び替え" onPress={() => setSortOpen(true)}>
-            <AppText variant="sectionTitle">⇅</AppText>
-          </Button>
-          <Button variant="record" onPress={() => openAdd()} />
-        </View>
+      {heading}
+      <ShelfChips onCreateShelf={onCreateShelf} />
+      <View style={styles.tabs}>
+        <StatusTabs value={filter} counts={counts} onChange={setFilter} />
       </View>
-      <View style={styles.counter}>
-        <YearCounter year={counts.year} month={counts.month} />
-      </View>
-      {hero.length > 0 ? (
-        <View style={styles.section}>
-          <AppText variant="sectionTitle" style={styles.sectionTitle}>
-            {HERO_CRITERIA[settings.heroCriterion].title}
-          </AppText>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.hero}
-          >
-            {hero.map((record) => (
-              <CoverCard key={record.id} record={record} variant="hero" onPress={open} />
-            ))}
-          </ScrollView>
-        </View>
-      ) : null}
-      <View style={[styles.sectionTitleRow, styles.section]}>
-        <AppText variant="sectionTitle">すべての記録</AppText>
-        <AppText variant="label" style={styles.order}>
-          {SORT_ORDER_LABELS[order]}
+      <View style={styles.legend}>
+        <View style={styles.ribbonMark} />
+        <AppText variant="label" style={styles.summary}>
+          お気に入り
         </AppText>
       </View>
     </View>
   );
 
+  const shelf =
+    visible.length === 0 ? (
+      <AppText variant="body" style={styles.none}>
+        この状態の本はまだありません
+      </AppText>
+    ) : (
+      <View style={styles.shelf}>
+        <Shelf records={visible} width={width - space[4] * 2} onPressRecord={open} />
+      </View>
+    );
+
   return (
     <ScreenContainer>
       <FlatList
         ref={listRef}
-        data={sorted}
-        numColumns={COLUMNS}
-        keyExtractor={(item) => item.id}
+        data={[null]}
+        keyExtractor={() => 'shelf'}
         ListHeaderComponent={header}
-        columnWrapperStyle={styles.gridRow}
+        renderItem={() => shelf}
         contentContainerStyle={{ paddingBottom: space[6] + bottomInset }}
-        renderItem={({ item }) => (
-          <CoverCard record={item} variant="thumb" width={cellWidth} onPress={open} />
-        )}
       />
       {sheets}
     </ScreenContainer>
@@ -175,21 +175,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[5],
     paddingVertical: space[3],
   },
+  titles: { flexShrink: 1 },
+  summary: { color: colors.textSecondary },
   actions: { flexDirection: 'row', gap: space[2] },
-  counter: { paddingHorizontal: space[5], marginBottom: space[5] },
-  section: { marginBottom: space[3] },
-  sectionTitle: { paddingHorizontal: space[5], marginBottom: space[3] },
-  sectionTitleRow: {
+  tabs: { marginTop: space[3] },
+  legend: {
     flexDirection: 'row',
-    alignItems: 'baseline',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: space[1],
     paddingHorizontal: space[5],
+    paddingVertical: space[3],
   },
-  order: { color: colors.textSecondary },
-  hero: { paddingHorizontal: space[5], gap: space[3], marginBottom: space[5] },
-  gridRow: {
-    paddingHorizontal: space[5],
-    gap: GRID_GAP,
-    marginBottom: GRID_GAP,
+  ribbonMark: {
+    width: RIBBON_MARK_WIDTH,
+    height: RIBBON_MARK_HEIGHT,
+    backgroundColor: colors.ribbon,
+    borderRadius: radius.thumb / 2,
   },
+  shelf: { paddingHorizontal: space[4], paddingTop: space[3], marginBottom: -SHELF_ROW_GAP },
+  none: { color: colors.textSecondary, textAlign: 'center', padding: space[6] },
 });

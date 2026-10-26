@@ -3,7 +3,7 @@ import { DEFAULT_SETTINGS } from '../../types/settings';
 import { createSettingsStore, parseSettings, SETTINGS_STORAGE_KEY } from '../settingsStore';
 import type { KeyValueStorage } from '../storage';
 
-const DEFAULTS = { heroCriterion: 'recent', defaultStatus: 'completed' };
+const DEFAULTS = { defaultStatus: 'completed' };
 
 describe('parseSettings', () => {
   it('保存がないときは既定値', () => {
@@ -18,27 +18,25 @@ describe('parseSettings', () => {
     expect(parseSettings(raw)).toEqual(DEFAULTS);
   });
 
-  it('古い enabledKinds は無視し、ほかの項目は読む', () => {
+  it('古い enabledKinds・heroCriterion は無視し、ほかの項目は読む', () => {
     expect(
-      parseSettings('{"enabledKinds":["movie"],"heroCriterion":"none","defaultStatus":"planned"}'),
-    ).toEqual({ heroCriterion: 'none', defaultStatus: 'planned' });
+      parseSettings(
+        '{"enabledKinds":["movie"],"heroCriterion":"none","defaultStatus":"planned"}',
+      ),
+    ).toEqual({ defaultStatus: 'planned' });
+  });
+
+  it('heroCriterion だけが残っていても読み込めて、既定値になる', () => {
+    expect(parseSettings('{"heroCriterion":"recent"}')).toEqual(DEFAULTS);
   });
 });
 
 describe('createSettingsStore', () => {
   it('保存した設定を、作り直したストアで読み込める', async () => {
     const { storage, data } = createMemoryStorage();
-    await createSettingsStore(storage).save({
-      heroCriterion: 'recent',
-      defaultStatus: 'completed',
-    });
-    expect(data.get(SETTINGS_STORAGE_KEY)).toBe(
-      '{"heroCriterion":"recent","defaultStatus":"completed"}',
-    );
-    expect(await createSettingsStore(storage).load()).toEqual({
-      heroCriterion: 'recent',
-      defaultStatus: 'completed',
-    });
+    await createSettingsStore(storage).save({ defaultStatus: 'completed' });
+    expect(data.get(SETTINGS_STORAGE_KEY)).toBe('{"defaultStatus":"completed"}');
+    expect(await createSettingsStore(storage).load()).toEqual({ defaultStatus: 'completed' });
   });
 
   it('読み込みに失敗したら既定値', async () => {
@@ -49,42 +47,7 @@ describe('createSettingsStore', () => {
       setItem: async () => undefined,
       removeItem: async () => undefined,
     };
-    expect(await createSettingsStore(storage).load()).toEqual({
-      heroCriterion: 'recent',
-      defaultStatus: 'completed',
-    });
-  });
-});
-
-describe('heroCriterion の保存', () => {
-  it('既定値は recent', () => {
-    expect(DEFAULT_SETTINGS.heroCriterion).toBe('recent');
-  });
-
-  it('保存して読み込み直すと同じ値になり、他のフィールドは変わらない', async () => {
-    const { storage } = createMemoryStorage();
-    await createSettingsStore(storage).save({
-      heroCriterion: 'planned',
-      defaultStatus: 'completed',
-    });
-    expect(await createSettingsStore(storage).load()).toEqual({
-      heroCriterion: 'planned',
-      defaultStatus: 'completed',
-    });
-  });
-
-  it.each([
-    ['未知の文字列', '{"heroCriterion":"x"}'],
-    ['文字列でない', '{"heroCriterion":3}'],
-  ])('%s は recent', (_name, raw) => {
-    expect(parseSettings(raw).heroCriterion).toBe('recent');
-  });
-
-  it('heroCriterion のない保存値でも他の項目を保つ', () => {
-    expect(parseSettings('{"defaultStatus":"planned"}')).toEqual({
-      heroCriterion: 'recent',
-      defaultStatus: 'planned',
-    });
+    expect(await createSettingsStore(storage).load()).toEqual({ defaultStatus: 'completed' });
   });
 });
 
@@ -94,16 +57,10 @@ describe('defaultStatus の保存', () => {
     expect(parseSettings(null).defaultStatus).toBe('completed');
   });
 
-  it('保存して読み込み直すと同じ値になり、他のフィールドは変わらない', async () => {
+  it('保存して読み込み直すと同じ値になる', async () => {
     const { storage } = createMemoryStorage();
-    await createSettingsStore(storage).save({
-      heroCriterion: 'planned',
-      defaultStatus: 'in_progress',
-    });
-    expect(await createSettingsStore(storage).load()).toEqual({
-      heroCriterion: 'planned',
-      defaultStatus: 'in_progress',
-    });
+    await createSettingsStore(storage).save({ defaultStatus: 'in_progress' });
+    expect(await createSettingsStore(storage).load()).toEqual({ defaultStatus: 'in_progress' });
   });
 
   it.each([
@@ -112,12 +69,5 @@ describe('defaultStatus の保存', () => {
     ['ない保存値', '{"heroCriterion":"none"}'],
   ])('%s は completed', (_name, raw) => {
     expect(parseSettings(raw).defaultStatus).toBe('completed');
-  });
-
-  it('defaultStatus のない古い保存値でも他のフィールドを保つ', () => {
-    expect(parseSettings('{"heroCriterion":"none"}')).toEqual({
-      heroCriterion: 'none',
-      defaultStatus: 'completed',
-    });
   });
 });
