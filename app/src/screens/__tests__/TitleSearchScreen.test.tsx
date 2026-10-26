@@ -19,6 +19,7 @@ const withIsbn: BookCandidate = {
   publisher: '出版A',
   publishedYear: '2020',
   isbn: '9784065199817',
+  ndlId: null,
 };
 const noIsbn: BookCandidate = {
   title: '本B',
@@ -26,6 +27,7 @@ const noIsbn: BookCandidate = {
   publisher: null,
   publishedYear: null,
   isbn: null,
+  ndlId: null,
 };
 const book = {
   isbn: '9784065199817',
@@ -173,7 +175,11 @@ describe('TitleSearchScreen', () => {
     expect(lookupFn).toHaveBeenCalledWith('9784065199817');
     expect(router.replace).toHaveBeenCalledWith({
       pathname: '/record/new',
-      params: { kind: 'book', title: 'openBD の本', isbn: book.isbn, creator: 'OB著者', publisher: 'OB出版' },
+      params: { kind: 'book', title: 'openBD の本', isbn: book.isbn, creator: 'OB著者',
+        publisher: 'OB出版',
+        sourceProvider: 'openbd',
+        sourceId: book.isbn,
+      },
     });
   });
 
@@ -195,6 +201,8 @@ describe('TitleSearchScreen', () => {
           creator: '著者A',
           publisher: '出版A',
           isbn: '9784065199817',
+          sourceProvider: 'openbd',
+          sourceId: '9784065199817',
         },
       });
     },

@@ -16,7 +16,7 @@ describe('NdlSearchProvider', () => {
     );
     expect(result).toEqual({
       status: 'ok',
-      candidates: [{ title: '本', author: null, publisher: null, publishedYear: null, isbn: null }],
+      candidates: [{ title: '本', author: null, publisher: null, publishedYear: null, isbn: null, ndlId: null }],
     });
   });
 

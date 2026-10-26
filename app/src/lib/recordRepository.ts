@@ -1,9 +1,10 @@
 import type { MediaRecord, NewRecordInput } from '../types/record';
 import { parseRecords } from './recordGuard';
+import { RECORDS_KEY, migrateRecords } from './recordMigration';
 import type { KeyValueStorage } from './storage';
 import { isValidRecordInput } from './validation';
 
-export const RECORDS_STORAGE_KEY = 'records.v1';
+export const RECORDS_STORAGE_KEY = RECORDS_KEY;
 
 export class ValidationError extends Error {
   constructor(message: string) {
@@ -18,6 +19,7 @@ export type RecordRepositoryOptions = {
 };
 
 export type RecordRepository = {
+  migrate(): Promise<void>;
   getAll(): Promise<MediaRecord[]>;
   add(input: NewRecordInput): Promise<MediaRecord>;
   update(id: string, input: NewRecordInput): Promise<MediaRecord | null>;
@@ -41,8 +43,19 @@ export function createRecordRepository(
   const now = options.now ?? defaultNow;
   const generateId = options.generateId ?? defaultGenerateId;
   let queue: Promise<unknown> = Promise.resolve();
+  let migration: Promise<void> | null = null;
+
+  // 移行は 1 回だけ。結果は memoize し、各操作は完了を待つ（失敗しても操作は通常どおり動く）
+  const migrate = (): Promise<void> => {
+    migration ??= migrateRecords(storage).then(
+      () => undefined,
+      () => undefined,
+    );
+    return migration;
+  };
 
   const load = async (): Promise<MediaRecord[]> => {
+    await migrate();
     try {
       const raw = await storage.getItem(RECORDS_STORAGE_KEY);
       if (raw === null) return [];
@@ -63,6 +76,8 @@ export function createRecordRepository(
   };
 
   return {
+    migrate,
+
     getAll: () => load(),
 
     add: async (input) => {

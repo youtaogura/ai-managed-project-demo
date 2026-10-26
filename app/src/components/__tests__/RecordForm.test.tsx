@@ -72,6 +72,7 @@ describe('RecordForm', () => {
       status: 'planned',
       review: '良い',
       rating: 3.7,
+      source: { provider: 'manual' },
     });
   });
 

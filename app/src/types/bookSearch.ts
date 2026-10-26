@@ -4,6 +4,7 @@ export type BookCandidate = {
   publisher: string | null;
   publishedYear: string | null;
   isbn: string | null;
+  ndlId: string | null;
 };
 
 export type BookSearchError = 'network' | 'invalid_response';
