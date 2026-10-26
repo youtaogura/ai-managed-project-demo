@@ -11,3 +11,7 @@ export function bookInfoToParams(book: BookInfo): Record<string, string> {
 export function isbnOnlyParams(isbn: string | null): Record<string, string> {
   return isbn === null ? { kind: 'book' } : { kind: 'book', isbn };
 }
+
+export function notFoundParams(isbn: string): { isbn: string; notFound: '1' } {
+  return { isbn, notFound: '1' };
+}
