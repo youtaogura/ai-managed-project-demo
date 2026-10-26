@@ -56,6 +56,13 @@ export function RecordsScreen({
       >
         <Text style={styles.addButtonText}>バーコードで読み取って追加</Text>
       </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => router.push('/record/search')}
+        style={styles.lookupButton}
+      >
+        <Text style={styles.addButtonText}>タイトルで探して追加</Text>
+      </Pressable>
     </View>
   );
 

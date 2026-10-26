@@ -50,6 +50,7 @@ function setup(
         <RecordsScreen sortOrderStore={createSortOrderStore(storage)} {...handlers} />,
       ),
     'record/isbn': () => <Text>ダミーISBN画面</Text>,
+    'record/search': () => <Text>ダミー検索画面</Text>,
     'record/scan': () => <Text>ダミー読取画面</Text>,
   });
 }
@@ -143,6 +144,13 @@ describe('RecordsScreen', () => {
     await waitFor(() => expect(screen.getByText('ベータ')).toBeTruthy());
     await fireEvent.press(screen.getByRole('button', { name: 'ISBN で探して追加' }));
     await waitFor(() => expect(screen).toHavePathname('/record/isbn'));
+  });
+
+  it('タイトルで探して追加のボタンから検索画面へ遷移する', async () => {
+    await setup(createFakeRepository(records).repository);
+    await waitFor(() => expect(screen.getByText('ベータ')).toBeTruthy());
+    await fireEvent.press(screen.getByRole('button', { name: 'タイトルで探して追加' }));
+    await waitFor(() => expect(screen).toHavePathname('/record/search'));
   });
 
   it('0 件でもバーコードのボタンから読み取り画面へ遷移する', async () => {
