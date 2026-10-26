@@ -5,24 +5,27 @@ import { AppText } from './AppText';
 
 type SettingsRowProps = {
   label: string;
-  value: string;
+  /** 2 行目に出す今の値。なければ項目名だけの 1 行になる。 */
+  value?: string;
   onPress: () => void;
 };
 
-// タップして値を選ぶ設定の 1 行。左に項目名と今の値、右に › を置く
+// タップして開く設定の 1 行。左に項目名と今の値、右に › を置く
 export function SettingsRow({ label, value, onPress }: SettingsRowProps) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${label}、${value}`}
+      accessibilityLabel={value ? `${label}、${value}` : label}
       onPress={onPress}
       style={styles.row}
     >
       <View style={styles.texts}>
         <AppText variant="body">{label}</AppText>
-        <AppText variant="label" style={styles.value}>
-          {value}
-        </AppText>
+        {value ? (
+          <AppText variant="label" style={styles.value}>
+            {value}
+          </AppText>
+        ) : null}
       </View>
       <AppText
         variant="body"
@@ -39,6 +42,7 @@ export function SettingsRow({ label, value, onPress }: SettingsRowProps) {
 const styles = StyleSheet.create({
   row: {
     minHeight: size.touchMin,
+    paddingVertical: space[3],
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

@@ -18,16 +18,14 @@ describe('parseSettings', () => {
     expect(parseSettings(raw)).toEqual(DEFAULTS);
   });
 
-  it('古い enabledKinds・heroCriterion は無視し、ほかの項目は読む', () => {
-    expect(
-      parseSettings(
-        '{"enabledKinds":["movie"],"heroCriterion":"none","defaultStatus":"planned"}',
-      ),
-    ).toEqual({ defaultStatus: 'planned' });
+  it('未知のフィールドがあっても無視し、ほかの項目は読む', () => {
+    expect(parseSettings('{"unknownField":["a"],"defaultStatus":"planned"}')).toEqual({
+      defaultStatus: 'planned',
+    });
   });
 
-  it('heroCriterion だけが残っていても読み込めて、既定値になる', () => {
-    expect(parseSettings('{"heroCriterion":"recent"}')).toEqual(DEFAULTS);
+  it('未知のフィールドだけが残っていても読み込めて、既定値になる', () => {
+    expect(parseSettings('{"unknownField":"x"}')).toEqual(DEFAULTS);
   });
 });
 
@@ -66,7 +64,7 @@ describe('defaultStatus の保存', () => {
   it.each([
     ['未知の文字列', '{"defaultStatus":"x"}'],
     ['文字列でない', '{"defaultStatus":3}'],
-    ['ない保存値', '{"heroCriterion":"none"}'],
+    ['ない保存値', '{"unknownField":"none"}'],
   ])('%s は completed', (_name, raw) => {
     expect(parseSettings(raw).defaultStatus).toBe('completed');
   });

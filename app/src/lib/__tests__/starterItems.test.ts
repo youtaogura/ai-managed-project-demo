@@ -63,7 +63,7 @@ describe('項目の編集', () => {
 
 describe('starterSummary', () => {
   it('オンは件数つき、オフは「オフ」', () => {
-    expect(starterSummary(defaultStarterSettings())).toBe('オン · 一度に 3 つ');
+    expect(starterSummary(defaultStarterSettings())).toBe('オン · 一度に 3 つ · 7 個から');
     expect(starterSummary({ ...defaultStarterSettings(), enabled: false })).toBe('オフ');
   });
 });

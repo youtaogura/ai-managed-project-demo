@@ -16,7 +16,6 @@ import { ScreenContainer } from '../components/ScreenContainer';
 import { Shelf } from '../components/Shelf';
 import { ShelfChips } from '../components/ShelfChips';
 import { ShelfCreateSheet } from '../components/ShelfCreateSheet';
-import { SortSheet } from '../components/SortSheet';
 import { StatusTabs } from '../components/StatusTabs';
 import { colors, radius, space } from '../design/tokens';
 import { useAddSheet } from '../hooks/useAddSheet';
@@ -41,12 +40,15 @@ const RIBBON_MARK_HEIGHT = 12;
 
 type RecordsScreenProps = {
   sortOrderStore?: SortOrderStore;
+  /** 値が変わると保存された並び順を読み直す（設定で変えたあと本棚に戻ったとき）。 */
+  reloadKey?: number;
   onAdd?: () => void;
   onOpen?: (id: string) => void;
 };
 
 export function RecordsScreen({
   sortOrderStore = defaultSortOrderStore,
+  reloadKey,
   onAdd,
   onOpen,
 }: RecordsScreenProps) {
@@ -55,9 +57,8 @@ export function RecordsScreen({
   const shelfRepository = useShelfRepository();
   const [selectedShelfId, setSelectedShelfId] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
-  const [order, setOrder] = useSortOrder(sortOrderStore);
+  const [order] = useSortOrder(sortOrderStore, reloadKey);
   const { addOpen, openAdd, closeAdd, select } = useAddSheet(onAdd);
-  const [sortOpen, setSortOpen] = useState(false);
   const [filter, setFilter] = useState<StatusFilter>('all');
   const { width } = useWindowDimensions();
   const bottomInset = useBottomInset();
@@ -95,12 +96,6 @@ export function RecordsScreen({
   const sheets = (
     <>
       <AddSheet visible={addOpen} onClose={closeAdd} onSelect={select} />
-      <SortSheet
-        visible={sortOpen}
-        value={order}
-        onClose={() => setSortOpen(false)}
-        onChange={setOrder}
-      />
       <ShelfCreateSheet
         visible={createOpen}
         shelves={shelves}
@@ -121,11 +116,6 @@ export function RecordsScreen({
         ) : null}
       </View>
       <View style={styles.actions}>
-        {records.length > 0 ? (
-          <Button variant="icon" accessibilityLabel="並び替え" onPress={() => setSortOpen(true)}>
-            <AppText variant="sectionTitle">⇅</AppText>
-          </Button>
-        ) : null}
         <Button variant="record" accessibilityLabel="本を追加" onPress={() => openAdd()} />
       </View>
     </View>

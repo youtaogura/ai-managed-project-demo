@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 
 import { withRepository } from '../../testProviders';
-import { createSortOrderStore } from '../../lib/sortOrderStore';
+import { createSortOrderStore, SORT_ORDER_STORAGE_KEY } from '../../lib/sortOrderStore';
 import { createFakeRepository, createMemoryStorage, makeRecord } from '../../testUtils';
 import type { MediaRecord } from '../../types/record';
 import type { RecordRepository } from '../../lib/recordRepository';
@@ -179,31 +179,21 @@ describe('RecordsScreen', () => {
     expect(titles().slice(0, 2)).toEqual(['ガンマ', 'アルファ']);
   });
 
-  it('並び替えシートで選ぶと並びが変わり、背表紙の大きさは変わらない', async () => {
-    await setup(createFakeRepository(records).repository);
+  it('並び替えボタンはなく、保存された並び順で並ぶ（背表紙の大きさは変わらない）', async () => {
+    const { repository } = createFakeRepository(records);
+    await setup(repository);
     await ready();
     const before = { a: spineBox('アルファ'), c: spineBox('ガンマ') };
     const order = titles();
-    await fireEvent.press(screen.getByRole('button', { name: '並び替え' }));
-    expect(screen.getByText('レーティング')).toBeTruthy();
-    await fireEvent.press(screen.getByRole('radio', { name: '高い順' }));
-    expect(screen.queryByText('レーティング')).toBeNull();
-    expect(titles()).not.toEqual(order);
-    expect({ a: spineBox('アルファ'), c: spineBox('ガンマ') }).toEqual(before);
-  });
-
-  it('並び順は再マウント後も維持される', async () => {
-    const { storage } = createMemoryStorage();
-    const { repository } = createFakeRepository(records);
-    await setup(repository, storage);
-    await ready();
-    await fireEvent.press(screen.getByRole('button', { name: '並び替え' }));
-    await fireEvent.press(screen.getByRole('radio', { name: '高い順' }));
+    expect(screen.queryByRole('button', { name: '並び替え' })).toBeNull();
     await screen.unmount();
 
+    const { storage } = createMemoryStorage({ [SORT_ORDER_STORAGE_KEY]: 'rating_desc' });
     await setup(repository, storage);
     await ready();
-    await waitFor(() => expect(titles().slice(0, 2)).toEqual(['アルファ', 'ガンマ']));
+    await waitFor(() => expect(titles()).not.toEqual(order));
+    expect(titles().slice(0, 2)).toEqual(['アルファ', 'ガンマ']);
+    expect({ a: spineBox('アルファ'), c: spineBox('ガンマ') }).toEqual(before);
   });
 
   it('背表紙をタップすると onOpen が id 付きで呼ばれる', async () => {
