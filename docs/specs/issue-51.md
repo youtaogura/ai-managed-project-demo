@@ -17,7 +17,7 @@
 2. 取得元を 2 つ追加: 国立国会図書館サーチの書影 API、Google Books API。
 3. 複数の取得元を順に試す `resolveCoverUrl(isbn)`（`CompositeCoverResolver`）を作る。
 4. 書影を取りにいく 3 つの場面（下記）に組み込む。
-5. 外部 API のクレジット表記を、書影が出る画面に出さず、設定相当の場所がないため仕様書と README 的な扱い（判断ログ参照）とする。
+5. 外部 API のクレジット表記を、詳細画面に小さく出す（判断ログ参照）。
 
 ### やらないこと
 - 映画・ドラマ・アニメのポスターの自動取得
@@ -68,7 +68,7 @@ ISBN は 13 桁（`toIsbn13` 済み）で渡す。NDL は ISBN-13 でも引け�
 
 ### 表示
 - [ ] 取得した URL の画像が読み込めないとき、`Cover` が文字の表紙を出す（既存動作。回帰テストで確認）
-- [ ] Google Books の書影を使った記録がある画面には出さず、クレジットは `docs/specs/issue-51.md` と詳細画面ではなく「記録の詳細」下部の小さな注記で出す（判断ログ参照）: 詳細画面で `coverUrl` が `books.google.com` / `googleusercontent.com` を含むとき「書影: Google Books」、`ndlsearch.ndl.go.jp` を含むとき「書影: 国立国会図書館サーチ」、`openbd` 由来など他は出さない
+- [ ] クレジット表記: 詳細画面の下部に小さな注記を出す。詳細画面で `coverUrl` が `books.google.com` / `googleusercontent.com` を含むとき「書影: Google Books」、`ndlsearch.ndl.go.jp` を含むとき「書影: 国立国会図書館サーチ」、それ以外（openBD 由来・写真のみ）は出さない
 
 ## 画面・振る舞い
 
