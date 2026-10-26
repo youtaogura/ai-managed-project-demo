@@ -80,6 +80,20 @@ export function stepRating(text: string, delta: 1 | -1): string {
   return formatRating(Math.min(5, Math.max(1, next)));
 }
 
+export function ratingFromPosition(x: number, width: number): number | null {
+  if (!(width > 0)) return null;
+  const rounded = Math.round((x / width) * 5 * 10) / 10;
+  return Math.min(5, Math.max(1, rounded));
+}
+
+export function starFills(rating: number | null): number[] {
+  return Array.from({ length: 5 }, (_, i) => {
+    if (rating === null) return 0;
+    const fill = Math.min(1, Math.max(0, rating - i));
+    return Math.round(fill * 10) / 10;
+  });
+}
+
 export function todayString(date: Date = new Date()): string {
   const y = String(date.getFullYear()).padStart(4, '0');
   const m = String(date.getMonth() + 1).padStart(2, '0');

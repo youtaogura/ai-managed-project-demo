@@ -16,6 +16,16 @@ afterEach(() => {
 });
 
 const press = (name: string) => fireEvent.press(screen.getByRole('button', { name }));
+const star = () => screen.getByLabelText('レーティング');
+const touch = (name: string, x: number) =>
+  fireEvent(star(), name, { nativeEvent: { locationX: x, pageX: x } });
+const setRating = async (x: number) => {
+  await fireEvent(star(), 'layout', {
+    nativeEvent: { layout: { width: 200 } },
+  });
+  await touch('responderGrant', x);
+  await touch('responderRelease', x);
+};
 const type = (label: string, text: string) =>
   fireEvent.changeText(screen.getByLabelText(label), text);
 
@@ -38,7 +48,7 @@ describe('RecordForm', () => {
     await type('出版社', '新潮社');
     await type('ISBN', '9784101010013');
     await type('感想', '良い');
-    await type('レーティング', '3.7');
+    await setRating(148);
     await press('保存');
     expect(onSubmit).toHaveBeenCalledWith({
       kind: 'book',
@@ -120,40 +130,54 @@ describe('RecordForm', () => {
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ isbn: null, publisher: null }));
   });
 
-  it('レーティングの範囲外・桁超過・非数はエラー、未入力は null で保存できる', async () => {
+  it('タップ・ドラッグで評価が変わり、離した値が保存される', async () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined);
     await render(<RecordForm onSubmit={onSubmit} initialValues={{ title: 'x' }} />);
-    for (const bad of ['0.9', '5.1', '3.25', 'abc']) {
-      await type('レーティング', bad);
-      await press('保存');
-      expect(
-        screen.getByText('レーティングは 1.0〜5.0 の範囲で、小数第1位まで入力してください'),
-      ).toBeTruthy();
-    }
-    expect(onSubmit).not.toHaveBeenCalled();
-    await type('レーティング', '');
+    expect(screen.getAllByText('未評価').length).toBeGreaterThan(0);
+    await fireEvent(star(), 'layout', {
+      nativeEvent: { layout: { width: 200 } },
+    });
+    await touch('responderGrant', 100);
+    expect(screen.getAllByText('2.5').length).toBeGreaterThan(0);
+    await touch('responderMove', 148);
+    expect(screen.getAllByText('3.7').length).toBeGreaterThan(0);
+    await touch('responderMove', 148);
+    await touch('responderMove', 400);
+    expect(screen.getAllByText('5.0').length).toBeGreaterThan(0);
+    await touch('responderMove', -50);
+    await touch('responderRelease', -50);
+    await press('保存');
+    expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ rating: 1 }));
+  });
+
+  it('星の上のタッチは親にスクロールを奪われない', async () => {
+    await render(<RecordForm onSubmit={jest.fn()} />);
+    expect(star().props.onResponderTerminationRequest()).toBe(false);
+    expect(star().props.onStartShouldSetResponder()).toBe(true);
+  });
+
+  it('adjustable の increment/decrement とクリアで操作できる', async () => {
+    const onSubmit = jest.fn().mockResolvedValue(undefined);
+    await render(<RecordForm onSubmit={onSubmit} initialValues={{ title: 'x' }} />);
+    expect(star().props.accessibilityRole).toBe('adjustable');
+    const act1 = (actionName: string) =>
+      fireEvent(star(), 'accessibilityAction', { nativeEvent: { actionName } });
+    await act1('decrement');
+    expect(star().props.accessibilityValue).toEqual({ text: '未評価' });
+    await act1('increment');
+    expect(star().props.accessibilityValue).toEqual({ text: '3.0' });
+    await act1('decrement');
+    expect(star().props.accessibilityValue).toEqual({ text: '2.9' });
+    await press('レーティングをクリア');
+    expect(star().props.accessibilityValue).toEqual({ text: '未評価' });
     await press('保存');
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ rating: null }));
   });
 
-  it('ステッパーとクリアでレーティングを操作できる', async () => {
-    await render(<RecordForm onSubmit={jest.fn()} />);
-    await press('レーティングを上げる');
-    expect(screen.getByLabelText('レーティング').props.value).toBe('3.0');
-    await press('レーティングを下げる');
-    expect(screen.getByLabelText('レーティング').props.value).toBe('2.9');
-    await type('レーティング', '5.0');
-    expect(
-      screen.getByRole('button', { name: 'レーティングを上げる' }).props.accessibilityState
-        .disabled,
-    ).toBe(true);
-    await type('レーティング', '1.0');
-    expect(
-      screen.getByRole('button', { name: 'レーティングを下げる' }).props.accessibilityState
-        .disabled,
-    ).toBe(true);
-    await press('レーティングをクリア');
-    expect(screen.getByLabelText('レーティング').props.value).toBe('');
+  it('レイアウト前のタッチは無視され、編集時は保存済みの評価を表示する', async () => {
+    await render(<RecordForm onSubmit={jest.fn()} initialValues={{ rating: 3.7 }} />);
+    expect(star().props.accessibilityValue).toEqual({ text: '3.7' });
+    expect(screen.getAllByText('3.7').length).toBeGreaterThan(0);
   });
 
   it('初期値が入力済みになり、書影 URL は保存時に含まれる', async () => {
