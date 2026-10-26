@@ -16,11 +16,14 @@ import { DEFAULT_SETTINGS, type AppSettings } from '../types/settings';
 type SettingsValue = {
   settings: AppSettings;
   update(patch: Partial<AppSettings>): void;
+  /** 設定全体を置き換える（読み込み用）。保存は呼び出し側が済ませている。 */
+  replace(settings: AppSettings): void;
 };
 
 const SettingsContext = createContext<SettingsValue>({
   settings: DEFAULT_SETTINGS,
   update: () => undefined,
+  replace: () => undefined,
 });
 
 const defaultStore = createSettingsStore(asyncKeyValueStorage);
@@ -64,9 +67,15 @@ export function SettingsContextProvider({ store = defaultStore, children }: Prov
     [store],
   );
 
+  const replace = useCallback((next: AppSettings) => {
+    if (current.current === null) return;
+    current.current = next;
+    setSettings(next);
+  }, []);
+
   const value = useMemo(
-    () => ({ settings: settings ?? DEFAULT_SETTINGS, update }),
-    [settings, update],
+    () => ({ settings: settings ?? DEFAULT_SETTINGS, update, replace }),
+    [settings, update, replace],
   );
   if (settings === null) return null;
   return <SettingsContext.Provider value={value}>{children}</SettingsContext.Provider>;

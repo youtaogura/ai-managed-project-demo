@@ -43,7 +43,13 @@
         }
       ],
       "expo-font",
-      ["expo-splash-screen", { "backgroundColor": "#0e0e10" }]
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#0e0e10"
+        }
+      ],
+      "expo-sharing"
     ]
   }
 }
