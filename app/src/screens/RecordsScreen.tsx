@@ -42,7 +42,7 @@ const RIBBON_MARK_HEIGHT = 12;
 type RecordsScreenProps = {
   sortOrderStore?: SortOrderStore;
   onAdd?: () => void;
-  onOpen?: (id: string) => void;
+  onOpen?: (record: MediaRecord) => void;
 };
 
 export function RecordsScreen({
@@ -90,7 +90,7 @@ export function RecordsScreen({
     setSelectedShelfId(shelf.id);
   };
 
-  const open = (record: MediaRecord) => onOpen?.(record.id);
+  const open = (record: MediaRecord) => onOpen?.(record);
 
   const sheets = (
     <>
