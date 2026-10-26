@@ -2,12 +2,14 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 
 import { BookLookupContextProvider } from '../hooks/useBookLookup';
+import { PhotoServiceContextProvider } from '../hooks/usePhotoService';
 import { RecordRepositoryProvider } from '../hooks/useRecordRepository';
 
 export default function RootLayout() {
   return (
     <RecordRepositoryProvider>
       <BookLookupContextProvider>
+        <PhotoServiceContextProvider>
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="records/[id]" options={{ headerShown: true, title: '記録の詳細' }} />
           <Stack.Screen name="record/new" options={{ headerShown: true, title: '記録を追加' }} />
@@ -16,6 +18,7 @@ export default function RootLayout() {
           <Stack.Screen name="record/[id]" options={{ headerShown: true, title: '記録を編集' }} />
         </Stack>
         <StatusBar style="auto" />
+        </PhotoServiceContextProvider>
       </BookLookupContextProvider>
     </RecordRepositoryProvider>
   );
