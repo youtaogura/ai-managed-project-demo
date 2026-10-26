@@ -3,6 +3,7 @@
 アプリの全画面のデザイン。画像は幅 390px（2倍で書き出し）。縦に長い画面は、スクロールしきった全体を1枚にしている。
 
 - 画面を作る・変えるときは、該当する画像と下の説明を見て、その見た目に合わせる。
+- 使う部品は `../components/`（Button、CoverCard、RatingStars、InfoCell、TabBar、YearCounter、EmptyState、BottomSheet、Chip、TextField）。
 - 色・文字・余白・角丸は画像から読み取らず、`app/src/design/tokens.ts` のトークンを使う（画像の値はトークンから作っている）。
 - **画像と部品の README（`../components/`）が食い違うときは、部品の README を優先する。** 画像の文言・数値・作品名はサンプル。
 - `[出版社名]` `[ISBN]` `[感想…]` のような角かっこは、実際の値が入る場所。
