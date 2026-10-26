@@ -7,9 +7,7 @@ import type { StarterSettings } from './starter';
 export type BackupFile = {
   format: typeof BACKUP_FORMAT;
   version: typeof BACKUP_VERSION;
-  /** ISO 8601 */
   exportedAt: string;
-  /** photoUri は常に null */
   records: MediaRecord[];
   shelves: Shelf[];
   starterSettings: StarterSettings | null;

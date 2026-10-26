@@ -13,11 +13,8 @@ export type SpineColor = (typeof SPINE_COLORS)[number];
 
 export type StarterEntry = {
   id: string;
-  /** 書いたときの書き出しの文（コピー。設定を変えても変わらない） */
   starter: string;
-  /** 続きの文章 */
   text: string;
-  /** ISO 8601 */
   createdAt: string;
 };
 

@@ -10,7 +10,6 @@ export type StarterItem = {
 };
 
 export type StarterSettings = {
-  /** 書き出し機能そのもののオン・オフ */
   enabled: boolean;
   count: StarterCount;
   items: StarterItem[];
