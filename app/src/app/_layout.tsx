@@ -4,16 +4,14 @@ import { StatusBar } from 'expo-status-bar';
 import { BookLookupContextProvider } from '../hooks/useBookLookup';
 import { RecordRepositoryProvider } from '../hooks/useRecordRepository';
 
+// ヘッダーの有無とタイトルは各ルートの Stack.Screen で指定する。
+// 名前文字列で個別指定すると、ルート名と食い違ったときに黙って無効になるため。
 export default function RootLayout() {
   return (
     <RecordRepositoryProvider>
       <BookLookupContextProvider>
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="records/[id]" options={{ headerShown: true, title: '記録の詳細' }} />
-          <Stack.Screen name="record/new" options={{ headerShown: true, title: '記録を追加' }} />
-          <Stack.Screen name="record/isbn" options={{ headerShown: true, title: 'ISBN で探す' }} />
-          <Stack.Screen name="record/scan" options={{ headerShown: false }} />
-          <Stack.Screen name="record/[id]" options={{ headerShown: true, title: '記録を編集' }} />
+        <Stack screenOptions={{ headerShown: true }}>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="auto" />
       </BookLookupContextProvider>

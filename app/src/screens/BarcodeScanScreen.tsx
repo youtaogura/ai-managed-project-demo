@@ -3,7 +3,6 @@ import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { ScreenContainer } from '../components/ScreenContainer';
 import { useBookLookup } from '../hooks/useBookLookup';
 import { isbnFromBarcode } from '../lib/barcode';
 import { bookInfoToParams, isbnOnlyParams } from '../lib/isbnLookupParams';
@@ -22,7 +21,7 @@ function ActionButton({ label, onPress }: { label: string; onPress: () => void }
   );
 }
 
-function BarcodeScanContent() {
+export function BarcodeScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const provider = useBookLookup();
   const [state, setState] = useState<ScanState>('scanning');
@@ -138,14 +137,6 @@ function BarcodeScanContent() {
         {cancel}
       </View>
     </View>
-  );
-}
-
-export function BarcodeScanScreen() {
-  return (
-    <ScreenContainer>
-      <BarcodeScanContent />
-    </ScreenContainer>
   );
 }
 
