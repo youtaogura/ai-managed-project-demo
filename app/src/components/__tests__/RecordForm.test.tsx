@@ -3,6 +3,9 @@ import { Alert, type AlertButton } from 'react-native';
 
 import { RecordForm } from '../RecordForm';
 
+// 初回レンダリングが CI の遅い環境で 5 秒を超えることがあるため延長する
+jest.setTimeout(30000);
+
 beforeEach(() => {
   jest.useFakeTimers({ doNotFake: ['nextTick', 'setImmediate'] });
   jest.setSystemTime(new Date(2024, 4, 10, 12, 0, 0));

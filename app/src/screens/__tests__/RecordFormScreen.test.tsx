@@ -40,6 +40,9 @@ const baseInput = {
 
 const press = (name: string) => fireEvent.press(screen.getByRole('button', { name }));
 
+// 初回レンダリングが CI の遅い環境で 5 秒を超えることがあるため延長する
+jest.setTimeout(30000);
+
 beforeEach(() => jest.clearAllMocks());
 afterEach(() => jest.restoreAllMocks());
 
