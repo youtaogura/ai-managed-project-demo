@@ -1,4 +1,5 @@
 import {
+  crossesInteger,
   applyStatusChange,
   createFormValues,
   paramsToInitialValues,
@@ -251,5 +252,16 @@ describe('starFills', () => {
     expect(starFills(null)).toEqual([0, 0, 0, 0, 0]);
     expect(starFills(5)).toEqual([1, 1, 1, 1, 1]);
     expect(starFills(1)).toEqual([1, 0, 0, 0, 0]);
+  });
+});
+
+describe('crossesInteger', () => {
+  it('整数の境目をまたぐときだけ true', () => {
+    expect(crossesInteger(2.9, 3.0)).toBe(true);
+    expect(crossesInteger(3.0, 2.9)).toBe(true);
+    expect(crossesInteger(3.1, 2.9)).toBe(true);
+    expect(crossesInteger(3.0, 3.1)).toBe(false);
+    expect(crossesInteger(2.8, 2.9)).toBe(false);
+    expect(crossesInteger(3.0, 3.0)).toBe(false);
   });
 });
