@@ -10,12 +10,16 @@ export const RECORD_FIELDS = [
   'photo',
 ] as const;
 export type RecordFieldKey = (typeof RECORD_FIELDS)[number];
+export const HERO_CRITERIA_IDS = ['recent', 'inProgress', 'highRated', 'planned', 'none'] as const;
+export type HeroCriterion = (typeof HERO_CRITERIA_IDS)[number];
 
 export type AppSettings = {
   /** 使う種別。1 つ以上、`MEDIA_KINDS` の順。 */
   enabledKinds: MediaKind[];
   /** 記録する項目のオン・オフ。 */
   enabledFields: Record<RecordFieldKey, boolean>;
+  /** 記録一覧の上に大きく出す作品の条件。 */
+  heroCriterion: HeroCriterion;
 };
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -28,4 +32,5 @@ export const DEFAULT_SETTINGS: AppSettings = {
     review: true,
     photo: true,
   },
+  heroCriterion: 'recent',
 };

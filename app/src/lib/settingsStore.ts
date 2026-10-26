@@ -1,5 +1,11 @@
 import { MEDIA_KINDS, type MediaKind } from '../types/record';
-import { DEFAULT_SETTINGS, RECORD_FIELDS, type AppSettings } from '../types/settings';
+import {
+  DEFAULT_SETTINGS,
+  RECORD_FIELDS,
+  HERO_CRITERIA_IDS,
+  type AppSettings,
+  type HeroCriterion,
+} from '../types/settings';
 import type { KeyValueStorage } from './storage';
 
 export const SETTINGS_STORAGE_KEY = 'appSettings.v1';
@@ -13,6 +19,7 @@ function defaults(): AppSettings {
   return {
     enabledKinds: [...DEFAULT_SETTINGS.enabledKinds],
     enabledFields: { ...DEFAULT_SETTINGS.enabledFields },
+    heroCriterion: DEFAULT_SETTINGS.heroCriterion,
   };
 }
 
@@ -25,6 +32,10 @@ function parseEnabledKinds(value: unknown): MediaKind[] | null {
   if (!Array.isArray(value)) return null;
   const kinds = MEDIA_KINDS.filter((kind) => value.includes(kind));
   return kinds.length > 0 ? kinds : null;
+}
+
+function parseHeroCriterion(value: unknown): HeroCriterion | null {
+  return HERO_CRITERIA_IDS.find((id) => id === value) ?? null;
 }
 
 /** フィールドごとに検証し、不正なフィールドだけ既定値にする。 */
@@ -46,6 +57,8 @@ export function parseSettings(raw: string | null): AppSettings {
       if (typeof value === 'boolean') result.enabledFields[key] = value;
     }
   }
+  const heroCriterion = parseHeroCriterion(parsed.heroCriterion);
+  if (heroCriterion) result.heroCriterion = heroCriterion;
   return result;
 }
 

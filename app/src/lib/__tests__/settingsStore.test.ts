@@ -12,7 +12,7 @@ const FIELDS_ON = {
   review: true,
   photo: true,
 };
-const DEFAULTS = { enabledKinds: ALL, enabledFields: FIELDS_ON };
+const DEFAULTS = { enabledKinds: ALL, enabledFields: FIELDS_ON, heroCriterion: 'recent' };
 
 describe('parseSettings', () => {
   it('保存がないときはすべての種別・すべての項目', () => {
@@ -42,6 +42,7 @@ describe('parseSettings', () => {
     expect(parseSettings('{"enabledKinds":["anime","x","book","anime"]}')).toEqual({
       enabledKinds: ['book', 'anime'],
       enabledFields: FIELDS_ON,
+      heroCriterion: 'recent',
     });
   });
 
@@ -49,6 +50,7 @@ describe('parseSettings', () => {
     expect(parseSettings('{"enabledKinds":["book"]}')).toEqual({
       enabledKinds: ['book'],
       enabledFields: FIELDS_ON,
+      heroCriterion: 'recent',
     });
   });
 
@@ -74,6 +76,7 @@ describe('createSettingsStore', () => {
   it('保存した設定を、作り直したストアで読み込める', async () => {
     const { storage, data } = createMemoryStorage();
     const settings = {
+      ...DEFAULT_SETTINGS,
       enabledKinds: ['book' as const, 'movie' as const],
       enabledFields: { ...FIELDS_ON, review: false },
     };
@@ -91,5 +94,32 @@ describe('createSettingsStore', () => {
       removeItem: async () => undefined,
     };
     expect(await createSettingsStore(storage).load()).toEqual(DEFAULTS);
+  });
+});
+
+describe('heroCriterion の保存', () => {
+  it('既定値は recent', () => {
+    expect(DEFAULT_SETTINGS.heroCriterion).toBe('recent');
+  });
+
+  it('保存して読み込み直すと同じ値になり、他のフィールドは変わらない', async () => {
+    const { storage } = createMemoryStorage();
+    await createSettingsStore(storage).save({ ...DEFAULT_SETTINGS, enabledKinds: ['book'], heroCriterion: 'planned' });
+    expect(await createSettingsStore(storage).load()).toEqual({
+      ...DEFAULTS,
+      enabledKinds: ['book'],
+      heroCriterion: 'planned',
+    });
+  });
+
+  it.each([
+    ['未知の文字列', '{"heroCriterion":"x"}'],
+    ['文字列でない', '{"heroCriterion":3}'],
+  ])('%s は recent', (_name, raw) => {
+    expect(parseSettings(raw).heroCriterion).toBe('recent');
+  });
+
+  it('heroCriterion のない古い保存値でも enabledKinds を保つ', () => {
+    expect(parseSettings('{"enabledKinds":["movie"]}')).toEqual({ ...DEFAULTS, enabledKinds: ['movie'] });
   });
 });

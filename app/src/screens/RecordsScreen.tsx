@@ -24,10 +24,11 @@ import { useSettings } from '../hooks/useSettings';
 import { useRecords } from '../hooks/useRecords';
 import { useSortOrder } from '../hooks/useSortOrder';
 import { filterRecordsByKinds } from '../lib/enabledKinds';
+import { HERO_CRITERIA, selectHeroRecords } from '../lib/heroCriteria';
 import { createSortOrderStore, type SortOrderStore } from '../lib/sortOrderStore';
 import { SORT_ORDER_LABELS, sortRecords } from '../lib/sortRecords';
 import { asyncKeyValueStorage } from '../lib/storage';
-import { countCompletions, recentlyFinished } from '../lib/yearCounter';
+import { countCompletions } from '../lib/yearCounter';
 import type { MediaRecord } from '../types/record';
 import { effectiveSortOrder } from '../types/sort';
 
@@ -35,7 +36,6 @@ const defaultSortOrderStore = createSortOrderStore(asyncKeyValueStorage);
 
 const COLUMNS = 4;
 const GRID_GAP = 10;
-const RECENT_LIMIT = 10;
 
 type RecordsScreenProps = {
   sortOrderStore?: SortOrderStore;
@@ -65,9 +65,9 @@ export function RecordsScreen({
     [allRecords, settings.enabledKinds],
   );
   const sorted = useMemo(() => sortRecords(records, order), [records, order]);
-  const recent = useMemo(
-    () => recentlyFinished(records, RECENT_LIMIT, settings.enabledFields),
-    [records, settings.enabledFields],
+  const hero = useMemo(
+    () => selectHeroRecords(records, settings.heroCriterion, settings.enabledFields),
+    [records, settings.heroCriterion, settings.enabledFields],
   );
   const counts = useMemo(
     () => countCompletions(records, new Date(), settings.enabledFields),
@@ -135,17 +135,17 @@ export function RecordsScreen({
       <View style={styles.counter}>
         <YearCounter year={counts.year} month={counts.month} />
       </View>
-      {recent.length > 0 ? (
+      {hero.length > 0 ? (
         <View style={styles.section}>
           <AppText variant="sectionTitle" style={styles.sectionTitle}>
-            最近読み終えた・見終えた
+            {HERO_CRITERIA[settings.heroCriterion].title}
           </AppText>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.hero}
           >
-            {recent.map((record) => (
+            {hero.map((record) => (
               <CoverCard key={record.id} record={record} variant="hero" onPress={open} />
             ))}
           </ScrollView>

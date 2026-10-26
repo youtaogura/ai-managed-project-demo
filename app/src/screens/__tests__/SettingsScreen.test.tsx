@@ -111,3 +111,34 @@ describe('SettingsScreen（記録する項目）', () => {
     }
   });
 });
+
+describe('SettingsScreen（上に大きく出す作品）', () => {
+  it('行の 2 行目に今の条件名を出し、タップでシートが開く', async () => {
+    await render(
+      withSettings(createSettingsStore(createMemoryStorage().storage), <SettingsScreen />),
+    );
+    expect(await screen.findByText('記録一覧')).toBeTruthy();
+    const row = screen.getByRole('button', {
+      name: '上に大きく出す作品、最近読み終えた・見終えた',
+    });
+    await fireEvent.press(row);
+    expect(screen.getAllByRole('radio')).toHaveLength(5);
+    expect(screen.getByRole('radio', { name: '最近読み終えた・見終えた' }).props.accessibilityState)
+      .toMatchObject({ selected: true });
+  });
+
+  it('選ぶとすぐ保存されてシートが閉じ、開き直しても保たれる', async () => {
+    const { storage } = createMemoryStorage();
+    const first = await render(withSettings(createSettingsStore(storage), <SettingsScreen />));
+    await fireEvent.press(await screen.findByRole('button', { name: /^上に大きく出す作品、/ }));
+    await fireEvent.press(screen.getByRole('radio', { name: '表示しない' }));
+    expect(screen.queryAllByRole('radio')).toHaveLength(0);
+    expect(screen.getByRole('button', { name: '上に大きく出す作品、表示しない' })).toBeTruthy();
+    await first.unmount();
+
+    await render(withSettings(createSettingsStore(storage), <SettingsScreen />));
+    expect(
+      await screen.findByRole('button', { name: '上に大きく出す作品、表示しない' }),
+    ).toBeTruthy();
+  });
+});

@@ -1,14 +1,18 @@
+import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppText } from '../components/AppText';
 import { ChipMultiGroup, type ChipOption } from '../components/Chip';
+import { HeroCriterionSheet } from '../components/HeroCriterionSheet';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { SettingsCard } from '../components/SettingsCard';
+import { SettingsRow } from '../components/SettingsRow';
 import { Toggle } from '../components/Toggle';
 import { colors, space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useSettings } from '../hooks/useSettings';
 import { toggleKind } from '../lib/enabledKinds';
+import { HERO_CRITERIA } from '../lib/heroCriteria';
 import { RECORD_FIELD_LABELS, withFieldToggled } from '../lib/recordFields';
 import { KIND_LABELS } from '../lib/statusLabel';
 import { MEDIA_KINDS, type MediaKind } from '../types/record';
@@ -29,6 +33,7 @@ const FIELD_DESCRIPTIONS: Partial<Record<RecordFieldKey, string>> = {
 export function SettingsScreen() {
   const { settings, update } = useSettings();
   const bottomInset = useBottomInset();
+  const [heroOpen, setHeroOpen] = useState(false);
 
   const onToggle = (kind: MediaKind) => {
     const next = toggleKind(settings.enabledKinds, kind);
@@ -69,6 +74,13 @@ export function SettingsScreen() {
             最低 1 つは選んでおく必要があります
           </AppText>
         </SettingsCard>
+        <SettingsCard title="記録一覧">
+          <SettingsRow
+            label="上に大きく出す作品"
+            value={HERO_CRITERIA[settings.heroCriterion].label}
+            onPress={() => setHeroOpen(true)}
+          />
+        </SettingsCard>
         <View style={styles.section}>
           <SettingsCard title="記録する項目">
             {RECORD_FIELDS.map((key, index) => (
@@ -87,6 +99,15 @@ export function SettingsScreen() {
           </AppText>
         </View>
       </ScrollView>
+      <HeroCriterionSheet
+        visible={heroOpen}
+        value={settings.heroCriterion}
+        onClose={() => setHeroOpen(false)}
+        onChange={(heroCriterion) => {
+          update({ heroCriterion });
+          setHeroOpen(false);
+        }}
+      />
     </ScreenContainer>
   );
 }
