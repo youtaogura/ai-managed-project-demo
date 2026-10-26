@@ -1,5 +1,7 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 
+import { RECORDS_STORAGE_KEY } from '../lib/recordRepository';
 import RootLayout from '../app/_layout';
 import IsbnLookupRoute from '../app/record/isbn';
 import TabsLayout from '../app/(tabs)/_layout';
@@ -55,8 +57,17 @@ describe('記録の追加', () => {
 });
 
 describe('ISBN で探して追加', () => {
-  it('取得結果がフォームに入力済みで表示され、保存できる', async () => {
-    const original = globalThis.fetch;
+  const original = globalThis.fetch;
+
+  beforeEach(async () => {
+    await AsyncStorage.clear();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = original;
+  });
+
+  async function lookupAndSave(cover: string): Promise<unknown[]> {
     globalThis.fetch = jest.fn(
       async () =>
         ({
@@ -68,7 +79,7 @@ describe('ISBN で探して追加', () => {
                 title: '取得した本',
                 author: '著者A',
                 publisher: '出版社B',
-                cover: '',
+                cover,
               },
             },
           ],
@@ -84,6 +95,24 @@ describe('ISBN で探して追加', () => {
     expect(screen.getByDisplayValue('9784065199817')).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: '保存' }));
     await waitFor(() => expect(screen.getByText('取得した本')).toBeTruthy());
-    globalThis.fetch = original;
+    const raw = await AsyncStorage.getItem(RECORDS_STORAGE_KEY);
+    const saved: unknown = raw === null ? null : JSON.parse(raw);
+    return Array.isArray(saved) ? saved : [];
+  }
+
+  it('取得結果がフォームに入力済みで表示され、coverUrl も含めて種別「本」で保存される', async () => {
+    const saved = await lookupAndSave('https://example.com/c.jpg');
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).toMatchObject({
+      kind: 'book',
+      title: '取得した本',
+      coverUrl: 'https://example.com/c.jpg',
+    });
+  });
+
+  it('表紙画像がない場合は coverUrl が null で保存される', async () => {
+    const saved = await lookupAndSave('');
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).toMatchObject({ kind: 'book', coverUrl: null });
   });
 });
