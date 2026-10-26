@@ -52,7 +52,7 @@ function hasHeaderTitle(title: string): boolean {
 
 describe('タブの画面はネイティブのヘッダーを出さず、画面内の見出しにする', () => {
   it.each([
-    ['/', '記録'],
+    ['/', '本棚'],
     ['/analytics', '振り返り'],
   ])('%s の見出しは「%s」', async (path, title) => {
     await renderRouter(routes, { initialUrl: path });

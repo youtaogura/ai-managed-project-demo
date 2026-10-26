@@ -9,7 +9,7 @@ export default function TabsLayout() {
       screenOptions={{ ...tabsScreenOptions, headerShown: false }}
       tabBar={(props) => <TabBar {...props} />}
     >
-      <Tabs.Screen name="index" options={{ title: '記録' }} />
+      <Tabs.Screen name="index" options={{ title: '本棚' }} />
       <Tabs.Screen name="analytics" options={{ title: '振り返り' }} />
       <Tabs.Screen name="settings" options={{ title: '設定' }} />
     </Tabs>

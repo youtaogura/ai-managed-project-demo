@@ -42,7 +42,7 @@ function topSpace(style: unknown): number {
 describe('上端インセットのある端末（タブの画面はヘッダーなし）', () => {
   it('記録一覧の見出しの上に、インセット分の余白がちょうど 1 回だけ入る', async () => {
     await renderRouter(routes);
-    const title = await screen.findByText('最初の1作品を記録しよう');
+    const title = await screen.findByText('最初の1冊を、棚に並べよう');
     let total = 0;
     let node = title.parent;
     while (node) {
@@ -54,8 +54,8 @@ describe('上端インセットのある端末（タブの画面はヘッダー�
 
   it('「記録する」から手で入力すると、記録の追加画面へ遷移する', async () => {
     await renderRouter(routes);
-    await screen.findByText('最初の1作品を記録しよう');
-    await fireEvent.press(screen.getAllByRole('button', { name: '記録する' }).slice(-1)[0]);
+    await screen.findByText('最初の1冊を、棚に並べよう');
+    await fireEvent.press(screen.getByRole('button', { name: '本を追加する' }));
     await fireEvent.press(await screen.findByRole('button', { name: '本を手で入力する' }));
     expect(await screen.findByLabelText('タイトル（必須）')).toBeTruthy();
     expect(screen).toHavePathname('/record/new');

@@ -217,7 +217,7 @@ function backupText(overrides: Record<string, unknown> = {}) {
       [makeRecord({ id: 'a', title: 'ファイルのアルファ' }), makeRecord({ id: 'c', title: 'ガンマ' })],
       [],
       defaultStarterSettings(),
-      { heroCriterion: 'none', defaultStatus: 'completed' },
+      { defaultStatus: 'planned' },
       '2026-10-26T03:00:00.000Z',
     ),
     ...overrides,
@@ -293,8 +293,7 @@ describe('DataScreen（読み込み）', () => {
     expect(all[1]?.photoUri).toBe('file:///p.jpg');
     expect(await screen.findByText('3')).toBeTruthy();
     expect(JSON.parse(memory.data.get(SETTINGS_STORAGE_KEY) ?? '{}')).toEqual({
-      heroCriterion: 'none',
-      defaultStatus: 'completed',
+      defaultStatus: 'planned',
     });
   });
 
@@ -396,7 +395,7 @@ describe('DataScreen（すべての記録を削除）', () => {
     const { memory, photoService, settingsStore } = await setup(fakeFileService());
     await settingsStore.save({
       ...DEFAULT_SETTINGS,
-      heroCriterion: 'highRated',
+      defaultStatus: 'planned',
     });
     const settingsBefore = memory.data.get(SETTINGS_STORAGE_KEY);
     await openSheet();

@@ -1,9 +1,8 @@
-import { Text } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 
-import { withRepository, withSettings } from '../../testProviders';
+import { withRepository } from '../../testProviders';
 import { createSortOrderStore } from '../../lib/sortOrderStore';
-import { createSettingsStore, SETTINGS_STORAGE_KEY } from '../../lib/settingsStore';
 import { createFakeRepository, createMemoryStorage, makeRecord } from '../../testUtils';
 import type { MediaRecord } from '../../types/record';
 import type { RecordRepository } from '../../lib/recordRepository';
@@ -22,24 +21,28 @@ const records: MediaRecord[] = [
     endDate: '2024-02-10',
     rating: 4,
   }),
-  makeRecord({
-    id: 'b',
-    title: 'ベータ',
-    status: 'planned',
-    startDate: '2024-03-01',
-  }),
+  makeRecord({ id: 'b', title: 'ベータ', status: 'planned', startDate: '2024-03-01' }),
   makeRecord({
     id: 'c',
     title: 'ガンマ',
+    status: 'completed',
     endDate: '2024-05-01',
     rating: 2.5,
   }),
+  makeRecord({ id: 'd', title: 'デルタ', status: 'in_progress', creator: '作者D' }),
+  makeRecord({ id: 'e', title: 'イプシロン', status: 'dropped' }),
 ];
+
+type Handlers = {
+  onAdd?: () => void;
+  onOpen?: (id: string) => void;
+  onCreateShelf?: () => void;
+};
 
 function setup(
   repository: RecordRepository,
   storage = createMemoryStorage().storage,
-  handlers: { onAdd?: () => void; onOpen?: (id: string) => void } = {},
+  handlers: Handlers = {},
 ) {
   return renderRouter({
     index: () =>
@@ -55,131 +58,178 @@ function setup(
   });
 }
 
-const now = new Date();
-const pad = (n: number) => String(n).padStart(2, '0');
-const thisMonth = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
-const thisYear = `${now.getFullYear()}`;
-
-// 表示順を、書影（accessibilityLabel がタイトル）の並びで取る
-const titles = () =>
+const spineLabels = () =>
   screen
-    .getAllByRole('button', { name: /^(アルファ|ベータ|ガンマ)$/ })
+    .getAllByRole('button', { name: /、(読んでる|読んだ|読みたい|途中でやめた)/ })
     .map((n) => n.props.accessibilityLabel as string);
 
-describe('RecordsScreen', () => {
-  it('古い kind を持つ記録も、すべて一覧に出る', async () => {
-    const old = records.map((r, i) => ({ ...r, kind: ['book', 'movie', 'anime'][i] }));
-    await setup(createFakeRepository(old).repository);
-    await waitFor(() => expect(new Set(titles())).toEqual(new Set(['アルファ', 'ベータ', 'ガンマ'])));
-  });
+const titles = () => spineLabels().map((label) => label.split('、')[0]);
 
+const spineBox = (title: string) => {
+  const style = StyleSheet.flatten(
+    screen.getByRole('button', { name: new RegExp(`^${title}、`) }).props.style,
+  );
+  return { width: style.width, height: style.height };
+};
+
+async function ready() {
+  await screen.findByText('本棚');
+  await waitFor(() => expect(screen.getAllByLabelText(/^アルファ、/).length).toBeGreaterThan(0));
+}
+
+describe('RecordsScreen', () => {
   it('読み込み中はインジケーターを表示し、完了後に切り替わる', async () => {
-    const { repository } = createFakeRepository(records);
-    await setup(repository);
-    await waitFor(() => expect(screen.getAllByLabelText('アルファ').length).toBeGreaterThan(0));
+    await setup(createFakeRepository(records).repository);
+    await ready();
     expect(screen.queryByLabelText('読み込み中')).toBeNull();
   });
 
-  it('見出し「記録」と並び替え・記録するボタンを表示する', async () => {
-    await setup(createFakeRepository(records).repository);
-    expect(await screen.findByText('記録')).toBeTruthy();
-    expect(screen.getByRole('button', { name: '並び替え' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '記録する' })).toBeTruthy();
-  });
-
-  it('今年・今月に終了日のある記録の数を表示する', async () => {
+  it('見出し「本棚」と全冊数・今年読んだ冊数を表示する', async () => {
+    const year = new Date().getFullYear();
     const dated = [
-      makeRecord({ id: 'y1', title: 'A', endDate: `${thisMonth}-01` }),
-      makeRecord({ id: 'y2', title: 'B', endDate: `${thisYear}-01-01` }),
-      makeRecord({ id: 'o1', title: 'C', endDate: '1999-05-05' }),
-      makeRecord({ id: 'n1', title: 'D', endDate: null }),
+      makeRecord({ id: 'y1', title: 'A', status: 'completed', endDate: `${year}-01-01` }),
+      makeRecord({ id: 'y2', title: 'B', status: 'completed', endDate: `${year}-02-01` }),
+      makeRecord({ id: 'o1', title: 'C', status: 'completed', endDate: '1999-05-05' }),
+      makeRecord({ id: 'n1', title: 'D', status: 'planned', endDate: null }),
     ];
     await setup(createFakeRepository(dated).repository);
-    const expectedMonth = thisMonth.endsWith('-01') ? 2 : 1;
-    expect(await screen.findByLabelText(`今年 2 作品 · 今月 ${expectedMonth}`)).toBeTruthy();
+    expect(await screen.findByText('4 冊 · 今年読んだ 2 冊')).toBeTruthy();
+    expect(screen.getByText('本棚')).toBeTruthy();
   });
 
-  it('「最近読み終えた」に終了日の新しい順で最大10件並ぶ', async () => {
-    const many = Array.from({ length: 12 }, (_, i) =>
-      makeRecord({ id: `m${i}`, title: `作品${pad(i)}`, endDate: `2020-01-${pad(i + 1)}` }),
+  it('冊数は絞り込みの影響を受けない', async () => {
+    await setup(createFakeRepository(records).repository);
+    await ready();
+    await fireEvent.press(screen.getByRole('tab', { name: /^読みたい/ }));
+    expect(screen.getByText(/^5 冊 · 今年読んだ/)).toBeTruthy();
+  });
+
+  it('ステータスのタブは件数つきで、初期値は「すべて」', async () => {
+    await setup(createFakeRepository(records).repository);
+    await ready();
+    expect(screen.getAllByRole('tab')).toHaveLength(4);
+    expect(screen.getByRole('tab', { name: 'すべて 5' }).props.accessibilityState.selected).toBe(
+      true,
     );
-    await setup(createFakeRepository(many).repository);
-    expect(await screen.findByText('最近読み終えた')).toBeTruthy();
-    // hero は終了日を表示する。2020-01-12 が最新、2020-01-03 が 10 件目
-    expect(screen.getByText('2020-01-12')).toBeTruthy();
-    expect(screen.getByText('2020-01-03')).toBeTruthy();
-    expect(screen.queryByText('2020-01-02')).toBeNull();
-    expect(screen.queryByText('2020-01-01')).toBeNull();
+    expect(screen.getByRole('tab', { name: '読んでる 1' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: '読んだ 2' })).toBeTruthy();
+    expect(screen.getByRole('tab', { name: '読みたい 1' })).toBeTruthy();
+    expect(titles()).toHaveLength(5);
   });
 
-  it('終了日のある記録がなければ「最近読み終えた」は出ない', async () => {
+  it('タブを押すとその状態の本だけが並び、件数は変わらない', async () => {
+    await setup(createFakeRepository(records).repository);
+    await ready();
+    await fireEvent.press(screen.getByRole('tab', { name: '読んだ 2' }));
+    expect(screen.getByRole('tab', { name: '読んだ 2' }).props.accessibilityState.selected).toBe(
+      true,
+    );
+    expect(titles().sort()).toEqual(['アルファ', 'ガンマ']);
+    await fireEvent.press(screen.getByRole('tab', { name: '読んでる 1' }));
+    expect(titles()).toEqual(['デルタ']);
+    await fireEvent.press(screen.getByRole('tab', { name: '読みたい 1' }));
+    expect(titles()).toEqual(['ベータ']);
+    expect(screen.getByRole('tab', { name: 'すべて 5' })).toBeTruthy();
+  });
+
+  it('途中でやめた本は「すべて」にだけ出る', async () => {
+    await setup(createFakeRepository(records).repository);
+    await ready();
+    expect(titles()).toContain('イプシロン');
+    for (const name of ['読んでる 1', '読んだ 2', '読みたい 1']) {
+      await fireEvent.press(screen.getByRole('tab', { name }));
+      expect(titles()).not.toContain('イプシロン');
+    }
+  });
+
+  it('絞り込んだ結果が 0 冊のときは案内を出す', async () => {
     await setup(
-      createFakeRepository([makeRecord({ id: 'p', title: 'ベータ', endDate: null })]).repository,
+      createFakeRepository([makeRecord({ id: 'p', title: 'ベータ', status: 'planned' })])
+        .repository,
     );
-    expect(await screen.findByText('すべての記録')).toBeTruthy();
-    expect(screen.queryByText('最近読み終えた')).toBeNull();
+    await screen.findByText('本棚');
+    await fireEvent.press(await screen.findByRole('tab', { name: '読んだ 0' }));
+    expect(screen.getByText('この状態の本はまだありません')).toBeTruthy();
+    expect(screen.queryByTestId('shelf-board')).toBeNull();
   });
 
-  it('既定は終了日の新しい順で、並び順を見出しの右に出す', async () => {
+  it('凡例とチップの行を表示し、「＋ 本棚を作る」は未指定でも落ちない', async () => {
     await setup(createFakeRepository(records).repository);
-    await screen.findByText('すべての記録');
-    expect(screen.getByText('終了日が新しい順')).toBeTruthy();
-    const grid = titles();
-    expect(grid.slice(-3)).toEqual(['ガンマ', 'アルファ', 'ベータ']);
+    await ready();
+    expect(screen.getByText('お気に入り')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'すべての本' })).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: '本棚を作る' }));
   });
 
-  it('並び替えシートで選ぶと一覧が変わり、シートが閉じる', async () => {
+  it('「＋ 本棚を作る」で onCreateShelf が呼ばれる', async () => {
+    const onCreateShelf = jest.fn();
+    await setup(createFakeRepository(records).repository, undefined, { onCreateShelf });
+    await ready();
+    await fireEvent.press(screen.getByRole('button', { name: '本棚を作る' }));
+    expect(onCreateShelf).toHaveBeenCalledTimes(1);
+  });
+
+  it('既定は終了日の新しい順', async () => {
     await setup(createFakeRepository(records).repository);
-    await screen.findByText('すべての記録');
+    await ready();
+    expect(titles().slice(0, 2)).toEqual(['ガンマ', 'アルファ']);
+  });
+
+  it('並び替えシートで選ぶと並びが変わり、背表紙の大きさは変わらない', async () => {
+    await setup(createFakeRepository(records).repository);
+    await ready();
+    const before = { a: spineBox('アルファ'), c: spineBox('ガンマ') };
+    const order = titles();
     await fireEvent.press(screen.getByRole('button', { name: '並び替え' }));
     expect(screen.getByText('レーティング')).toBeTruthy();
-    await fireEvent.press(screen.getByRole('radio', { name: '低い順' }));
-    expect(screen.getByText('評価が低い順')).toBeTruthy();
-    expect(titles().slice(-3)).toEqual(['ガンマ', 'アルファ', 'ベータ']);
+    await fireEvent.press(screen.getByRole('radio', { name: '高い順' }));
     expect(screen.queryByText('レーティング')).toBeNull();
+    expect(titles()).not.toEqual(order);
+    expect({ a: spineBox('アルファ'), c: spineBox('ガンマ') }).toEqual(before);
   });
 
   it('並び順は再マウント後も維持される', async () => {
     const { storage } = createMemoryStorage();
     const { repository } = createFakeRepository(records);
     await setup(repository, storage);
-    await screen.findByText('すべての記録');
+    await ready();
     await fireEvent.press(screen.getByRole('button', { name: '並び替え' }));
     await fireEvent.press(screen.getByRole('radio', { name: '高い順' }));
     await screen.unmount();
 
     await setup(repository, storage);
-    await waitFor(() => expect(screen.getByText('評価が高い順')).toBeTruthy());
-    expect(titles().slice(-3)).toEqual(['アルファ', 'ガンマ', 'ベータ']);
+    await ready();
+    await waitFor(() => expect(titles().slice(0, 2)).toEqual(['アルファ', 'ガンマ']));
   });
 
-  it('書影をタップすると onOpen が id 付きで呼ばれる', async () => {
+  it('背表紙をタップすると onOpen が id 付きで呼ばれる', async () => {
     const onOpen = jest.fn();
     await setup(createFakeRepository(records).repository, undefined, { onOpen });
-    await screen.findByText('すべての記録');
-    await fireEvent.press(screen.getAllByLabelText('ベータ')[0]);
+    await ready();
+    await fireEvent.press(screen.getByLabelText('ベータ、読みたい'));
     expect(onOpen).toHaveBeenCalledWith('b');
   });
 
   it('コールバック未指定でもタップで落ちない', async () => {
     await setup(createFakeRepository(records).repository);
-    await screen.findByText('すべての記録');
-    await fireEvent.press(screen.getAllByLabelText('ベータ')[0]);
+    await ready();
+    await fireEvent.press(screen.getByLabelText('ベータ、読みたい'));
   });
 
-  it('0 件のときは空の表示が出て、「記録する」で追加シートが開く', async () => {
+  it('0 件のときは見出し・追加ボタン・空の表示が出て、「本を追加する」で追加シートが開く', async () => {
     await setup(createFakeRepository().repository);
-    expect(await screen.findByText('最初の1作品を記録しよう')).toBeTruthy();
+    expect(await screen.findByText('最初の1冊を、棚に並べよう')).toBeTruthy();
+    expect(screen.getByText('本棚')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '本を追加' })).toBeTruthy();
     expect(screen.queryByText('何を記録しますか')).toBeNull();
-    await fireEvent.press(screen.getAllByRole('button', { name: '記録する' }).slice(-1)[0]);
+    await fireEvent.press(screen.getByRole('button', { name: '本を追加する' }));
     expect(screen.getByText('何を記録しますか')).toBeTruthy();
   });
 
-  it('＋ボタンで追加シートが開き、旧デザインの追加ボタンはない', async () => {
+  it('追加ボタンで追加シートが開く', async () => {
     await setup(createFakeRepository(records).repository);
-    await screen.findByText('すべての記録');
-    expect(screen.queryByRole('button', { name: '手入力で追加' })).toBeNull();
-    await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
+    await ready();
+    await fireEvent.press(screen.getByRole('button', { name: '本を追加' }));
     expect(screen.getByText('何を記録しますか')).toBeTruthy();
   });
 
@@ -189,8 +239,8 @@ describe('RecordsScreen', () => {
     ['ISBN を入力する', '/record/isbn'],
   ])('追加シートの「%s」で %s へ遷移する', async (label, path) => {
     await setup(createFakeRepository(records).repository);
-    await screen.findByText('すべての記録');
-    await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
+    await ready();
+    await fireEvent.press(screen.getByRole('button', { name: '本を追加' }));
     await fireEvent.press(screen.getByRole('button', { name: label }));
     await waitFor(() => expect(screen).toHavePathname(path));
   });
@@ -198,82 +248,26 @@ describe('RecordsScreen', () => {
   it('追加シートの「手で入力する」で onAdd が呼ばれ、シートが閉じる', async () => {
     const onAdd = jest.fn();
     await setup(createFakeRepository(records).repository, undefined, { onAdd });
-    await screen.findByText('すべての記録');
-    await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
+    await ready();
+    await fireEvent.press(screen.getByRole('button', { name: '本を追加' }));
     await fireEvent.press(screen.getByRole('button', { name: '本を手で入力する' }));
     expect(onAdd).toHaveBeenCalledTimes(1);
     expect(screen.queryByText('何を記録しますか')).toBeNull();
   });
 
-  it('追加シートの入口は 4 つだけで、映画・ドラマ・アニメは出ない', async () => {
-    await setup(createFakeRepository(records).repository);
-    await screen.findByText('すべての記録');
-    await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
-    expect(screen.getByRole('button', { name: 'バーコードを読み取る' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '本をタイトルで探す' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'ISBN を入力する' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '本を手で入力する' })).toBeTruthy();
-    expect(screen.queryByText(/映画|ドラマ|アニメ/)).toBeNull();
-  });
-
   it('onAdd 未指定でも「手で入力する」を押して落ちない', async () => {
     await setup(createFakeRepository(records).repository);
-    await screen.findByText('すべての記録');
-    await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
+    await ready();
+    await fireEvent.press(screen.getByRole('button', { name: '本を追加' }));
     await fireEvent.press(screen.getByRole('button', { name: '本を手で入力する' }));
-    expect(screen.getAllByLabelText('ベータ').length).toBeGreaterThan(0);
+    expect(screen.getByLabelText('ベータ、読みたい')).toBeTruthy();
   });
 
   it('追加シートを閉じるボタンで閉じられる', async () => {
     await setup(createFakeRepository(records).repository);
-    await screen.findByText('すべての記録');
-    await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
+    await ready();
+    await fireEvent.press(screen.getByRole('button', { name: '本を追加' }));
     await fireEvent.press(screen.getByRole('button', { name: '閉じる' }));
     expect(screen.queryByText('何を記録しますか')).toBeNull();
-  });
-});
-
-describe('RecordsScreen（上に大きく出す作品）', () => {
-  const setupHero = (criterion: string, data: MediaRecord[]) =>
-    renderRouter({
-      index: () =>
-        withSettings(
-          createSettingsStore(
-            createMemoryStorage({
-              [SETTINGS_STORAGE_KEY]: JSON.stringify({ heroCriterion: criterion }),
-            }).storage,
-          ),
-          withRepository(
-            createFakeRepository(data).repository,
-            <RecordsScreen sortOrderStore={createSortOrderStore(createMemoryStorage().storage)} />,
-          ),
-        ),
-    });
-
-  it('初期値では「最近読み終えた」を出す', async () => {
-    await setup(createFakeRepository(records).repository);
-    expect(await screen.findByText('最近読み終えた')).toBeTruthy();
-  });
-
-  it('条件に合わせて見出しと作品が変わる', async () => {
-    await setupHero('planned', records);
-    expect(await screen.findByText('読みたい')).toBeTruthy();
-    expect(screen.queryByText('最近読み終えた')).toBeNull();
-    // ベータ（planned）は hero と一覧の 2 か所に出る
-    expect(screen.getAllByLabelText('ベータ')).toHaveLength(2);
-    expect(screen.getAllByLabelText('アルファ')).toHaveLength(1);
-  });
-
-  it('条件に合う作品がないとき、見出しも段も出ない', async () => {
-    await setupHero('inProgress', records);
-    expect(await screen.findByText('すべての記録')).toBeTruthy();
-    expect(screen.queryByText('今読んでる')).toBeNull();
-  });
-
-  it('none では段を出さない', async () => {
-    await setupHero('none', records);
-    expect(await screen.findByText('すべての記録')).toBeTruthy();
-    expect(screen.queryByText('最近読み終えた')).toBeNull();
-    expect(screen.getAllByLabelText('アルファ')).toHaveLength(1);
   });
 });

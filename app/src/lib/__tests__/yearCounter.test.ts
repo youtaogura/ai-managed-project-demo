@@ -1,5 +1,5 @@
 import { makeRecord } from '../../testUtils';
-import { countCompletions, recentlyFinished } from '../yearCounter';
+import { countCompletions } from '../yearCounter';
 
 describe('countCompletions', () => {
   const now = new Date(2026, 9, 15);
@@ -16,17 +16,5 @@ describe('countCompletions', () => {
 
   it('記録がなければ 0', () => {
     expect(countCompletions([], now)).toEqual({ year: 0, month: 0 });
-  });
-});
-
-describe('recentlyFinished', () => {
-  it('終了日の新しい順に limit 件まで、終了日なしは除く', () => {
-    const records = [
-      makeRecord({ id: 'a', endDate: '2024-01-01' }),
-      makeRecord({ id: 'b', endDate: '2024-03-01' }),
-      makeRecord({ id: 'c', endDate: null }),
-      makeRecord({ id: 'd', endDate: '2024-02-01' }),
-    ];
-    expect(recentlyFinished(records, 2).map((r) => r.id)).toEqual(['b', 'd']);
   });
 });

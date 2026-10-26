@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppText } from '../components/AppText';
-import { HeroCriterionSheet } from '../components/HeroCriterionSheet';
 import { StatusDefaultSheet } from '../components/StatusDefaultSheet';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { SettingsCard } from '../components/SettingsCard';
@@ -17,7 +16,6 @@ import { useLastExportedAt } from '../hooks/useLastExportedAt';
 import { createExportStore, type ExportStore } from '../lib/exportStore';
 import { formatDate } from '../lib/format';
 import { asyncKeyValueStorage } from '../lib/storage';
-import { HERO_CRITERIA } from '../lib/heroCriteria';
 import { STATUS_DEFAULT_LABELS } from '../lib/statusDefault';
 
 
@@ -43,7 +41,6 @@ export function SettingsScreen({
   const { settings, update } = useSettings();
   const { starterSettings } = useStarterSettings();
   const bottomInset = useBottomInset();
-  const [heroOpen, setHeroOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
 
   return (
@@ -63,13 +60,6 @@ export function SettingsScreen({
           <View style={styles.gap} />
           <SettingsRow label="書き出し" value={starterSummary(starterSettings)} onPress={onOpenStarters} />
         </SettingsCard>
-        <SettingsCard title="記録一覧">
-          <SettingsRow
-            label="上に大きく出す作品"
-            value={HERO_CRITERIA[settings.heroCriterion].label}
-            onPress={() => setHeroOpen(true)}
-          />
-        </SettingsCard>
         <SettingsCard title="データ">
           <SettingsRow
             label="データ"
@@ -87,15 +77,6 @@ export function SettingsScreen({
           />
         </SettingsCard>
       </ScrollView>
-      <HeroCriterionSheet
-        visible={heroOpen}
-        value={settings.heroCriterion}
-        onClose={() => setHeroOpen(false)}
-        onChange={(heroCriterion) => {
-          update({ heroCriterion });
-          setHeroOpen(false);
-        }}
-      />
       <StatusDefaultSheet
         visible={statusOpen}
         value={settings.defaultStatus}

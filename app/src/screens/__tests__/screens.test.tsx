@@ -28,8 +28,8 @@ describe('RecordsScreen', () => {
         <RecordsScreen />
       </RecordRepositoryProvider>,
     );
-    expect(await screen.findByText('最初の1作品を記録しよう')).toBeTruthy();
-    expect(screen.getByText('読み終えた本を記録するとここに並んでいきます')).toBeTruthy();
+    expect(await screen.findByText('最初の1冊を、棚に並べよう')).toBeTruthy();
+    expect(screen.getByText('読みたい本も、読んだ本も、ここに並んでいきます')).toBeTruthy();
   });
 });
 

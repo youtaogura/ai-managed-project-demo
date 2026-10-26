@@ -48,7 +48,7 @@ const full = makeRecord({
 describe('buildBackup', () => {
   it('形式を付け、photoUri を null にし、入力は書き換えない', () => {
     const records = [{ ...full, title: '作品' }];
-    const settings = { ...DEFAULT_SETTINGS, heroCriterion: 'planned' as const };
+    const settings = { ...DEFAULT_SETTINGS, defaultStatus: 'planned' as const };
     const backup = buildBackup(records, shelves, defaultStarterSettings(), settings, AT);
     expect(backup).toMatchObject({
       format: BACKUP_FORMAT,
@@ -153,10 +153,9 @@ describe('parseBackup', () => {
     expect(result.ok && result.backup.records).toEqual([]);
   });
 
-  it('settings はフィールドごとに検証し、なければ null', () => {
-    const result = parseBackup(text({ settings: { heroCriterion: 'bad', defaultStatus: 'planned' } }));
+  it('settings はフィールドごとに検証し（古い heroCriterion は無視）、なければ null', () => {
+    const result = parseBackup(text({ settings: { heroCriterion: 'recent', defaultStatus: 'planned' } }));
     expect(result.ok && result.backup.settings).toEqual({
-      heroCriterion: DEFAULT_SETTINGS.heroCriterion,
       defaultStatus: 'planned',
     });
     const none = parseBackup(text({ settings: undefined }));

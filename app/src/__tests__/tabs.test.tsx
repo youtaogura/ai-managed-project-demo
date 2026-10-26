@@ -38,19 +38,19 @@ describe('タブ構成', () => {
     await renderRouter(routes);
   });
 
-  it('起動直後は記録一覧タブを表示し、2 つのタブが並ぶ', async () => {
-    expect(await screen.findByText('最初の1作品を記録しよう')).toBeTruthy();
-    expect(screen.getByRole('tab', { name: '記録' })).toBeTruthy();
+  it('起動直後は本棚タブを表示し、タブが並ぶ', async () => {
+    expect(await screen.findByText('最初の1冊を、棚に並べよう')).toBeTruthy();
+    expect(screen.getByRole('tab', { name: '本棚' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: '振り返り' })).toBeTruthy();
-    expect(screen.queryByText('記録一覧')).toBeNull();
+    expect(screen.queryByRole('tab', { name: '記録' })).toBeNull();
     expect(screen.queryByText('分析')).toBeNull();
   });
 
   it('タブを押すと画面が切り替わる', async () => {
     await fireEvent.press(screen.getByRole('tab', { name: '振り返り' }));
     expect(await screen.findByText('記録がたまると、ここに振り返りが表示されます')).toBeTruthy();
-    await fireEvent.press(screen.getByRole('tab', { name: '記録' }));
-    expect(await screen.findByText('最初の1作品を記録しよう')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('tab', { name: '本棚' }));
+    expect(await screen.findByText('最初の1冊を、棚に並べよう')).toBeTruthy();
   });
 });
 
@@ -61,7 +61,7 @@ describe('設定タブ', () => {
 
   it('3 つ目のタブとして並び、押すと設定画面が開く', async () => {
     await renderRouter(routes);
-    await screen.findByText('最初の1作品を記録しよう');
+    await screen.findByText('最初の1冊を、棚に並べよう');
     expect(screen.getAllByRole('tab')).toHaveLength(3);
     await fireEvent.press(screen.getByRole('tab', { name: '設定' }));
     expect(await screen.findByText('ステータスの初期値')).toBeTruthy();
@@ -85,7 +85,7 @@ describe('分析タブの最新表示', () => {
 
   it('記録を追加したあとに分析タブを開くと集計が表示される', async () => {
     await renderRouter(routes);
-    await fireEvent.press((await screen.findAllByRole('button', { name: '記録する' }))[0]);
+    await fireEvent.press(await screen.findByRole('button', { name: '本を追加' }));
     await fireEvent.press(await screen.findByRole('button', { name: '本を手で入力する' }));
     await fireEvent.changeText(await screen.findByLabelText('タイトル（必須）'), '分析用の本');
     await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
@@ -99,22 +99,20 @@ describe('分析タブの最新表示', () => {
 describe('記録の追加', () => {
   it('追加 → フォーム → 保存 → 一覧に反映される', async () => {
     await renderRouter(routes);
-    await fireEvent.press((await screen.findAllByRole('button', { name: '記録する' }))[0]);
+    await fireEvent.press((await screen.findByRole('button', { name: '本を追加' })));
     await fireEvent.press(await screen.findByRole('button', { name: '本を手で入力する' }));
     await fireEvent.changeText(await screen.findByLabelText('タイトル（必須）'), '統合テストの本');
     await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
     expect((await screen.findAllByText('統合テストの本')).length).toBeGreaterThan(0);
     await act(async () => router.replace('/'));
-    // 初期ステータスが「読み終わった」なので、一覧の上の大きな表示にも出る
-    expect((await screen.findAllByText('統合テストの本')).length).toBeGreaterThan(0);
-    expect(screen.getAllByLabelText('統合テストの本').length).toBeGreaterThan(0);
+    expect((await screen.findAllByLabelText(/^統合テストの本、/)).length).toBeGreaterThan(0);
   });
 });
 
 describe('手入力で追加（追加シート）', () => {
   it('追加シートの「手で入力する」を押すと追加フォームが表示される', async () => {
     await renderRouter(routes);
-    await fireEvent.press((await screen.findAllByRole('button', { name: '記録する' }))[0]);
+    await fireEvent.press((await screen.findByRole('button', { name: '本を追加' })));
     await fireEvent.press(await screen.findByRole('button', { name: '本を手で入力する' }));
     expect(await screen.findByLabelText('タイトル（必須）')).toBeTruthy();
     expect(screen.getByRole('button', { name: '記録する' })).toBeTruthy();
@@ -151,7 +149,7 @@ describe('ISBN で探して追加', () => {
         }) as Response,
     );
     await renderRouter(routes);
-    await fireEvent.press((await screen.findAllByRole('button', { name: '記録する' }))[0]);
+    await fireEvent.press((await screen.findByRole('button', { name: '本を追加' })));
     await fireEvent.press(await screen.findByRole('button', { name: 'ISBN を入力する' }));
     await fireEvent.changeText(await screen.findByLabelText('ISBN（10 桁または 13 桁）'), '978-4-06-519981-7');
     await fireEvent.press(screen.getByRole('button', { name: '探す' }));
@@ -203,7 +201,7 @@ describe('タイトルで探して追加', () => {
       return { ok: true, text: async () => rss } as Response;
     });
     await renderRouter(routes);
-    await fireEvent.press((await screen.findAllByRole('button', { name: '記録する' }))[0]);
+    await fireEvent.press((await screen.findByRole('button', { name: '本を追加' })));
     await fireEvent.press(await screen.findByRole('button', { name: '本をタイトルで探す' }));
     await fireEvent.changeText(await screen.findByLabelText('タイトルのキーワード'), '候補');
     await fireEvent.press(screen.getByRole('button', { name: '検索' }));

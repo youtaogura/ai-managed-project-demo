@@ -8,8 +8,7 @@ import { defaultStarterSettings } from '../starterDefaults';
 import type { StarterSettingsStore } from '../starterSettingsStore';
 
 const newSettings = {
-  heroCriterion: 'none' as const,
-  defaultStatus: 'completed' as const,
+  defaultStatus: 'planned' as const,
 };
 const newStarter = { ...defaultStarterSettings(), count: 5 as const };
 const fileShelves: Shelf[] = [
@@ -54,7 +53,6 @@ async function setup(saveImpl: SettingsStore['save'] = async () => undefined) {
 }
 
 const defaultSettingsLike = {
-  heroCriterion: 'recent' as const,
   defaultStatus: 'completed' as const,
 };
 

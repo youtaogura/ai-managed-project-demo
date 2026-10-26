@@ -16,7 +16,7 @@ type CommonProps = {
 export type ButtonProps =
   | (CommonProps & { variant?: 'primary' | 'outline'; tone?: 'danger'; label: string; accessibilityLabel?: string })
   | (CommonProps & { variant: 'icon'; onImage?: boolean; accessibilityLabel: string; children: ReactNode })
-  | (CommonProps & { variant: 'record' });
+  | (CommonProps & { variant: 'record'; accessibilityLabel?: string });
 
 export const pressedStyle: ViewStyle = {
   opacity: PRESSED_OPACITY,
@@ -37,7 +37,7 @@ export function Button(props: ButtonProps) {
     content = props.children;
   } else if (props.variant === 'record') {
     base = [styles.circle, { backgroundColor: colors.accent }];
-    accessibilityLabel = '記録する';
+    accessibilityLabel = props.accessibilityLabel ?? '記録する';
     content = (
       <AppText variant="sectionTitle" style={{ color: colors.accentInk }}>
         ＋
