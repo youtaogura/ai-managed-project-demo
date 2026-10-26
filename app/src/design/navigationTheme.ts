@@ -1,12 +1,12 @@
-import { DarkTheme } from 'expo-router';
+import { DefaultTheme } from 'expo-router';
 
 import { colors } from './tokens';
 
 export const navigationTheme = {
-  ...DarkTheme,
-  dark: true,
+  ...DefaultTheme,
+  dark: false,
   colors: {
-    ...DarkTheme.colors,
+    ...DefaultTheme.colors,
     primary: colors.accent,
     background: colors.bg,
     card: colors.bg,

@@ -54,7 +54,8 @@ npx expo install <pkg>   # ライブラリ追加（SDK 互換バージョンを�
 
 UI を作る・変えるときは、**`docs/design-system/README.md`（ブランドブック）と、使う部品の `docs/design-system/components/<部品名>/README.md`、作る画面のデザイン `docs/design-system/screens/README.md`（画像付き）を最初に読む**こと。
 
-- 黒い地に、アクセントは白だけ（色は書影・ポスターだけが持つ）。有彩色のアクセントや新しい色を足さない
+- 生成りの紙の地に、墨の文字と主ボタン、朱（`ribbon`）は栞・書き出し・引用の線など決まった場所だけ。色はほかに背表紙の色（`spine-*`）だけで、新しい色を足さない
+- 本と自分の言葉（タイトル、ひとこと、書き出しとその続き、引用、背表紙）は明朝、UI は Noto Sans JP。画面の言葉はやわらかく（「評価」「問い」と書かない。`docs/design-system/README.md` の「書き方」）
 - 値は `app/src/design/tokens.ts`（`colors` `typography` `space` `radius` `size` `shadows`）から使う。色・余白・角丸の数値を画面に直接書かない
 - `src/theme.ts` は既存の画面との互換のための層。新しいコードは `src/design/tokens.ts` を直接使うか、`theme.ts` 経由でトークンを参照する
 - タップできるものは `size.touchMin`（44）以上。アイコンだけのボタンには `accessibilityLabel` を付ける

@@ -13,7 +13,7 @@ describe('AppText', () => {
       color: colors.textPrimary,
       fontSize: typography.screenTitle.fontSize,
       lineHeight: typography.screenTitle.lineHeight,
-      fontFamily: resolveFontFamily('Noto Sans JP', '900'),
+      fontFamily: resolveFontFamily(typography.screenTitle.fontFamily, typography.screenTitle.fontWeight),
     });
     expect(flat.fontWeight).toBeUndefined();
   });
