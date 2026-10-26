@@ -56,6 +56,8 @@ export const config = {
   maxBudgetUsd: env.MAX_BUDGET_USD || '',
   jobTimeoutMin: int(env.JOB_TIMEOUT_MIN, 45),
   maxRework: int(env.MAX_REWORK, 2),
+  // base とのコンフリクトによる差し戻しの上限（レビュー・CI の差し戻しとは別に数える）
+  maxConflictResolve: int(env.MAX_CONFLICT_RESOLVE, 3),
   // Release でマージ前に成功を確認する CI のジョブ名（.github/workflows のジョブ name と一致させる）
   requiredChecks: list(env.REQUIRED_CHECKS) ?? policy.requiredChecks,
   // 必須チェックの結果が出ないまま、この時間が過ぎたら Blocked にする
