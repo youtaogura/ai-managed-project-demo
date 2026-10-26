@@ -52,6 +52,8 @@ describe('RecordsScreen', () => {
     expect(await screen.findByText('まだ記録がありません')).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: '追加' }));
     expect(router.push).toHaveBeenCalledWith('/record/new');
+    await fireEvent.press(screen.getByRole('button', { name: 'ISBN で探して追加' }));
+    expect(router.push).toHaveBeenCalledWith('/record/isbn');
   });
 
   it('記録を新しい順に表示し、行を押すと編集画面へ遷移する', async () => {
