@@ -1,0 +1,36 @@
+{
+  "$comment": "ガード hook・オーケストレーター・CI が共通で参照するポリシー。人間だけが変更する。",
+  "protectedPaths": [
+    "orchestrator/",
+    "docker/",
+    ".github/",
+    "docker-compose.yml",
+    "CLAUDE.md",
+    ".env",
+    "app/jest.config.js",
+    "app/eslint.config.js",
+    "app/tsconfig.json",
+    "app/.npmrc",
+    "app/eas.json"
+  ],
+  "agentAllowedPaths": ["app/", "docs/specs/"],
+  "agentBranchPrefix": "agent/issue-",
+  "requiredChecks": ["lint-typecheck", "test-coverage", "build", "dependencies", "tooling", "pr-policy"],
+  "coverage": {
+    "diffMinPercent": 80
+  },
+  "allowedLicenses": [
+    "MIT",
+    "ISC",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "Apache-2.0",
+    "0BSD",
+    "Unlicense",
+    "CC0-1.0",
+    "CC-BY-4.0",
+    "BlueOak-1.0.0",
+    "Python-2.0",
+    "MPL-2.0"
+  ]
+}

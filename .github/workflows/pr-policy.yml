@@ -1,0 +1,39 @@
+# PR のルール検査。PR 本文の編集（edited）でも再実行する。
+# ジョブ名は orchestrator/policy.json の requiredChecks と一致させること。
+name: PR policy
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-policy-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  pr-policy:
+    name: pr-policy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: テストと検査の改ざん検知
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_REF: ${{ github.head_ref }}
+        run: node .github/scripts/test-integrity.mjs
+      - name: PR の形式とスコープ
+        if: always()
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_REF: ${{ github.head_ref }}
+          # 本文は環境変数で渡す（スクリプトに直接埋め込むとインジェクションになる）
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: node .github/scripts/pr-policy.mjs

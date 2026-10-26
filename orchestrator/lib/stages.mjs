@@ -167,14 +167,28 @@ async function releaseStage(item) {
     return block(item, 'failed', `PR #${pr.number} が保護対象のファイルを変更しています:\n\n${touched.map((f) => `- \`${f}\``).join('\n')}`);
   }
 
-  const checks = await gh.prChecksState(pr.number);
-  if (checks === 'pending' || checks === 'none') {
-    log(`#${n}: PR #${pr.number} の CI 待ち (${checks})`);
+  const result = gh.evaluateChecks(await gh.prChecks(pr.number), config.requiredChecks);
+  if (result.state === 'pending') {
+    const since = getIssueState(n).ciWaitSince ?? Date.now();
+    if (!config.dryRun && !getIssueState(n).ciWaitSince) updateIssueState(n, { ciWaitSince: since });
+    const waited = (Date.now() - since) / 60_000;
+    if (waited > config.ciTimeoutMin) {
+      if (!config.dryRun) updateIssueState(n, { ciWaitSince: null });
+      const missing = result.missing.length ? `\n\n結果が出ていないチェック: ${result.missing.map((c) => `\`${c}\``).join(', ')}` : '';
+      return block(item, 'failed', `必須の CI チェックが ${config.ciTimeoutMin} 分以内に完了しませんでした。${missing}`);
+    }
+    log(`#${n}: PR #${pr.number} の CI 待ち（${waited.toFixed(0)}分経過${result.missing.length ? ` / 未開始: ${result.missing.join(', ')}` : ''}）`);
     return;
   }
-  if (checks === 'fail') {
-    await gh.commentPr(pr.number, '🤖 オーケストレーター: CI が失敗したため実装工程に差し戻します。');
-    return rework(item, 'CI が失敗');
+  if (!config.dryRun) updateIssueState(n, { ciWaitSince: null });
+  if (result.state === 'fail') {
+    const failed = result.failed.map((c) => `\`${c}\``).join(', ');
+    await gh.commentPr(
+      pr.number,
+      `🤖 オーケストレーター: 必須の CI チェックが失敗したため、実装工程に差し戻します。\n\n失敗: ${failed}\n\n` +
+        '`gh pr checks` と `gh run view <run-id> --log-failed` で原因を確認してください。',
+    );
+    return rework(item, `CI が失敗（${result.failed.join(', ')}）`);
   }
 
   await gh.mergePr(pr.number);

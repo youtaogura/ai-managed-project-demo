@@ -2,6 +2,7 @@
 // テスト用の偽 claude。工程ごとに git 操作を行い、claude -p --output-format json 形式で結果を返す。
 const fs = require('fs');
 const { execFileSync } = require('child_process');
+const state = require('./fake-state');
 const sh = (cmd, args) => execFileSync(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'] }).toString();
 const args = process.argv.slice(2);
 if (args[0] === '--version') { console.log('0.0.0 (fake claude)'); process.exit(0); }
@@ -10,7 +11,8 @@ const stage = process.env.AGENT_STAGE;
 const n = process.env.AGENT_ISSUE;
 const prompt = args[args.indexOf('-p') + 1];
 const branch = `agent/issue-${n}`;
-const st = JSON.parse(fs.readFileSync(process.env.FAKE_STATE, 'utf8'));
+// 読むだけなのでロック不要（書き込みは原子的）。書き込むときは state.update で最新を読み直す
+const st = state.read();
 let outcome = 'done';
 
 // プロンプトに必要な情報が埋め込まれているか
@@ -29,10 +31,12 @@ if (stage === 'implement') {
   if (!st.prs[branch]?.open) sh('gh', ['pr', 'create', '--head', branch, '--base', 'main', '--title', 't', '--body', 'Closes']);
 }
 if (stage === 'review') {
-  st.reviews = typeof st.reviews === 'object' && st.reviews ? st.reviews : {};
-  st.reviews[n] = (st.reviews[n] || 0) + 1;
-  fs.writeFileSync(process.env.FAKE_STATE, JSON.stringify(st, null, 2));
-  outcome = st.reviews[n] === 1 ? 'changes_requested' : 'approve'; // Issue ごとに1回目は差し戻し、2回目は承認
+  const count = state.update((s) => {
+    s.reviews = typeof s.reviews === 'object' && s.reviews ? s.reviews : {};
+    s.reviews[n] = (s.reviews[n] || 0) + 1;
+    return s.reviews[n];
+  });
+  outcome = count === 1 ? 'changes_requested' : 'approve'; // Issue ごとに1回目は差し戻し、2回目は承認
 }
 if (process.env.FAKE_CLARIFY_ISSUE === n && stage === 'spec') outcome = 'needs_clarification';
 

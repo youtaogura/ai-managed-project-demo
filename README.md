@@ -25,6 +25,9 @@ GitHub Project (Status)          オーケストレーター（Docker コンテ�
 | `orchestrator/prompts/` | 工程別プロンプト（`_common.md` + `spec` / `implement` / `review`） |
 | `orchestrator/guard/` | Claude Code の PreToolUse hook（危険操作・保護ファイル編集をブロック） |
 | `orchestrator/test/e2e/` | 偽の gh / claude を使った E2E リハーサル（トークン不要） |
+| `orchestrator/policy.json` | 保護対象パス・必須 CI チェック・ライセンス許可リスト（ガード・オーケストレーター・CI で共通） |
+| `.github/workflows/` | CI（`ci.yml`）と PR ルール検査（`pr-policy.yml`） |
+| `.github/scripts/` | CI 用スクリプト（差分カバレッジ、改ざん検知、PR 形式・範囲、脆弱性差分、ライセンス） |
 | `docker/` | Dockerfile、エントリポイント、Claude Code 管理設定（hook 登録） |
 | `CLAUDE.md` | エージェント向けの規約と自律実行ルール |
 
@@ -34,8 +37,24 @@ GitHub Project (Status)          オーケストレーター（Docker コンテ�
 - **マウントするのはエージェント専用クローンだけ**。普段の作業コピーはマウントしない。専用クローンではホスト側から git や npm を実行しない（`.git/hooks` や `package.json` の scripts 経由でホスト上でコードが実行されるのを防ぐため）。
 - **指示書の改ざん防止**: 実行中のオーケストレーター・プロンプト・ガードはイメージ内の `/opt/orchestrator`（root 所有・書き込み不可）にあり、エージェントが worktree 内の `orchestrator/` を書き換えても影響しない。Claude Code の hook は `/etc/claude-code/managed-settings.json` で登録しているため、プロジェクト設定では無効化できない。
 - **ガード hook**: force push、main への push、PR のマージ、Project 操作、トークン参照、作業ディレクトリ外の削除、保護ファイルの編集などをブロック。レビュー工程ではコード編集自体をブロック。
-- **マージ前の最終チェック**: 保護対象（`orchestrator/` `docker/` `.github/` `CLAUDE.md` など）を変更した PR はマージせず Blocked にする。CI が通らない PR もマージしない。
+- **マージ前の最終チェック**: 保護対象（`orchestrator/` `docker/` `.github/` `CLAUDE.md`、CI の閾値を決める `app/jest.config.js` など）を変更した PR はマージせず Blocked にする。必須の CI チェックが通らない PR もマージしない。
+- **CI はエージェントが手を出せない審判**: 設定ファイルは保護対象、CI は `package.json` の scripts を使わずツールを直接呼ぶ、エージェントのトークンには `workflow` スコープを付けない。
 - **止まらずに記録して終了**: 判断は仕様書・PR の「判断ログ」に残す。判断できない場合だけ Issue に質問して `needs-clarification` ラベルで停止する。
+
+## CI（PR ごと）
+
+| ジョブ | 内容 |
+|---|---|
+| `lint-typecheck` | ESLint（警告もエラー、`any` と `!` 禁止）、`tsc --noEmit` |
+| `test-coverage` | Jest、全体カバレッジ閾値（`app/jest.config.js`）、差分カバレッジ（変更行の 80% 以上） |
+| `build` | `expo export` で Android / iOS 向けにバンドルできるか |
+| `dependencies` | `expo install --check`、expo-doctor、base から**増えた** high / critical 脆弱性、ライセンス許可リスト |
+| `tooling` | オーケストレーター（ユニット + E2E リハーサル）と CI スクリプトのテスト |
+| `pr-policy` | 改ざん検知（skip/only、抑制コメント、テスト削除・減少）、PR 形式（`Closes #N`・判断ログ・仕様書）、変更範囲、依存追加の仕様書記載。**エージェントのブランチでのみ強制** |
+
+既存の脆弱性（Expo 本体の依存など、エージェントでは直せないもの）は警告として表示し、失敗にはしません。
+オーケストレーターは Release 工程で `policy.json` の `requiredChecks` だけを見てマージを判断し、
+結果が `CI_TIMEOUT_MIN` 分出なければ Blocked にします。
 
 ---
 
@@ -55,7 +74,7 @@ pnpm check        # lint + typecheck + test
 
 ```bash
 cd orchestrator
-node --test                 # ユニットテスト（ガード・結果解析・工程判定）
+node --test                 # ユニットテスト（ガード・結果解析・工程判定・CI 判定）
 bash test/e2e/run.sh        # 偽の gh / claude で Ready → Done と異常系を確認
 ```
 
@@ -88,7 +107,8 @@ docker compose run --rm --entrypoint bash orchestrator -c '
 2. **GitHub Project（ボード）** を作成し、リポジトリをリンクする。
 3. Project の **Status** フィールドの選択肢を次の名前にする（変える場合は `.env` の `STATUS_NAMES`）:
    `Backlog` `Ready` `Spec` `Implement` `Review` `Release` `Done` `Blocked`
-4. main にブランチ保護を設定し、CI（`app (lint / typecheck / test)`）の通過を必須にする。
+4. main にブランチ保護（または Ruleset）を設定し、必須ステータスチェックに
+   `lint-typecheck` `test-coverage` `build` `dependencies` `tooling` `pr-policy` を指定する（一度 CI が動いた後で選択できる）。
 5. トークンを用意して `.env` に設定する:
    - `GH_TOKEN`: classic PAT（scopes: `repo`, `project`）。ユーザー所有の Project v2 は fine-grained PAT では操作できない場合があります。
    - `ANTHROPIC_API_KEY`、または `claude setup-token` で発行した `CLAUDE_CODE_OAUTH_TOKEN`

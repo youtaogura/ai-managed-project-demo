@@ -1,7 +1,12 @@
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const env = process.env;
+const here = path.dirname(fileURLToPath(import.meta.url));
+// ガード hook・CI と共通のポリシー
+export const policy = JSON.parse(readFileSync(path.join(here, '..', 'policy.json'), 'utf8'));
+const list = (v) => (v ? v.split(',').map((s) => s.trim()).filter(Boolean) : null);
 
 const int = (v, d) => (v === undefined || v === '' ? d : Number.parseInt(v, 10));
 const bool = (v) => ['1', 'true', 'yes'].includes(String(v ?? '').toLowerCase());
@@ -51,6 +56,10 @@ export const config = {
   maxBudgetUsd: env.MAX_BUDGET_USD || '',
   jobTimeoutMin: int(env.JOB_TIMEOUT_MIN, 45),
   maxRework: int(env.MAX_REWORK, 2),
+  // Release でマージ前に成功を確認する CI のジョブ名（.github/workflows のジョブ name と一致させる）
+  requiredChecks: list(env.REQUIRED_CHECKS) ?? policy.requiredChecks,
+  // 必須チェックの結果が出ないまま、この時間が過ぎたら Blocked にする
+  ciTimeoutMin: int(env.CI_TIMEOUT_MIN, 30),
   claudeModel: env.CLAUDE_MODEL || '',
   claudeBin: env.CLAUDE_BIN || 'claude',
   dryRun: bool(env.DRY_RUN),
@@ -62,9 +71,9 @@ export const config = {
   },
 
   // エージェントの PR が触れてはいけないパス（マージ前に検査）
-  protectedPaths: ['orchestrator/', 'docker/', '.github/', 'docker-compose.yml', 'CLAUDE.md', '.env'],
+  protectedPaths: policy.protectedPaths,
 
-  promptsDir: path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'prompts'),
+  promptsDir: path.join(here, '..', 'prompts'),
 };
 
 export const worktreesDir = () => path.join(config.dataDir, 'worktrees');

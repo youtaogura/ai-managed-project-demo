@@ -9,6 +9,8 @@
 - `app/` … React Native（Expo, TypeScript）アプリ。**エージェントが変更してよいのは主にここ**
 - `docs/specs/` … Issue ごとの仕様書（`issue-<番号>.md`）
 - `orchestrator/` `docker/` `.github/` `docker-compose.yml` `CLAUDE.md` … 人間だけが変更する（ガードでブロックされる）
+- `app/jest.config.js` `app/eslint.config.js` `app/tsconfig.json` `app/.npmrc` `app/eas.json` … CI の閾値やルールを決めるため、これらも人間だけが変更する
+- 保護対象の一覧は `orchestrator/policy.json`（ガード hook・オーケストレーター・CI が共通で参照）
 
 ## アプリの技術スタック
 
@@ -44,6 +46,20 @@ npx expo install <pkg>   # ライブラリ追加（SDK 互換バージョンを�
 - ナビゲーションが必要になったら Expo Router を導入する（導入判断は仕様書の判断ログに書く）
 - 状態管理はまず React の state / context で足りるか検討し、ライブラリ追加は仕様書で理由を説明できる場合のみ
 - テストは振る舞い（表示・操作結果）を検証する。実装の内部構造に依存しない
+
+## CI（PR ごと。すべて通らないとマージされない）
+
+| チェック | 内容 |
+|---|---|
+| `lint-typecheck` | ESLint（警告もエラー、`any` と `!` は禁止）、`tsc --noEmit` |
+| `test-coverage` | Jest、全体カバレッジ（行・関数・文 80%、分岐 70%）、差分カバレッジ（変更行の 80% 以上） |
+| `build` | `expo export` で Android / iOS 向けにバンドルできること |
+| `dependencies` | `expo install --check`、expo-doctor、新たな high / critical 脆弱性がないこと、ライセンス許可リスト |
+| `tooling` | オーケストレーターと CI スクリプト自体のテスト |
+| `pr-policy` | テスト・検査の改ざん検知（skip/only、抑制コメント、テスト削除・減少）、PR 形式（`Closes #N`、判断ログ、仕様書）、変更範囲、依存追加が仕様書に記載されていること |
+
+`pr-policy` の改ざん検知と形式チェックは、エージェントのブランチ（`agent/issue-*`）でだけ強制される。
+CI は `package.json` の scripts を使わずツールを直接呼ぶ。テストや検査を緩めて通そうとしないこと。
 
 ## Git / PR
 
