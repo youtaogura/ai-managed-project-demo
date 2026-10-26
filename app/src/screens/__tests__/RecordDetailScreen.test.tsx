@@ -1,9 +1,10 @@
-import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
+import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 import type { ReactElement } from 'react';
 import { Linking, ScrollView } from 'react-native';
 import { triggerImpactHaptic } from '../../lib/haptics';
 import type { PhotoService } from '../../lib/photo/PhotoService';
 import type { RecordRepository } from '../../lib/recordRepository';
+import type { MediaRecord } from '../../types/record';
 import { withRepository } from '../../testProviders';
 import { createFakeRepository, createMockPhotoService, makeRecord } from '../../testUtils';
 import { RecordDetailScreen } from '../RecordDetailScreen';
@@ -352,5 +353,101 @@ describe('写真の変更', () => {
     await open();
     await fireEvent.press(await screen.findByText('ライブラリから選択'));
     expect(await screen.findByText('写真を保存できませんでした')).toBeTruthy();
+  });
+});
+
+describe('書影の自動取得', () => {
+  const target: MediaRecord = { ...full, coverUrl: null, photoUri: null };
+  const FOUND = 'https://books.google.com/c.jpg';
+
+  async function open(
+    resolver: (isbn: string) => Promise<string | null>,
+    record = target,
+    wrap?: (r: RecordRepository) => RecordRepository,
+  ) {
+    const fake = createFakeRepository([record]);
+    const repository = wrap ? wrap(fake.repository) : fake.repository;
+    const update = jest.spyOn(repository, 'update');
+    const view = await renderRouter({
+      index: () =>
+        withRepository(repository, <RecordDetailScreen recordId="x" />, undefined, resolver),
+    });
+    await waitFor(() => expect(screen.getAllByText(record.title, { exact: false })).toBeTruthy());
+    return { ...fake, repository, update, view };
+  }
+
+  it('見つかれば 1 回だけ取得して保存し、クレジットを表示する', async () => {
+    const resolver = jest.fn(async (_isbn: string) => FOUND);
+    const { update, repository } = await open(resolver);
+    expect(await screen.findByText('書影: Google Books')).toBeTruthy();
+    expect(resolver).toHaveBeenCalledTimes(1);
+    expect(resolver).toHaveBeenCalledWith('9784101010014');
+    expect(update).toHaveBeenCalledTimes(1);
+    const [saved] = await repository.getAll();
+    expect(saved).toMatchObject({ coverUrl: FOUND, title: target.title, review: target.review });
+  });
+
+  it('NDL 由来ならそのクレジットを表示する', async () => {
+    await open(async () => 'https://ndlsearch.ndl.go.jp/thumbnail/9784101010014.jpg');
+    expect(await screen.findByText('書影: 国立国会図書館サーチ')).toBeTruthy();
+  });
+
+  it('見つからない・失敗したときは何も変えず、再試行もしない', async () => {
+    const nothing = jest.fn(async (_isbn: string) => null);
+    const first = await open(nothing);
+    await waitFor(() => expect(nothing).toHaveBeenCalledTimes(1));
+    expect(first.update).not.toHaveBeenCalled();
+    expect(screen.queryByText(/書影:/)).toBeNull();
+
+    const failing = jest.fn(async (_isbn: string): Promise<string | null> => {
+      throw new Error('x');
+    });
+    const second = await open(failing);
+    await waitFor(() => expect(failing).toHaveBeenCalledTimes(1));
+    expect(second.update).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['書影がある', { coverUrl: 'https://cover.openbd.jp/c.jpg' }],
+    ['写真がある', { photoUri: PHOTO }],
+    ['ISBN がない', { isbn: null }],
+    ['映画', { kind: 'movie' as const }],
+  ])('%s ときは取得せず、openBD・写真のみではクレジットを出さない', async (_name, override) => {
+    const resolver = jest.fn(async (_isbn: string) => FOUND);
+    await open(resolver, { ...target, ...override });
+    expect(resolver).not.toHaveBeenCalled();
+    expect(screen.queryByText(/書影:/)).toBeNull();
+  });
+
+  it('取得中に写真が付いたら上書きしない', async () => {
+    let finish: (v: string | null) => void = () => undefined;
+    const resolver = jest.fn(() => new Promise<string | null>((r) => (finish = r)));
+    const { update, setRecords } = await open(resolver);
+    await waitFor(() => expect(resolver).toHaveBeenCalled());
+    setRecords([{ ...target, photoUri: PHOTO }]);
+    await act(async () => finish(FOUND));
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('保存に失敗しても何も表示しない', async () => {
+    const resolver = jest.fn(async (_isbn: string) => FOUND);
+    await open(resolver, target, (r) => ({
+      ...r,
+      update: async () => {
+        throw new Error('fail');
+      },
+    }));
+    await waitFor(() => expect(resolver).toHaveBeenCalledTimes(1));
+    expect(screen.queryByText(/書影:/)).toBeNull();
+  });
+
+  it('取得中にアンマウントしたら更新しない', async () => {
+    let finish: (v: string | null) => void = () => undefined;
+    const resolver = jest.fn(() => new Promise<string | null>((r) => (finish = r)));
+    const { update, view } = await open(resolver);
+    await waitFor(() => expect(resolver).toHaveBeenCalled());
+    view.unmount();
+    await act(async () => finish(FOUND));
+    expect(update).not.toHaveBeenCalled();
   });
 });

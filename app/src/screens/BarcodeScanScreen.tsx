@@ -19,7 +19,9 @@ import { ScreenHeaderBar } from '../components/ScreenHeaderBar';
 import { colors, radius, size, space } from '../design/tokens';
 import { useBookLookup } from '../hooks/useBookLookup';
 import { useBottomInset } from '../hooks/useBottomInset';
+import { useCoverResolver } from '../hooks/useCoverResolver';
 import { isbnFromBarcode } from '../lib/barcode';
+import { withCover } from '../lib/coverLookup/withCover';
 import { bookInfoToParams, notFoundParams } from '../lib/isbnLookupParams';
 
 type ScanState = 'scanning' | 'searching' | 'error';
@@ -157,6 +159,7 @@ function NativeBarcodeScan() {
   const bottomInset = useBottomInset();
   const [permission, requestPermission] = useCameraPermissions();
   const provider = useBookLookup();
+  const resolveCover = useCoverResolver();
   const [state, setState] = useState<ScanState>('scanning');
   const [isbn, setIsbn] = useState<string | null>(null);
   const [torch, setTorch] = useState(false);
@@ -177,7 +180,9 @@ function NativeBarcodeScan() {
     const result = await provider.lookupByIsbn(isbn13);
     if (!active.current) return;
     if (result.status === 'found') {
-      router.replace({ pathname: '/record/new', params: bookInfoToParams(result.book) });
+      const book = await withCover(result.book, resolveCover);
+      if (!active.current) return;
+      router.replace({ pathname: '/record/new', params: bookInfoToParams(book) });
     } else if (result.status === 'not_found') {
       router.replace({ pathname: '/record/isbn', params: notFoundParams(isbn13) });
     } else {

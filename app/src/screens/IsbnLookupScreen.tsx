@@ -11,6 +11,8 @@ import { TextField } from '../components/TextField';
 import { colors, size, space } from '../design/tokens';
 import { useBookLookup } from '../hooks/useBookLookup';
 import { useBottomInset } from '../hooks/useBottomInset';
+import { useCoverResolver } from '../hooks/useCoverResolver';
+import { withCover } from '../lib/coverLookup/withCover';
 import { toIsbn13 } from '../lib/isbn';
 import { bookInfoToParams, isbnOnlyParams } from '../lib/isbnLookupParams';
 
@@ -27,6 +29,7 @@ type IsbnLookupScreenProps = {
 
 export function IsbnLookupScreen({ initialIsbn = '', initialNotFound = false }: IsbnLookupScreenProps) {
   const provider = useBookLookup();
+  const resolveCover = useCoverResolver();
   const bottomInset = useBottomInset();
   const [text, setText] = useState(initialIsbn);
   const [status, setStatus] = useState<Status>(initialNotFound ? 'not_found' : 'idle');
@@ -55,9 +58,11 @@ export function IsbnLookupScreen({ initialIsbn = '', initialNotFound = false }: 
       const result = await provider.lookupByIsbn(isbn13);
       if (!active.current) return;
       if (result.status === 'found') {
+        const book = await withCover(result.book, resolveCover);
+        if (!active.current) return;
         router.replace({
           pathname: '/record/new',
-          params: bookInfoToParams(result.book),
+          params: bookInfoToParams(book),
         });
         return;
       }
