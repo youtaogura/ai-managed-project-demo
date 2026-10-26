@@ -132,7 +132,13 @@ async function doctor() {
   } else {
     const url = await git.originUrl();
     (url.toLowerCase().includes(config.repo.toLowerCase()) ? pass : fail)(`origin: ${url}`);
-    if (url.startsWith('git@')) fail('origin が SSH です。コンテナでは https の URL にしてください');
+    // insteadOf による読み替え後の、実際に使われる URL
+    const effective = (await run('git', ['ls-remote', '--get-url', 'origin'], { cwd: config.repoDir, allowFail: true })).stdout.trim();
+    if (/^(git@|ssh:\/\/)/.test(effective)) {
+      fail(`origin が SSH のままです（${effective}）。コンテナには SSH がないため、https の URL にしてください`);
+    } else if (effective !== url) {
+      note(`SSH の URL を https に読み替えて使います: ${effective}`);
+    }
     try {
       await git.fetchOrigin();
       (await git.remoteBranchExists(config.baseBranch) ? pass : fail)(`origin/${config.baseBranch}`);

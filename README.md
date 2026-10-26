@@ -113,7 +113,7 @@ docker compose run --rm --entrypoint bash orchestrator -c '
    - `GH_TOKEN`: classic PAT（scopes: `repo`, `project`）。ユーザー所有の Project v2 は fine-grained PAT では操作できない場合があります。
    - `ANTHROPIC_API_KEY`、または `claude setup-token` で発行した `CLAUDE_CODE_OAUTH_TOKEN`
    - `PROJECT_NUMBER`: Project の URL `.../projects/<番号>`
-6. **エージェント専用クローン**を作り、`.env` の `AGENT_REPO_PATH` に設定する（https で clone すること）:
+6. **エージェント専用クローン**を作り、`.env` の `AGENT_REPO_PATH` に設定する（SSH で clone しても、コンテナ内では自動で https に読み替える）:
    ```bash
    git clone https://github.com/youtaogura/ai-managed-project-demo ~/agent-work/ai-managed-project-demo
    ```
