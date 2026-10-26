@@ -56,6 +56,15 @@ describe('記録の追加', () => {
   });
 });
 
+describe('手入力で追加（一覧内ボタン）', () => {
+  it('一覧の「手入力で追加」を押すと追加フォームが表示される', async () => {
+    await renderRouter(routes);
+    await fireEvent.press(await screen.findByRole('button', { name: '手入力で追加' }));
+    expect(await screen.findByLabelText('タイトル')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '保存' })).toBeTruthy();
+  });
+});
+
 describe('ISBN で探して追加', () => {
   const original = globalThis.fetch;
 
