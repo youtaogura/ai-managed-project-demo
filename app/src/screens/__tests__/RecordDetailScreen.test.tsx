@@ -5,8 +5,9 @@ import { triggerImpactHaptic } from '../../lib/haptics';
 import type { PhotoService } from '../../lib/photo/PhotoService';
 import type { RecordRepository } from '../../lib/recordRepository';
 import type { MediaRecord } from '../../types/record';
+import { createShelfRepository, type ShelfRepository } from '../../lib/shelfRepository';
 import { withRepository } from '../../testProviders';
-import { createFakeRepository, createMockPhotoService, makeRecord } from '../../testUtils';
+import { createFakeRepository, createMemoryStorage, createMockPhotoService, makeRecord } from '../../testUtils';
 import { RecordDetailScreen } from '../RecordDetailScreen';
 
 type TestInstance = ReturnType<typeof screen.getByText>;
@@ -350,6 +351,68 @@ describe('写真の変更', () => {
     expect(await screen.findByText('写真を保存できませんでした')).toBeTruthy();
   });
 });
+
+describe('RecordDetailScreen の本棚', () => {
+  async function showWithShelves(record = full, failUpdate = false) {
+    const shelfRepository: ShelfRepository = createShelfRepository(createMemoryStorage().storage);
+    await shelfRepository.importShelves(
+      [
+        { id: 'a', name: 'SF', order: 0 },
+        { id: 'b', name: '哲学', order: 1 },
+      ],
+      'replace',
+    );
+    const fake = createFakeRepository([record]);
+    if (failUpdate) fake.repository.update = () => Promise.reject(new Error('x'));
+    await renderRouter({
+      index: () =>
+        withRepository(fake.repository, <RecordDetailScreen recordId="x" />, undefined, undefined, shelfRepository),
+    });
+    await waitFor(() => expect(screen.getAllByText(record.title, { exact: false })).toBeTruthy());
+    return fake;
+  }
+
+  it('入れていなければ「まだ入れていません」、入っていれば名前を「、」でつなぐ', async () => {
+    await showWithShelves();
+    expect(await screen.findByRole('button', { name: '本棚、まだ入れていません' })).toBeTruthy();
+  });
+
+  it('入っている本棚の名前を出す', async () => {
+    await showWithShelves({ ...full, shelfIds: ['b', 'a', 'gone'] });
+    expect(await screen.findByRole('button', { name: '本棚、SF、哲学' })).toBeTruthy();
+  });
+
+  it('シートで選ぶと shelfIds だけが保存され、行の表示が変わる', async () => {
+    const fake = await showWithShelves({ ...full, shelfIds: ['a'] });
+    await fireEvent.press(await screen.findByRole('button', { name: '本棚、SF' }));
+    await fireEvent.press(await screen.findByRole('checkbox', { name: '哲学' }));
+    await fireEvent.press(screen.getByRole('button', { name: '2 つの本棚に入れる' }));
+    expect(await screen.findByRole('button', { name: '本棚、SF、哲学' })).toBeTruthy();
+    const saved = (await fake.repository.getAll())[0];
+    expect(saved.shelfIds).toEqual(['a', 'b']);
+    expect(saved).toMatchObject({ title: full.title, rating: full.rating, oneLiner: full.oneLiner });
+  });
+
+  it('シートの中で本棚を作ると、チェックが入った状態で一覧に増える', async () => {
+    await showWithShelves();
+    await fireEvent.press(await screen.findByRole('button', { name: '本棚、まだ入れていません' }));
+    await fireEvent.press(await screen.findByRole('button', { name: '本棚を作る' }));
+    await fireEvent.changeText(await screen.findByLabelText('名前'), '詩集');
+    await fireEvent.press(screen.getByRole('button', { name: '作る' }));
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: '詩集' }).props.accessibilityState.checked).toBe(true));
+    expect(screen.getByRole('button', { name: '1 つの本棚に入れる' })).toBeTruthy();
+  });
+
+  it('保存に失敗しても落ちず、シートにエラーを出す', async () => {
+    await showWithShelves(full, true);
+    await fireEvent.press(await screen.findByRole('button', { name: '本棚、まだ入れていません' }));
+    await fireEvent.press(await screen.findByRole('checkbox', { name: 'SF' }));
+    await fireEvent.press(screen.getByRole('button', { name: '1 つの本棚に入れる' }));
+    expect(await screen.findByText('保存できませんでした')).toBeTruthy();
+    expect(screen.getAllByText('吾輩は猫である').length).toBeGreaterThan(0);
+  });
+});
+
 
 describe('書影の自動取得', () => {
   const target: MediaRecord = { ...full, coverUrl: null, photoUri: null };

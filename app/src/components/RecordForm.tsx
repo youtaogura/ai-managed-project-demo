@@ -3,6 +3,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
 import { colors, space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
+import { useShelfPick } from '../hooks/useShelfPick';
 import { usePhotoService } from '../hooks/usePhotoService';
 import { formatDateDisplay } from '../lib/date';
 import {
@@ -14,6 +15,7 @@ import {
   type RecordFormErrors,
   type RecordFormValues,
 } from '../lib/recordForm';
+import { shelfNames } from '../lib/shelfSelectors';
 import { getCreatorLabel, getDateHint, getDateLabels, getStatusLabel } from '../lib/statusLabel';
 import { RECORD_STATUSES, type NewRecordInput } from '../types/record';
 import { AppText } from './AppText';
@@ -23,6 +25,8 @@ import { DatePickerSheet } from './DatePickerSheet';
 import { DeleteConfirmSheet } from './DeleteConfirmSheet';
 import { PhotoField } from './PhotoField';
 import { RatingInput } from './RatingInput';
+import { SettingsRow } from './SettingsRow';
+import { ShelfPickSheet } from './ShelfPickSheet';
 import { DateFieldButton, TextField } from './TextField';
 
 type RecordFormProps = {
@@ -51,6 +55,8 @@ export function RecordForm({
   const [failure, setFailure] = useState<string | null>(null);
   const [openDate, setOpenDate] = useState<'start' | 'end' | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [shelfOpen, setShelfOpen] = useState(false);
+  const { shelves, counts, create: createShelf } = useShelfPick();
   const photoService = usePhotoService();
   // 保存済みの写真は保存成功後にだけ消す。未保存の新規コピーは破棄時に消す
   const initialPhotoUri = useRef(values.photoUri);
@@ -203,6 +209,12 @@ export function RecordForm({
           </AppText>
         </View>
 
+        <SettingsRow
+          label="本棚"
+          value={shelfNames(values, shelves).join('、') || 'まだ入れていません'}
+          onPress={() => setShelfOpen(true)}
+        />
+
         <RatingInput value={values.rating} error={errors.rating} onChange={(text) => setField('rating', text)} />
 
         {onDelete ? (
@@ -225,6 +237,16 @@ export function RecordForm({
         {submitting ? <ActivityIndicator accessibilityLabel="処理中" color={colors.textSecondary} /> : null}
         <Button label={submitLabel} disabled={submitting} onPress={() => void handleSubmit()} />
       </View>
+
+      <ShelfPickSheet
+        visible={shelfOpen}
+        shelves={shelves}
+        counts={counts}
+        selectedIds={values.shelfIds}
+        onSubmit={(ids) => setField('shelfIds', ids)}
+        onCreate={createShelf}
+        onClose={() => setShelfOpen(false)}
+      />
 
       {openDate ? (
         <DatePickerSheet

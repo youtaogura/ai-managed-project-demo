@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react-native';
 
+import { ShelfRepositoryProvider } from '../../hooks/useShelfRepository';
 import { RecordRepositoryProvider } from '../../hooks/useRecordRepository';
 import { createRecordRepository } from '../../lib/recordRepository';
 import { ReviewScreen } from '../ReviewScreen';
@@ -24,9 +25,11 @@ const emptyRepository = createRecordRepository({
 describe('RecordsScreen', () => {
   it('空状態の文言を表示する', async () => {
     await render(
-      <RecordRepositoryProvider repository={emptyRepository}>
-        <RecordsScreen />
-      </RecordRepositoryProvider>,
+      <ShelfRepositoryProvider>
+        <RecordRepositoryProvider repository={emptyRepository}>
+          <RecordsScreen />
+        </RecordRepositoryProvider>
+      </ShelfRepositoryProvider>,
     );
     expect(await screen.findByText('最初の1冊を、棚に並べよう')).toBeTruthy();
     expect(screen.getByText('読みたい本も、読んだ本も、ここに並んでいきます')).toBeTruthy();
