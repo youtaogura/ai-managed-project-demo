@@ -31,7 +31,6 @@ type RecordDetailScreenProps = {
 
 const COVER_WIDTH = 196;
 const STARS_SIZE = 18;
-const REVIEW_LINES = 3;
 const HERO_TOP = space[4] + space[6];
 const BAR_PADDING = space[4];
 
@@ -44,12 +43,7 @@ function toInput(
   return { ...input, photoUri, coverUrl };
 }
 
-export function RecordDetailScreen({
-  recordId,
-  onEdit,
-  onDeleted,
-  onBack,
-}: RecordDetailScreenProps) {
+export function RecordDetailScreen({ recordId, onEdit, onDeleted, onBack }: RecordDetailScreenProps) {
   const bottomInset = useBottomInset();
   const repository = useRecordRepository();
   const photoService = usePhotoService();
@@ -180,7 +174,9 @@ export function RecordDetailScreen({
     <View style={styles.container}>
       <ScrollView
         ref={scrollRef}
-        contentContainerStyle={{ paddingBottom: size.buttonHeight + BAR_PADDING * 2 + bottomInset + space[6] }}
+        contentContainerStyle={{
+          paddingBottom: size.buttonHeight + BAR_PADDING * 2 + bottomInset + space[6],
+        }}
       >
         <View style={[styles.hero, { backgroundColor: getHeroBackground() }]}>
           <View style={styles.cover}>
@@ -212,11 +208,6 @@ export function RecordDetailScreen({
             <InfoCell label={labels.start} value={record.startDate} />
             <InfoCell label={labels.end} value={record.endDate} />
           </InfoCellRow>
-          {record.review ? (
-            <AppText variant="body" numberOfLines={REVIEW_LINES}>
-              {record.review}
-            </AppText>
-          ) : null}
           <View onLayout={(e) => setInfoY(e.nativeEvent.layout.y)}>
             <RecordInfoSection record={record} onDelete={openDelete} />
           </View>
@@ -232,11 +223,7 @@ export function RecordDetailScreen({
         <Button label="編集" style={styles.barButton} onPress={() => onEdit?.(record.id)} />
       </View>
 
-      <BottomSheet
-        visible={deleteOpen}
-        onClose={() => setDeleteOpen(false)}
-        title="この記録を削除しますか？"
-      >
+      <BottomSheet visible={deleteOpen} onClose={() => setDeleteOpen(false)} title="この記録を削除しますか？">
         <View style={styles.sheetBody}>
           <AppText variant="body" style={{ color: colors.textSecondary }}>
             {`「${record.title}」の記録と、付けた写真が削除されます。元に戻せません。`}
@@ -247,12 +234,7 @@ export function RecordDetailScreen({
             </AppText>
           ) : null}
           <Button variant="outline" label="キャンセル" onPress={() => setDeleteOpen(false)} />
-          <Button
-            variant="outline"
-            tone="danger"
-            label="削除する"
-            onPress={() => void confirmDelete()}
-          />
+          <Button variant="outline" tone="danger" label="削除する" onPress={() => void confirmDelete()} />
         </View>
       </BottomSheet>
 
@@ -284,9 +266,7 @@ export function RecordDetailScreen({
               {photoMessage}
             </AppText>
           ) : null}
-          {picker.error?.denied ? (
-            <Button variant="outline" label="設定を開く" onPress={picker.openSettings} />
-          ) : null}
+          {picker.error?.denied ? <Button variant="outline" label="設定を開く" onPress={picker.openSettings} /> : null}
         </View>
       </BottomSheet>
     </View>
@@ -302,7 +282,11 @@ const styles = StyleSheet.create({
     gap: space[4],
     backgroundColor: colors.bg,
   },
-  hero: { height: size.detailHeroHeight, alignItems: 'center', justifyContent: 'center' },
+  hero: {
+    height: size.detailHeroHeight,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   cover: { boxShadow: shadows.cover },
   heroButtons: {
     position: 'absolute',

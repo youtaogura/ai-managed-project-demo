@@ -27,10 +27,10 @@ describe('migrateRecords', () => {
     expect(data.get(SCHEMA_VERSION_STORAGE_KEY)).toBe(String(CURRENT_SCHEMA_VERSION));
   });
 
-  it('版が 2 以上なら何も書かない', async () => {
+  it('版が最新なら何も書かない', async () => {
     const { storage } = createMemoryStorage({
       [RECORDS_KEY]: JSON.stringify([old]),
-      [SCHEMA_VERSION_STORAGE_KEY]: '2',
+      [SCHEMA_VERSION_STORAGE_KEY]: '3',
     });
     const setItem = jest.spyOn(storage, 'setItem');
     await migrateRecords(storage);
@@ -52,20 +52,20 @@ describe('migrateRecords', () => {
     const setItem = jest.spyOn(storage, 'setItem');
     await migrateRecords(storage);
     expect(setItem).toHaveBeenCalledTimes(1);
-    expect(data.get(SCHEMA_VERSION_STORAGE_KEY)).toBe('2');
+    expect(data.get(SCHEMA_VERSION_STORAGE_KEY)).toBe('3');
   });
 
-  it('records.v1 が未保存なら版だけ 2 にする', async () => {
+  it('records.v1 が未保存なら版だけ最新にする', async () => {
     const { storage, data } = createMemoryStorage();
     await migrateRecords(storage);
     expect(data.has(RECORDS_KEY)).toBe(false);
-    expect(data.get(SCHEMA_VERSION_STORAGE_KEY)).toBe('2');
+    expect(data.get(SCHEMA_VERSION_STORAGE_KEY)).toBe('3');
   });
 
   it('版が壊れた値なら未設定として扱う', async () => {
     const { storage, data } = createMemoryStorage({ [SCHEMA_VERSION_STORAGE_KEY]: 'abc' });
     await migrateRecords(storage);
-    expect(data.get(SCHEMA_VERSION_STORAGE_KEY)).toBe('2');
+    expect(data.get(SCHEMA_VERSION_STORAGE_KEY)).toBe('3');
   });
 
   it.each(['{broken', '{"a":1}'])('壊れた/配列でない JSON (%s) は書き換えず版も上げない', async (raw) => {
@@ -102,6 +102,6 @@ describe('migrateRecords', () => {
     const afterFirst = data.get(RECORDS_KEY);
     await migrateRecords(storage);
     expect(data.get(RECORDS_KEY)).toBe(afterFirst);
-    expect(data.get(SCHEMA_VERSION_STORAGE_KEY)).toBe('2');
+    expect(data.get(SCHEMA_VERSION_STORAGE_KEY)).toBe('3');
   });
 });

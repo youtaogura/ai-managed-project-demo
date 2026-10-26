@@ -1,5 +1,6 @@
 import type { ImportMode } from '../types/backup';
 import type { MediaRecord, NewRecordInput } from '../types/record';
+import { spineColorForIndex } from './spineColor';
 import { parseRecords } from './recordGuard';
 import { RECORDS_KEY, migrateRecords } from './recordMigration';
 import type { KeyValueStorage } from './storage';
@@ -27,13 +28,14 @@ export type RecordRepository = {
   delete(id: string): Promise<boolean>;
   /** すべての記録を削除し、削除した記録を返す。保存は 1 回の setItem で、失敗したら reject し記録は変わらない。 */
   deleteAll(): Promise<MediaRecord[]>;
+  /** すべての記録の shelfIds から本棚を外す。保存は 1 回の setItem。 */
+  removeShelfId(shelfId: string): Promise<void>;
   /** 読み込み後の件数を返す。保存は 1 回の setItem で、失敗したら reject し記録は変わらない。 */
   importRecords(records: readonly MediaRecord[], mode: ImportMode): Promise<number>;
 };
 
 const defaultNow = () => new Date().toISOString();
-const defaultGenerateId = () =>
-  `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+const defaultGenerateId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 
 function assertValid(input: NewRecordInput): void {
   if (!isValidRecordInput(input)) {
@@ -70,8 +72,7 @@ export function createRecordRepository(
     }
   };
 
-  const save = (records: MediaRecord[]) =>
-    storage.setItem(RECORDS_STORAGE_KEY, JSON.stringify(records));
+  const save = (records: MediaRecord[]) => storage.setItem(RECORDS_STORAGE_KEY, JSON.stringify(records));
 
   // 書き込みは直列化して lost update を防ぐ
   const serialize = <T>(task: () => Promise<T>): Promise<T> => {
@@ -89,13 +90,14 @@ export function createRecordRepository(
       assertValid(input);
       return await serialize(async () => {
         const timestamp = now();
+        const records = await load();
         const record: MediaRecord = {
           ...input,
           id: generateId(),
           createdAt: timestamp,
           updatedAt: timestamp,
+          spineColor: spineColorForIndex(records.length),
         };
-        const records = await load();
         await save([...records, record]);
         return record;
       });
@@ -113,6 +115,7 @@ export function createRecordRepository(
           id: current.id,
           createdAt: current.createdAt,
           updatedAt: now(),
+          spineColor: current.spineColor,
         };
         const next = [...records];
         next[index] = updated;
@@ -135,6 +138,16 @@ export function createRecordRepository(
         const records = await load();
         await save([]);
         return records;
+      }),
+
+    removeShelfId: (shelfId) =>
+      serialize(async () => {
+        const records = await load();
+        await save(
+          records.map((r) =>
+            r.shelfIds.includes(shelfId) ? { ...r, shelfIds: r.shelfIds.filter((s) => s !== shelfId) } : r,
+          ),
+        );
       }),
 
     importRecords: (incoming, mode) =>

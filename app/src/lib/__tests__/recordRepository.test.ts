@@ -1,6 +1,8 @@
 import { makeRecord } from '../../testUtils';
 import type { NewRecordInput } from '../../types/record';
 import { RECORDS_STORAGE_KEY, ValidationError, createRecordRepository } from '../recordRepository';
+import { defaultStarterSettings } from '../starterDefaults';
+import { createStarterSettingsStore } from '../starterSettingsStore';
 import type { KeyValueStorage } from '../storage';
 
 function createMemoryStorage(initial: Record<string, string> = {}) {
@@ -27,9 +29,15 @@ const input: NewRecordInput = {
   startDate: null,
   endDate: null,
   status: 'planned',
-  review: null,
   rating: null,
   source: { provider: 'manual' },
+  oneLiner: null,
+  starters: [],
+  quotes: [],
+  memos: [],
+  freeTexts: [],
+  favorite: false,
+  shelfIds: [],
 };
 
 function setup(storage: KeyValueStorage) {
@@ -65,8 +73,16 @@ describe('RecordRepository', () => {
   it('update は updatedAt を更新し createdAt は不変', async () => {
     const repo = setup(createMemoryStorage().storage);
     const added = await repo.add(input);
-    const updated = await repo.update(added.id, { ...input, title: '坊っちゃん', rating: 4 });
-    expect(updated).toMatchObject({ id: added.id, title: '坊っちゃん', rating: 4 });
+    const updated = await repo.update(added.id, {
+      ...input,
+      title: '坊っちゃん',
+      rating: 4,
+    });
+    expect(updated).toMatchObject({
+      id: added.id,
+      title: '坊っちゃん',
+      rating: 4,
+    });
     expect(updated?.createdAt).toBe(added.createdAt);
     expect(updated?.updatedAt).toBe('2024-01-01T00:00:01.000Z');
     expect(await repo.getAll()).toEqual([updated]);
@@ -157,7 +173,14 @@ describe('RecordRepository', () => {
   describe('移行', () => {
     const { source: _s, ...legacyInput } = input;
     const raw = JSON.stringify([
-      { ...legacyInput, id: 'old', createdAt: 'a', updatedAt: 'b', isbn: '9784065199817' },
+      {
+        ...legacyInput,
+        id: 'old',
+        spineColor: 'spine-1',
+        createdAt: 'a',
+        updatedAt: 'b',
+        isbn: '9784065199817',
+      },
     ]);
 
     it('migrate は 1 回だけ走り、旧形式の記録に source が書き戻される', async () => {
@@ -176,7 +199,10 @@ describe('RecordRepository', () => {
       const { storage } = createMemoryStorage({ 'records.v1': raw });
       const repo = setup(storage);
       const [record] = await repo.getAll();
-      expect(record?.source).toEqual({ provider: 'openbd', isbn: '9784065199817' });
+      expect(record?.source).toEqual({
+        provider: 'openbd',
+        isbn: '9784065199817',
+      });
     });
 
     it('移行が失敗しても操作は通常どおり動き、旧形式も読み込みで補われる', async () => {
@@ -192,7 +218,10 @@ describe('RecordRepository', () => {
 
     it('add に渡した source が保存される', async () => {
       const repo = setup(createMemoryStorage().storage);
-      const added = await repo.add({ ...input, source: { provider: 'ndl', ndlId: '1' } });
+      const added = await repo.add({
+        ...input,
+        source: { provider: 'ndl', ndlId: '1' },
+      });
       expect((await repo.getAll())[0]).toEqual(added);
       expect(added.source).toEqual({ provider: 'ndl', ndlId: '1' });
     });
@@ -204,14 +233,15 @@ describe('RecordRepository.importRecords', () => {
     createMemoryStorage({ [RECORDS_STORAGE_KEY]: JSON.stringify(records) });
 
   it('merge: 今の記録を残し、同じ id はファイルの内容（日時も）になる', async () => {
-    const { storage } = seed([
-      makeRecord({ id: 'a', title: '古い' }),
-      makeRecord({ id: 'b', title: '残る' }),
-    ]);
+    const { storage } = seed([makeRecord({ id: 'a', title: '古い' }), makeRecord({ id: 'b', title: '残る' })]);
     const repo = setup(storage);
     const count = await repo.importRecords(
       [
-        makeRecord({ id: 'a', title: '新しい', updatedAt: '2025-05-05T00:00:00.000Z' }),
+        makeRecord({
+          id: 'a',
+          title: '新しい',
+          updatedAt: '2025-05-05T00:00:00.000Z',
+        }),
         makeRecord({ id: 'c', title: '追加' }),
       ],
       'merge',
@@ -252,11 +282,7 @@ describe('RecordRepository.importRecords', () => {
   it('他の add と競合せず直列化される', async () => {
     const { storage } = seed([]);
     const repo = setup(storage);
-    await Promise.all([
-      repo.add(input),
-      repo.importRecords([makeRecord({ id: 'z' })], 'merge'),
-      repo.add(input),
-    ]);
+    await Promise.all([repo.add(input), repo.importRecords([makeRecord({ id: 'z' })], 'merge'), repo.add(input)]);
     expect(await repo.getAll()).toHaveLength(3);
   });
 
@@ -288,6 +314,103 @@ describe('RecordRepository.importRecords', () => {
       jest.spyOn(storage, 'setItem').mockRejectedValueOnce(new Error('disk'));
       await expect(repo.deleteAll()).rejects.toThrow('disk');
       expect(await repo.getAll()).toHaveLength(1);
+    });
+  });
+
+  describe('新しいフィールド', () => {
+    const rich = {
+      ...input,
+      oneLiner: 'ひとこと',
+      starters: [
+        {
+          id: 's1',
+          starter: 'いちばん心に残ったのは、',
+          text: '嵐',
+          createdAt: 'x',
+        },
+      ],
+      quotes: [{ id: 'q1', text: '引用', page: '12', comment: null, createdAt: 'x' }],
+      memos: [{ id: 'm1', text: 'メモ', page: null, createdAt: 'x' }],
+      freeTexts: [{ id: 'f1', text: '文章', createdAt: 'x' }],
+      favorite: true,
+      shelfIds: ['sh1'],
+    };
+
+    it('保存して別の repository で読むと同じ値で戻る', async () => {
+      const { storage } = createMemoryStorage();
+      const added = await setup(storage).add(rich);
+      expect(await createRecordRepository(storage).getAll()).toEqual([added]);
+      expect(added).toMatchObject(rich);
+    });
+
+    it('update で変更でき、id・createdAt・spineColor は保たれる', async () => {
+      const repo = setup(createMemoryStorage().storage);
+      const added = await repo.add(rich);
+      const updated = await repo.update(added.id, {
+        ...rich,
+        oneLiner: '変えた',
+        favorite: false,
+        shelfIds: [],
+        quotes: [],
+        memos: [],
+        freeTexts: [],
+        starters: [],
+      });
+      expect(updated).toMatchObject({
+        id: added.id,
+        createdAt: added.createdAt,
+        spineColor: added.spineColor,
+        oneLiner: '変えた',
+        favorite: false,
+        shelfIds: [],
+      });
+    });
+
+    it('spineColor は既存件数に応じて spine-1 から順に割り当て、11 件目で戻る', async () => {
+      const repo = setup(createMemoryStorage().storage);
+      const colors: string[] = [];
+      for (let i = 0; i < 11; i++) colors.push((await repo.add(input)).spineColor);
+      expect(colors[0]).toBe('spine-1');
+      expect(colors[9]).toBe('spine-10');
+      expect(colors[10]).toBe('spine-1');
+    });
+
+    it('書き出し設定を変えても、保存済みの starter の文は変わらない', async () => {
+      const { storage } = createMemoryStorage();
+      const repo = setup(storage);
+      await repo.add(rich);
+      const settingsStore = createStarterSettingsStore(storage);
+      const settings = defaultStarterSettings();
+      await settingsStore.save({
+        ...settings,
+        items: settings.items.slice(1).map((i) => ({ ...i, text: '書き換え', enabled: false })),
+      });
+      expect((await repo.getAll())[0]?.starters[0]?.starter).toBe('いちばん心に残ったのは、');
+    });
+
+    it('removeShelfId は全記録から外し、ほかの本棚と件数は変わらない', async () => {
+      const repo = setup(createMemoryStorage().storage);
+      await repo.add({ ...input, shelfIds: ['a', 'b'] });
+      await repo.add({ ...input, shelfIds: ['b'] });
+      await repo.removeShelfId('b');
+      const all = await repo.getAll();
+      expect(all.map((r) => r.shelfIds)).toEqual([['a'], []]);
+    });
+
+    it('古い形式（review あり・新フィールドなし）は例外なく一覧から除かれる', async () => {
+      const old = {
+        id: 'o',
+        title: 'T',
+        review: 'x',
+        status: 'planned',
+        rating: null,
+        createdAt: 'a',
+        updatedAt: 'b',
+      };
+      const { storage } = createMemoryStorage({
+        [RECORDS_STORAGE_KEY]: JSON.stringify([old]),
+      });
+      expect(await createRecordRepository(storage).getAll()).toEqual([]);
     });
   });
 });

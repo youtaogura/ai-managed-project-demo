@@ -14,12 +14,7 @@ import {
   type RecordFormErrors,
   type RecordFormValues,
 } from '../lib/recordForm';
-import {
-  getCreatorLabel,
-  getDateHint,
-  getDateLabels,
-  getStatusLabel,
-} from '../lib/statusLabel';
+import { getCreatorLabel, getDateHint, getDateLabels, getStatusLabel } from '../lib/statusLabel';
 import { RECORD_STATUSES, type NewRecordInput } from '../types/record';
 import { AppText } from './AppText';
 import { Button } from './Button';
@@ -122,7 +117,7 @@ export function RecordForm({
     setErrors(found);
     if (Object.keys(found).length > 0) return;
     await run(async () => {
-      await onSubmit(toNewRecordInput(values));
+      await onSubmit(toNewRecordInput(values, initialValues));
       persisted.current = true;
       commitPhoto();
       onSaved?.();
@@ -167,17 +162,8 @@ export function RecordForm({
           onChangeText={(text) => setField('creator', text)}
         />
         <>
-            <TextField
-              label="出版社"
-              value={values.publisher}
-              onChangeText={(text) => setField('publisher', text)}
-            />
-            <TextField
-              label="ISBN"
-              variant="isbn"
-              value={values.isbn}
-              onChangeText={(text) => setField('isbn', text)}
-            />
+          <TextField label="出版社" value={values.publisher} onChangeText={(text) => setField('publisher', text)} />
+          <TextField label="ISBN" variant="isbn" value={values.isbn} onChangeText={(text) => setField('isbn', text)} />
         </>
 
         <View>
@@ -217,20 +203,7 @@ export function RecordForm({
           </AppText>
         </View>
 
-        <RatingInput
-          value={values.rating}
-          error={errors.rating}
-          onChange={(text) => setField('rating', text)}
-        />
-
-        <TextField
-          label="感想"
-          optionalLabel
-          multiline
-          placeholder="感じたことを自由に"
-          value={values.review}
-          onChangeText={(text) => setField('review', text)}
-        />
+        <RatingInput value={values.rating} error={errors.rating} onChange={(text) => setField('rating', text)} />
 
         {onDelete ? (
           <Button
@@ -249,9 +222,7 @@ export function RecordForm({
             {failure}
           </AppText>
         ) : null}
-        {submitting ? (
-          <ActivityIndicator accessibilityLabel="処理中" color={colors.textSecondary} />
-        ) : null}
+        {submitting ? <ActivityIndicator accessibilityLabel="処理中" color={colors.textSecondary} /> : null}
         <Button label={submitLabel} disabled={submitting} onPress={() => void handleSubmit()} />
       </View>
 

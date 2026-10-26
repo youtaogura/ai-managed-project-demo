@@ -37,37 +37,66 @@ describe('recordsToCsv', () => {
     expect(csv.endsWith('\r\n')).toBe(true);
     const rows = parseCsv(csv.slice(1));
     expect(rows[0]).toEqual([
-      'タイトル', '作者', '出版社', 'ISBN', 'ステータス', '始めた日', '終えた日',
-      'レーティング', '感想', '登録日時', '更新日時',
+      'タイトル',
+      '作者',
+      '出版社',
+      'ISBN',
+      'ステータス',
+      '始めた日',
+      '終えた日',
+      'レーティング',
+      'ひとこと',
+      '登録日時',
+      '更新日時',
     ]);
     expect(rows).toHaveLength(2);
   });
 
   it('日本語ラベル・null は空欄・レーティングは数値', () => {
     const csv = recordsToCsv([
-      makeRecord({ status: 'completed', rating: 4.5, creator: '作者', title: '本' }),
+      makeRecord({
+        status: 'completed',
+        rating: 4.5,
+        creator: '作者',
+        title: '本',
+      }),
     ]);
     expect(parseCsv(csv.slice(1))[1]).toEqual([
-      '本', '作者', '', '', '読み終わった', '', '', '4.5', '',
-      '2024-01-01T00:00:00.000Z', '2024-01-01T00:00:00.000Z',
+      '本',
+      '作者',
+      '',
+      '',
+      '読み終わった',
+      '',
+      '',
+      '4.5',
+      '',
+      '2024-01-01T00:00:00.000Z',
+      '2024-01-01T00:00:00.000Z',
     ]);
   });
 
   it('カンマ・改行・引用符を含む値が往復する', () => {
-    const review = 'a,b\n"c"\r\nd';
-    const rows = parseCsv(recordsToCsv([makeRecord({ review, title: 'x,"y"' })]).slice(1));
+    const oneLiner = 'a,b\n"c"\r\nd';
+    const rows = parseCsv(recordsToCsv([makeRecord({ oneLiner, title: 'x,"y"' })]).slice(1));
     expect(rows[1]?.[0]).toBe('x,"y"');
-    expect(rows[1]?.[8]).toBe(review);
+    expect(rows[1]?.[8]).toBe(oneLiner);
   });
 
   it('0 件はヘッダーだけ', () => {
     expect(parseCsv(recordsToCsv([]).slice(1))).toHaveLength(1);
   });
 
-  it('先頭が = + - @ の文字列には \' を付ける（数値は対象外）', () => {
+  it("先頭が = + - @ の文字列には ' を付ける（数値は対象外）", () => {
     const rows = parseCsv(
       recordsToCsv([
-        makeRecord({ title: '=1+1', creator: '+a', publisher: '-b', review: '@c', rating: 0.5 }),
+        makeRecord({
+          title: '=1+1',
+          creator: '+a',
+          publisher: '-b',
+          oneLiner: '@c',
+          rating: 0.5,
+        }),
         makeRecord({ id: 'r2', title: '普通' }),
       ]).slice(1),
     );

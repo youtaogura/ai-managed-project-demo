@@ -19,12 +19,10 @@ jest.mock('../../lib/haptics', () => ({
   triggerRatingHaptic: jest.fn(),
 }));
 
-function renderDetail(
-  repository: RecordRepository,
-  element: ReactElement,
-  photoService?: PhotoService,
-) {
-  return renderRouter({ index: () => withRepository(repository, element, photoService) });
+function renderDetail(repository: RecordRepository, element: ReactElement, photoService?: PhotoService) {
+  return renderRouter({
+    index: () => withRepository(repository, element, photoService),
+  });
 }
 
 const full = makeRecord({
@@ -37,7 +35,7 @@ const full = makeRecord({
   endDate: '2024-02-10',
   status: 'completed',
   rating: 4.5,
-  review: '一行目\n二行目',
+  oneLiner: '一行目\n二行目',
 });
 
 const PHOTO = 'file:///documents/photos/p.jpg';
@@ -49,11 +47,7 @@ afterEach(() => jest.clearAllMocks());
 
 async function show(record = full, photoService?: PhotoService, onDeleted = jest.fn()) {
   const fake = createFakeRepository([record]);
-  await renderDetail(
-    fake.repository,
-    <RecordDetailScreen recordId="x" onDeleted={onDeleted} />,
-    photoService,
-  );
+  await renderDetail(fake.repository, <RecordDetailScreen recordId="x" onDeleted={onDeleted} />, photoService);
   await waitFor(() => expect(screen.getAllByText(record.title, { exact: false })).toBeTruthy());
   return { ...fake, onDeleted };
 }
@@ -78,18 +72,16 @@ describe('RecordDetailScreen の表示', () => {
     expect(screen.queryByText('監督など')).toBeNull();
   });
 
-  it('評価・感想・日付・作者が空なら星と感想を出さず、日付は「—」', async () => {
+  it('評価・日付・作者が空なら星を出さず、日付は「—」', async () => {
     await show(makeRecord({ id: 'x', title: '空' }));
     expect(screen.queryByLabelText(/レーティング/)).toBeNull();
     expect(screen.getAllByText('—').length).toBe(2);
     expect(screen.queryByText('感想', { exact: false })).toBeNull();
   });
 
-  it('感想は上部で 3 行まで、作品の情報側では全文', async () => {
+  it('感想の表示はなく、ひとこと（oneLiner）も今の画面には出さない', async () => {
     await show();
-    const reviews = screen.getAllByText('一行目\n二行目');
-    expect(reviews.length).toBe(2);
-    expect(reviews.map((r) => r.props.numberOfLines)).toContain(3);
+    expect(screen.queryByText('一行目\n二行目')).toBeNull();
   });
 
   it('作品の情報に空でない項目だけ出す', async () => {
@@ -101,7 +93,14 @@ describe('RecordDetailScreen の表示', () => {
 
   it.each([
     ['写真', makeRecord({ id: 'x', title: 'P', photoUri: PHOTO })],
-    ['書影 URL', makeRecord({ id: 'x', title: 'C', coverUrl: 'https://example.com/c.jpg' })],
+    [
+      '書影 URL',
+      makeRecord({
+        id: 'x',
+        title: 'C',
+        coverUrl: 'https://example.com/c.jpg',
+      }),
+    ],
   ])('表紙: %s がある記録は画像を出す', async (_name, record) => {
     await show(record);
     expect(screen.getAllByLabelText(record.title).length).toBeGreaterThan(0);
@@ -115,8 +114,13 @@ describe('RecordDetailScreen の表示', () => {
   it('「作品の情報」で、情報セクションの位置（body の位置を含む）へスクロールする', async () => {
     await show();
     const scrollTo = jest.fn();
-    Object.defineProperty(ScrollView.prototype, 'scrollTo', { value: scrollTo, configurable: true });
-    const layout = (y: number) => ({ nativeEvent: { layout: { x: 0, y, width: 100, height: 100 } } });
+    Object.defineProperty(ScrollView.prototype, 'scrollTo', {
+      value: scrollTo,
+      configurable: true,
+    });
+    const layout = (y: number) => ({
+      nativeEvent: { layout: { x: 0, y, width: 100, height: 100 } },
+    });
     const withLayout = (start: TestInstance | null) => {
       let node = start;
       while (node && node.props.onLayout === undefined) node = node.parent;
@@ -137,10 +141,7 @@ describe('RecordDetailScreen の操作', () => {
     const onEdit = jest.fn();
     const onBack = jest.fn();
     const { repository } = createFakeRepository([full]);
-    await renderDetail(
-      repository,
-      <RecordDetailScreen recordId="x" onEdit={onEdit} onBack={onBack} />,
-    );
+    await renderDetail(repository, <RecordDetailScreen recordId="x" onEdit={onEdit} onBack={onBack} />);
     await waitFor(() => expect(screen.getByText('編集')).toBeTruthy());
     await fireEvent.press(screen.getByText('編集'));
     expect(onEdit).toHaveBeenCalledWith('x');
@@ -159,7 +160,10 @@ describe('RecordDetailScreen の操作', () => {
 
   it('読み込み中は「読み込み中」を出す', async () => {
     const { repository } = createFakeRepository([full]);
-    const slow: RecordRepository = { ...repository, getAll: () => new Promise(() => {}) };
+    const slow: RecordRepository = {
+      ...repository,
+      getAll: () => new Promise(() => {}),
+    };
     await renderDetail(slow, <RecordDetailScreen recordId="x" />);
     expect(screen.getByLabelText('読み込み中')).toBeTruthy();
   });
@@ -182,9 +186,7 @@ describe('削除の確認', () => {
     await show();
     await fireEvent.press(screen.getByText('この記録を削除'));
     expect(await screen.findByText('この記録を削除しますか？')).toBeTruthy();
-    expect(
-      screen.getByText('「吾輩は猫である」の記録と、付けた写真が削除されます。元に戻せません。'),
-    ).toBeTruthy();
+    expect(screen.getByText('「吾輩は猫である」の記録と、付けた写真が削除されます。元に戻せません。')).toBeTruthy();
   });
 
   it('キャンセルでは削除されない', async () => {
@@ -362,8 +364,7 @@ describe('書影の自動取得', () => {
     const repository = wrap ? wrap(fake.repository) : fake.repository;
     const update = jest.spyOn(repository, 'update');
     const view = await renderRouter({
-      index: () =>
-        withRepository(repository, <RecordDetailScreen recordId="x" />, undefined, resolver),
+      index: () => withRepository(repository, <RecordDetailScreen recordId="x" />, undefined, resolver),
     });
     await waitFor(() => expect(screen.getAllByText(record.title, { exact: false })).toBeTruthy());
     return { ...fake, repository, update, view };
@@ -378,7 +379,11 @@ describe('書影の自動取得', () => {
     expect(resolver).toHaveBeenCalledWith('9784101010014');
     expect(update).toHaveBeenCalledTimes(1);
     const [saved] = await repository.getAll();
-    expect(saved).toMatchObject({ coverUrl: FOUND, title: target.title, review: target.review });
+    expect(saved).toMatchObject({
+      coverUrl: FOUND,
+      title: target.title,
+      oneLiner: target.oneLiner,
+    });
   });
 
   it.each([

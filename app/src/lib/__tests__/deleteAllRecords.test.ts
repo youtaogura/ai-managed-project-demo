@@ -2,6 +2,9 @@ import { createMemoryStorage, createMockPhotoService, makeRecord } from '../../t
 import { DEFAULT_SETTINGS } from '../../types/settings';
 import { deleteAllRecords } from '../deleteAllRecords';
 import { createRecordRepository, RECORDS_STORAGE_KEY } from '../recordRepository';
+import { createShelfRepository } from '../shelfRepository';
+import { defaultStarterSettings } from '../starterDefaults';
+import { createStarterSettingsStore } from '../starterSettingsStore';
 import { createSettingsStore } from '../settingsStore';
 
 const records = [
@@ -11,7 +14,9 @@ const records = [
 ];
 
 function setup(initial = records) {
-  const memory = createMemoryStorage({ [RECORDS_STORAGE_KEY]: JSON.stringify(initial) });
+  const memory = createMemoryStorage({
+    [RECORDS_STORAGE_KEY]: JSON.stringify(initial),
+  });
   const repository = createRecordRepository(memory.storage);
   const photoService = createMockPhotoService();
   return { memory, repository, photoService };
@@ -52,9 +57,23 @@ describe('deleteAllRecords', () => {
   it('設定は変わらない', async () => {
     const { memory, repository, photoService } = setup();
     const settingsStore = createSettingsStore(memory.storage);
-    await settingsStore.save({ ...DEFAULT_SETTINGS, heroCriterion: 'highRated' });
+    await settingsStore.save({
+      ...DEFAULT_SETTINGS,
+      heroCriterion: 'highRated',
+    });
     const before = await settingsStore.load();
     await deleteAllRecords({ repository, photoService });
     expect(await settingsStore.load()).toEqual(before);
+  });
+
+  it('本棚と書き出し設定は残る', async () => {
+    const { memory, repository, photoService } = setup();
+    const shelfRepository = createShelfRepository(memory.storage);
+    await shelfRepository.create('積ん読');
+    const starterStore = createStarterSettingsStore(memory.storage);
+    await starterStore.save({ ...defaultStarterSettings(), count: 5 });
+    await deleteAllRecords({ repository, photoService });
+    expect((await shelfRepository.getAll()).map((s) => s.name)).toEqual(['積ん読']);
+    expect((await starterStore.load()).count).toBe(5);
   });
 });

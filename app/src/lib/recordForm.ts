@@ -1,9 +1,4 @@
-import {
-  type MediaRecord,
-  type NewRecordInput,
-  type RecordSource,
-  type RecordStatus,
-} from '../types/record';
+import { type MediaRecord, type NewRecordInput, type RecordSource, type RecordStatus } from '../types/record';
 import { paramsToSource } from './recordSource';
 import { isValidDateString, isValidRating } from './validation';
 
@@ -15,7 +10,6 @@ export type RecordFormValues = {
   startDate: string;
   endDate: string;
   status: RecordStatus;
-  review: string;
   rating: string;
   coverUrl: string | null;
   photoUri: string | null;
@@ -47,7 +41,6 @@ export function createFormValues(initial: Partial<NewRecordInput> = {}): RecordF
     startDate: initial.startDate ?? '',
     endDate: initial.endDate ?? '',
     status: initial.status ?? 'planned',
-    review: initial.review ?? '',
     rating: formatRating(initial.rating ?? null),
     coverUrl: initial.coverUrl ?? null,
     photoUri: initial.photoUri ?? null,
@@ -97,11 +90,7 @@ export function todayString(date: Date = new Date()): string {
   return `${y}-${m}-${d}`;
 }
 
-export function applyStatusChange(
-  values: RecordFormValues,
-  status: RecordStatus,
-  today: string,
-): RecordFormValues {
+export function applyStatusChange(values: RecordFormValues, status: RecordStatus, today: string): RecordFormValues {
   const next = { ...values, status };
   if (status === 'in_progress' && next.startDate.trim() === '') next.startDate = today;
   if ((status === 'completed' || status === 'dropped') && next.endDate.trim() === '') {
@@ -131,13 +120,12 @@ function emptyToNull(text: string): string | null {
   return trimmed === '' ? null : trimmed;
 }
 
-export function toNewRecordInput(values: RecordFormValues): NewRecordInput {
+/** carried: フォームが編集しないフィールド（ひとこと・書き出しなど）の引き継ぎ元。編集のときに渡す。 */
+export function toNewRecordInput(values: RecordFormValues, carried: Partial<NewRecordInput> = {}): NewRecordInput {
   const rating = parseRating(values.rating);
   const isbn = emptyToNull(values.isbn);
   const source: RecordSource =
-    values.source.provider === 'openbd' && isbn !== values.source.isbn
-      ? { provider: 'manual' }
-      : values.source;
+    values.source.provider === 'openbd' && isbn !== values.source.isbn ? { provider: 'manual' } : values.source;
   return {
     title: values.title.trim(),
     creator: emptyToNull(values.creator),
@@ -148,15 +136,19 @@ export function toNewRecordInput(values: RecordFormValues): NewRecordInput {
     startDate: emptyToNull(values.startDate),
     endDate: emptyToNull(values.endDate),
     status: values.status,
-    review: emptyToNull(values.review),
     rating: rating === null || Number.isNaN(rating) ? null : rating,
     source,
+    oneLiner: carried.oneLiner ?? null,
+    starters: carried.starters ?? [],
+    quotes: carried.quotes ?? [],
+    memos: carried.memos ?? [],
+    freeTexts: carried.freeTexts ?? [],
+    favorite: carried.favorite ?? false,
+    shelfIds: carried.shelfIds ?? [],
   };
 }
 
-export function paramsToInitialValues(
-  params: Record<string, string | string[] | undefined>,
-): Partial<NewRecordInput> {
+export function paramsToInitialValues(params: Record<string, string | string[] | undefined>): Partial<NewRecordInput> {
   const text = (key: string): string | undefined => {
     const value = params[key];
     return typeof value === 'string' && value !== '' ? value : undefined;

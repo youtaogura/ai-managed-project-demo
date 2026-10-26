@@ -29,11 +29,18 @@ export function makeRecord(overrides: Partial<MediaRecord> = {}): MediaRecord {
     startDate: null,
     endDate: null,
     status: 'planned',
-    review: null,
     rating: null,
     createdAt: '2024-01-01T00:00:00.000Z',
     updatedAt: '2024-01-01T00:00:00.000Z',
     source: { provider: 'manual' },
+    oneLiner: null,
+    starters: [],
+    quotes: [],
+    memos: [],
+    freeTexts: [],
+    favorite: false,
+    spineColor: 'spine-1',
+    shelfIds: [],
     ...overrides,
   };
 }
@@ -49,7 +56,11 @@ export function createFakeRepository(initial: MediaRecord[] = []) {
     update: async (id, input) => {
       const current = records.find((r) => r.id === id);
       if (!current) return null;
-      const next = { ...current, ...input, updatedAt: '2024-06-01T00:00:00.000Z' };
+      const next = {
+        ...current,
+        ...input,
+        updatedAt: '2024-06-01T00:00:00.000Z',
+      };
       records = records.map((r) => (r.id === id ? next : r));
       return next;
     },
@@ -62,6 +73,12 @@ export function createFakeRepository(initial: MediaRecord[] = []) {
       const deleted = records;
       records = [];
       return deleted;
+    },
+    removeShelfId: async (shelfId) => {
+      records = records.map((r) => ({
+        ...r,
+        shelfIds: r.shelfIds.filter((s) => s !== shelfId),
+      }));
     },
     importRecords: async (incoming, mode) => {
       records = mode === 'replace' ? [...incoming] : [...records, ...incoming];
