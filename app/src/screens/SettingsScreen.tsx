@@ -13,11 +13,10 @@ import { useBottomInset } from '../hooks/useBottomInset';
 import { useSettings } from '../hooks/useSettings';
 import { toggleKind } from '../lib/enabledKinds';
 import { HERO_CRITERIA } from '../lib/heroCriteria';
-import { RECORD_FIELD_LABELS, withFieldToggled } from '../lib/recordFields';
+import { RECORD_FIELD_LABELS, RECORD_FIELDS, withFieldToggled } from '../lib/recordFields';
 import { KIND_LABELS } from '../lib/statusLabel';
 import { MEDIA_KINDS, type MediaKind } from '../types/record';
 import type { RecordFieldKey } from '../types/settings';
-import { RECORD_FIELDS } from '../lib/recordFields';
 
 const KIND_OPTIONS: readonly ChipOption<MediaKind>[] = MEDIA_KINDS.map((value) => ({
   value,
