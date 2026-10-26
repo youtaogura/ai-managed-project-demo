@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 
+import { useBottomInset } from '../hooks/useBottomInset';
 import { useBookLookup } from '../hooks/useBookLookup';
 import { useBookSearch } from '../hooks/useBookSearch';
 import { candidateToParams, titleOnlyParams } from '../lib/candidateParams';
@@ -30,6 +31,7 @@ function subtitle(candidate: BookCandidate): string {
 }
 
 export function TitleSearchScreen() {
+  const bottomInset = useBottomInset();
   const searchProvider = useBookSearch();
   const lookupProvider = useBookLookup();
   const [keyword, setKeyword] = useState('');
@@ -145,6 +147,7 @@ export function TitleSearchScreen() {
           data={candidates}
           keyExtractor={(item, index) => `${item.isbn ?? item.title}-${index}`}
           style={styles.list}
+          contentContainerStyle={{ paddingBottom: bottomInset }}
           renderItem={({ item }) => {
             const sub = subtitle(item);
             return (

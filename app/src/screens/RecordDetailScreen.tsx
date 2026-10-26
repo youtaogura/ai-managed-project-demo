@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import { Thumbnail } from '../components/Thumbnail';
+import { useBottomInset } from '../hooks/useBottomInset';
 import { usePhotoService } from '../hooks/usePhotoService';
 import { useRecordRepository } from '../hooks/useRecordRepository';
 import { formatDateTime, formatRating } from '../lib/format';
@@ -42,6 +43,7 @@ export function RecordDetailScreen({
   onDeleted,
   onBack,
 }: RecordDetailScreenProps) {
+  const bottomInset = useBottomInset();
   const repository = useRecordRepository();
   const photoService = usePhotoService();
   const [record, setRecord] = useState<MediaRecord | null>(null);
@@ -108,7 +110,10 @@ export function RecordDetailScreen({
   const isBook = record.kind === 'book' || record.kind === 'manga';
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, { paddingBottom: spacing.md + bottomInset }]}
+    >
       <View style={styles.thumb}>
         <Thumbnail record={record} width={112} height={160} />
       </View>

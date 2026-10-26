@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 
+import { useBottomInset } from '../hooks/useBottomInset';
 import { usePhotoService } from '../hooks/usePhotoService';
 import {
   applyStatusChange,
@@ -47,6 +48,7 @@ export function RecordForm({
   onSubmit,
   onDelete,
 }: RecordFormProps) {
+  const bottomInset = useBottomInset();
   const [values, setValues] = useState<RecordFormValues>(() => createFormValues(initialValues));
   const [errors, setErrors] = useState<RecordFormErrors>({});
   const [submitting, setSubmitting] = useState(false);
@@ -145,7 +147,10 @@ export function RecordForm({
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <ScrollView
+      contentContainerStyle={[styles.content, { paddingBottom: spacing.lg + bottomInset }]}
+      keyboardShouldPersistTaps="handled"
+    >
       <SegmentedControl
         label="種別"
         options={kindOptions}

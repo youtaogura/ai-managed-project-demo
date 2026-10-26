@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useBottomInset } from '../hooks/useBottomInset';
 import { useBookLookup } from '../hooks/useBookLookup';
 import { isbnFromBarcode } from '../lib/barcode';
 import { bookInfoToParams, isbnOnlyParams } from '../lib/isbnLookupParams';
@@ -22,8 +23,9 @@ function ActionButton({ label, onPress }: { label: string; onPress: () => void }
 }
 
 function UnsupportedOnWeb() {
+  const bottomInset = useBottomInset();
   return (
-    <View style={styles.center}>
+    <View style={[styles.center, { paddingBottom: spacing.lg + bottomInset }]}>
       <Text style={styles.message}>この機能はスマートフォンでのみ使えます</Text>
       <ActionButton label="手入力で追加" onPress={() => router.replace('/record/new')} />
     </View>
@@ -31,6 +33,7 @@ function UnsupportedOnWeb() {
 }
 
 function NativeBarcodeScan() {
+  const bottomInset = useBottomInset();
   const [permission, requestPermission] = useCameraPermissions();
   const provider = useBookLookup();
   const [state, setState] = useState<ScanState>('scanning');
@@ -84,7 +87,7 @@ function NativeBarcodeScan() {
 
   if (!permission) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { paddingBottom: spacing.lg + bottomInset }]}>
         <ActivityIndicator />
       </View>
     );
@@ -93,7 +96,7 @@ function NativeBarcodeScan() {
   if (!permission.granted) {
     const canAsk = permission.canAskAgain;
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { paddingBottom: spacing.lg + bottomInset }]}>
         <Text style={styles.message}>バーコードを読み取るためにカメラを使います</Text>
         {canAsk ? (
           <ActionButton label="カメラを許可する" onPress={() => void requestPermission()} />
@@ -111,7 +114,7 @@ function NativeBarcodeScan() {
 
   if (state === 'not_found' || state === 'error') {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { paddingBottom: spacing.lg + bottomInset }]}>
         <Text style={styles.message}>
           {state === 'not_found' ? MESSAGE_NOT_FOUND : MESSAGE_ERROR}
         </Text>
@@ -133,7 +136,7 @@ function NativeBarcodeScan() {
         barcodeScannerSettings={{ barcodeTypes: ['ean13'] }}
         onBarcodeScanned={state === 'scanning' ? onScanned : undefined}
       />
-      <View style={styles.overlay}>
+      <View style={[styles.overlay, { paddingBottom: spacing.lg + bottomInset }]}>
         <Text style={styles.overlayText}>
           本のバーコード（978 または 979 で始まる段）を枠に合わせてください
         </Text>
