@@ -9,6 +9,7 @@ import EditRecordRoute from '../app/record/[id]';
 import IsbnLookupRoute from '../app/record/isbn';
 import NewRecordRoute from '../app/record/new';
 import BarcodeScanRoute from '../app/record/scan';
+import TitleSearchRoute from '../app/record/search';
 import RecordDetailRoute from '../app/records/[id]';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -32,6 +33,7 @@ const routes = {
   'record/new': NewRecordRoute,
   'record/isbn': IsbnLookupRoute,
   'record/scan': BarcodeScanRoute,
+  'record/search': TitleSearchRoute,
   'record/[id]': EditRecordRoute,
 };
 
@@ -62,8 +64,6 @@ describe('タブの画面はネイティブのヘッダーを出さず、画面�
 describe('全画面でヘッダーが表示される', () => {
   it.each([
     ['/record/new', '記録を追加'],
-    ['/record/isbn', 'ISBN で探す'],
-    ['/record/scan', 'バーコードを読み取る'],
     ['/record/r1', '記録を編集'],
   ])('%s のヘッダータイトルは「%s」', async (path, title) => {
     await renderRouter(routes, { initialUrl: path });
@@ -78,10 +78,37 @@ describe('全画面でヘッダーが表示される', () => {
     expect(screen).toHavePathname('/records/r1');
   });
 
-  it('記録一覧の「ISBN で探す」から ISBN 入力画面へヘッダー付きで遷移する', async () => {
+  it('記録一覧から ISBN 入力画面へ、ネイティブヘッダーなしで画面内の上部バーで遷移する', async () => {
     await renderRouter(routes);
     await act(async () => router.push('/record/isbn'));
-    await waitFor(() => expect(hasHeaderTitle('ISBN で探す')).toBe(true));
+    await waitFor(() => expect(screen.queryAllByText('ISBN を入力する').length).toBeGreaterThan(0));
+    expect(hasHeaderTitle('ISBN で探す')).toBe(false);
+    expect(screen.getByRole('button', { name: '閉じる' })).toBeTruthy();
     expect(screen).toHavePathname('/record/isbn');
+  });
+});
+
+describe('探す 3 画面はネイティブヘッダーを出さず、画面内にタイトルを持つ', () => {
+  it.each([
+    ['/record/scan', 'バーコードを読み取る', 'バーコードで読み取る'],
+    ['/record/isbn', 'ISBN を入力する', 'ISBN で探す'],
+    ['/record/search', '閉じる', 'タイトルで探す'],
+  ])('%s', async (path, inScreen, nativeTitle) => {
+    await renderRouter(routes, { initialUrl: path });
+    await waitFor(() => expect(screen.queryAllByText(inScreen).length + screen.queryAllByLabelText(inScreen).length).toBeGreaterThan(0));
+    expect(containsTitle(screen.toJSON(), nativeTitle)).toBe(false);
+    expect(screen).toHavePathname(path);
+  });
+
+  it('isbn / notFound パラメータを ISBN 画面に渡す', async () => {
+    await renderRouter(routes, { initialUrl: '/record/isbn?isbn=9784065199817&notFound=1' });
+    await waitFor(() => expect(screen.queryAllByText('見つかりませんでした').length).toBeGreaterThan(0));
+    expect(screen.getByLabelText('ISBN（10 桁または 13 桁）').props.value).toBe('9784065199817');
+  });
+
+  it('パラメータなしなら空の通常状態で開く', async () => {
+    await renderRouter(routes, { initialUrl: '/record/isbn' });
+    await waitFor(() => expect(screen.getByLabelText('ISBN（10 桁または 13 桁）').props.value).toBe(''));
+    expect(screen.queryByText('見つかりませんでした')).toBeNull();
   });
 });

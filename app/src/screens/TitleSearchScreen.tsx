@@ -1,23 +1,20 @@
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, FlatList, StyleSheet, TextInput, View } from 'react-native';
 
-import { useBottomInset } from '../hooks/useBottomInset';
+import { AppText } from '../components/AppText';
+import { BookSearchRow } from '../components/BookSearchRow';
+import { Button } from '../components/Button';
+import { ScreenHeaderBar } from '../components/ScreenHeaderBar';
+import { resolveFontFamily } from '../design/fonts';
+import { colors, radius, size, space, typography } from '../design/tokens';
 import { useBookLookup } from '../hooks/useBookLookup';
 import { useCoverResolver } from '../hooks/useCoverResolver';
 import { useBookSearch } from '../hooks/useBookSearch';
+import { useBottomInset } from '../hooks/useBottomInset';
 import { candidateToParams, titleOnlyParams } from '../lib/candidateParams';
 import { withCover } from '../lib/coverLookup/withCover';
 import { bookInfoToParams } from '../lib/isbnLookupParams';
-import { colors, formColors, spacing } from '../theme';
 import type { BookCandidate } from '../types/bookSearch';
 
 export const ERROR_KEYWORD_EMPTY = 'キーワードを入力してください';
@@ -25,12 +22,6 @@ export const MESSAGE_EMPTY = '見つかりませんでした';
 export const MESSAGE_SEARCH_ERROR = '検索できませんでした。通信状況を確認してください';
 
 type Status = 'idle' | 'searching' | 'invalid' | 'results' | 'empty' | 'error' | 'resolving';
-
-function subtitle(candidate: BookCandidate): string {
-  return [candidate.author, candidate.publisher, candidate.publishedYear]
-    .filter((part): part is string => part !== null)
-    .join(' / ');
-}
 
 export function TitleSearchScreen() {
   const bottomInset = useBottomInset();
@@ -40,6 +31,7 @@ export function TitleSearchScreen() {
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [candidates, setCandidates] = useState<BookCandidate[]>([]);
+  const [searchedKeyword, setSearchedKeyword] = useState('');
   const running = useRef(false);
   const active = useRef(true);
 
@@ -68,6 +60,7 @@ export function TitleSearchScreen() {
         setStatus('error');
         return;
       }
+      setSearchedKeyword(trimmed);
       setCandidates(result.candidates);
       setStatus(result.candidates.length === 0 ? 'empty' : 'results');
     } finally {
@@ -105,124 +98,124 @@ export function TitleSearchScreen() {
     setStatus((current) => (current === 'searching' || current === 'resolving' ? current : 'idle'));
   };
 
-  const emphasizeManual = status === 'empty';
+  const body = typography.body;
+  const showList = status === 'results' || status === 'resolving';
 
   return (
     <View style={styles.container}>
-      <Text style={styles.description}>本・漫画のタイトルを入力してください</Text>
-      <TextInput
-        accessibilityLabel="タイトルのキーワード"
-        returnKeyType="search"
-        value={keyword}
-        onChangeText={onChangeText}
-        onSubmitEditing={() => void search()}
-        editable={!busy}
-        style={styles.input}
-      />
-      {status === 'invalid' ? <Text style={styles.error}>{ERROR_KEYWORD_EMPTY}</Text> : null}
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="検索"
-        accessibilityState={{ disabled: busy }}
-        disabled={busy}
-        onPress={() => void search()}
-        style={[styles.primary, busy && styles.disabled]}
-      >
-        {status === 'searching' ? (
-          <ActivityIndicator color={colors.onTint} />
-        ) : (
-          <Text style={styles.primaryText}>検索</Text>
-        )}
-      </Pressable>
-      <Text style={styles.attribution}>{searchProvider.attribution}</Text>
-      {status === 'empty' ? <Text style={styles.message}>{MESSAGE_EMPTY}</Text> : null}
-      {status === 'error' ? (
-        <View style={styles.block}>
-          <Text style={styles.error}>{MESSAGE_SEARCH_ERROR}</Text>
-          <Pressable
-            accessibilityRole="button"
+      <ScreenHeaderBar onClose={() => router.back()}>
+        <View style={styles.searchRow}>
+          <View style={styles.searchBox}>
+            <AppText variant="body" style={{ color: colors.textTertiary }}>
+              ⌕
+            </AppText>
+            <TextInput
+              accessibilityLabel="タイトルのキーワード"
+              placeholder="タイトルで探す"
+              placeholderTextColor={colors.textTertiary}
+              returnKeyType="search"
+              value={keyword}
+              onChangeText={onChangeText}
+              onSubmitEditing={() => void search()}
+              editable={!busy}
+              style={[
+                styles.input,
+                {
+                  fontFamily: resolveFontFamily(body.fontFamily, body.fontWeight),
+                  fontSize: body.fontSize,
+                },
+              ]}
+            />
+          </View>
+          <Button
+            label="検索"
+            disabled={busy}
             onPress={() => void search()}
-            style={styles.secondary}
-          >
-            <Text style={styles.secondaryText}>再試行</Text>
-          </Pressable>
+            style={styles.searchButton}
+          />
         </View>
-      ) : null}
-      {status === 'resolving' ? <ActivityIndicator accessibilityLabel="読み込み中" /> : null}
-      {status === 'results' || status === 'resolving' ? (
-        <FlatList
-          data={candidates}
-          keyExtractor={(item, index) => `${item.isbn ?? item.title}-${index}`}
-          style={styles.list}
-          contentContainerStyle={{ paddingBottom: bottomInset }}
-          renderItem={({ item }) => {
-            const sub = subtitle(item);
-            return (
-              <Pressable
-                accessibilityRole="button"
-                accessibilityState={{ disabled: busy }}
-                disabled={busy}
-                onPress={() => void select(item)}
-                style={styles.row}
-              >
-                <Text style={styles.rowTitle}>{item.title}</Text>
-                {sub !== '' ? <Text style={styles.rowSub}>{sub}</Text> : null}
-              </Pressable>
-            );
-          }}
+      </ScreenHeaderBar>
+      <View style={styles.body}>
+        {status === 'invalid' ? (
+          <AppText variant="label" style={[styles.notice, { color: colors.danger }]}>
+            {ERROR_KEYWORD_EMPTY}
+          </AppText>
+        ) : null}
+        {status === 'searching' ? <ActivityIndicator style={styles.notice} /> : null}
+        {status === 'empty' ? (
+          <View style={styles.center}>
+            <AppText variant="sectionTitle">{MESSAGE_EMPTY}</AppText>
+          </View>
+        ) : null}
+        {status === 'error' ? (
+          <View style={styles.center}>
+            <AppText variant="label" style={{ color: colors.danger }}>
+              {MESSAGE_SEARCH_ERROR}
+            </AppText>
+            <Button variant="outline" label="再試行" onPress={() => void search()} />
+          </View>
+        ) : null}
+        {status === 'resolving' ? (
+          <ActivityIndicator accessibilityLabel="読み込み中" style={styles.notice} />
+        ) : null}
+        {showList ? (
+          <FlatList
+            data={candidates}
+            keyExtractor={(item, index) => `${item.isbn ?? item.title}-${index}`}
+            contentContainerStyle={styles.list}
+            ListHeaderComponent={
+              <AppText variant="label" style={styles.count}>
+                {`「${searchedKeyword}」の検索結果 ${candidates.length} 件`}
+              </AppText>
+            }
+            renderItem={({ item }) => (
+              <BookSearchRow candidate={item} disabled={busy} onPress={() => void select(item)} />
+            )}
+          />
+        ) : null}
+      </View>
+      <View style={[styles.footer, { paddingBottom: space[3] + bottomInset }]}>
+        <Button
+          variant={status === 'empty' ? 'primary' : 'outline'}
+          label="見つからないので手で入力する"
+          onPress={continueManually}
         />
-      ) : null}
-      <Pressable
-        accessibilityRole="button"
-        onPress={continueManually}
-        style={emphasizeManual ? styles.primary : styles.secondary}
-      >
-        <Text style={emphasizeManual ? styles.primaryText : styles.secondaryText}>
-          手入力で続ける
-        </Text>
-      </Pressable>
+        <AppText variant="micro" style={styles.attribution}>
+          {searchProvider.attribution}
+        </AppText>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  container: { flex: 1, backgroundColor: colors.bg },
+  searchRow: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
+  searchBox: {
     flex: 1,
-    padding: spacing.md,
-    gap: spacing.md,
-    backgroundColor: colors.background,
-  },
-  description: { fontSize: 14, color: colors.textMuted },
-  input: {
-    padding: spacing.md,
-    borderRadius: 8,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: formColors.border,
-    backgroundColor: formColors.inputBackground,
-    fontSize: 16,
-    color: colors.text,
-  },
-  block: { gap: spacing.sm },
-  error: { color: formColors.danger, fontSize: 14 },
-  message: { color: colors.text, fontSize: 16 },
-  attribution: { fontSize: 12, color: colors.textMuted },
-  list: { flexGrow: 0, flexShrink: 1 },
-  row: {
-    paddingVertical: spacing.sm,
-    gap: 2,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: formColors.border,
-  },
-  rowTitle: { fontSize: 16, color: colors.text, fontWeight: '600' },
-  rowSub: { fontSize: 13, color: colors.textMuted },
-  primary: {
-    padding: spacing.md,
-    borderRadius: 8,
+    flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.tint,
+    gap: space[2],
+    height: size.touchMin,
+    paddingHorizontal: space[3],
+    borderRadius: radius.button,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface2,
   },
-  primaryText: { color: colors.onTint, fontSize: 16, fontWeight: '600' },
-  disabled: { backgroundColor: formColors.disabled },
-  secondary: { padding: spacing.md, alignItems: 'center' },
-  secondaryText: { color: colors.tint, fontSize: 16 },
+  input: { flex: 1, color: colors.textPrimary, padding: 0 },
+  searchButton: { height: size.touchMin, minHeight: size.touchMin },
+  body: { flex: 1 },
+  notice: { marginTop: space[4], paddingHorizontal: space[4] },
+  center: { alignItems: 'center', justifyContent: 'center', gap: space[3], padding: space[6] },
+  list: { paddingHorizontal: space[4] },
+  count: { color: colors.textSecondary, paddingVertical: space[3] },
+  footer: {
+    gap: space[2],
+    paddingHorizontal: space[4],
+    paddingTop: space[3],
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+  },
+  attribution: { color: colors.textTertiary, textAlign: 'center' },
 });
