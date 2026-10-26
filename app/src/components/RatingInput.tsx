@@ -4,19 +4,23 @@ import {
   type LayoutChangeEvent,
   Pressable,
   StyleSheet,
-  Text,
   View,
 } from 'react-native';
 
+import { colors, radius, size, space } from '../design/tokens';
+import { triggerRatingHaptic } from '../lib/haptics';
 import {
+  crossesInteger,
   formatRating,
   parseRating,
   ratingFromPosition,
-  starFills,
   stepRating,
 } from '../lib/recordForm';
-import { STAR_SIZE, colors, formColors, spacing } from '../theme';
-import { StarRating } from './StarRating';
+import { AppText } from './AppText';
+import { RatingStars } from './RatingStars';
+
+const RATING_INPUT_STAR_SIZE = 38;
+const STARS_WIDTH = RATING_INPUT_STAR_SIZE * 5 + 2 * 4;
 
 type RatingInputProps = {
   value: string;
@@ -28,15 +32,27 @@ export function RatingInput({ value, error, onChange }: RatingInputProps) {
   const parsed = parseRating(value);
   const rating = parsed === null || Number.isNaN(parsed) ? null : parsed;
   const text = rating === null ? '未評価' : formatRating(rating);
-  const [width, setWidth] = useState(STAR_SIZE * 5);
+  const [width, setWidth] = useState(STARS_WIDTH);
   const drag = useRef({ startX: 0, startPageX: 0 });
+
+  const change = (nextText: string) => {
+    if (nextText === value) return;
+    const next = parseRating(nextText);
+    if (
+      rating !== null &&
+      next !== null &&
+      !Number.isNaN(next) &&
+      crossesInteger(rating, next)
+    ) {
+      triggerRatingHaptic();
+    }
+    onChange(nextText);
+  };
 
   const update = (x: number) => {
     const next = ratingFromPosition(x, width);
     if (next === null) return;
-    const formatted = formatRating(next);
-    if (formatted === value) return;
-    onChange(formatted);
+    change(formatRating(next));
   };
 
   const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
@@ -53,8 +69,18 @@ export function RatingInput({ value, error, onChange }: RatingInputProps) {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>レーティング（1.0〜5.0）</Text>
+      <AppText variant="label" style={styles.label}>
+        レーティング（1.0〜5.0）
+      </AppText>
       <View style={styles.row}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="レーティングを 0.1 下げる"
+          onPress={() => change(stepRating(value, -1))}
+          style={styles.stepButton}
+        >
+          <AppText variant="button">−</AppText>
+        </Pressable>
         <View
           accessible
           accessibilityRole="adjustable"
@@ -63,8 +89,8 @@ export function RatingInput({ value, error, onChange }: RatingInputProps) {
           accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
           onAccessibilityAction={(e) => {
             const name = e.nativeEvent.actionName;
-            if (name === 'increment') onChange(stepRating(value, 1));
-            if (name === 'decrement') onChange(stepRating(value, -1));
+            if (name === 'increment') change(stepRating(value, 1));
+            if (name === 'decrement') change(stepRating(value, -1));
           }}
           onLayout={onLayout}
           onStartShouldSetResponder={() => true}
@@ -73,36 +99,68 @@ export function RatingInput({ value, error, onChange }: RatingInputProps) {
           onResponderGrant={onGrant}
           onResponderMove={onMove}
           onResponderRelease={onMove}
-          style={{ width: STAR_SIZE * 5 }}
+          style={{ width: STARS_WIDTH }}
         >
-          <StarRating fills={starFills(rating)} size={STAR_SIZE} />
+          <View pointerEvents="none">
+            <RatingStars rating={rating} size={RATING_INPUT_STAR_SIZE} showValue={false} />
+          </View>
         </View>
-        <Text style={styles.value}>{text}</Text>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="レーティングをクリア"
-          onPress={() => onChange('')}
-          style={styles.clear}
+          accessibilityLabel="レーティングを 0.1 上げる"
+          onPress={() => change(stepRating(value, 1))}
+          style={styles.stepButton}
         >
-          <Text style={styles.clearText}>クリア</Text>
+          <AppText variant="button">＋</AppText>
         </Pressable>
       </View>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
+      {rating === null ? (
+        <AppText variant="label" style={styles.unrated}>
+          未評価
+        </AppText>
+      ) : (
+        <AppText variant="displayNumber" style={styles.number}>
+          {text}
+        </AppText>
+      )}
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="レーティングをクリア"
+        disabled={rating === null}
+        onPress={() => onChange('')}
+        style={[styles.clear, rating === null && styles.clearDisabled]}
+      >
+        <AppText variant="button">クリア</AppText>
+      </Pressable>
+      {error ? (
+        <AppText variant="micro" style={styles.error}>
+          {error}
+        </AppText>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { gap: spacing.sm },
-  label: { fontSize: 14, fontWeight: '600', color: colors.text },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  value: {
-    fontSize: 16,
-    color: colors.text,
-    minWidth: 56,
-    textAlign: 'center',
+  container: { gap: space['2'], alignItems: 'center' },
+  label: { color: colors.textSecondary, alignSelf: 'flex-start' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space['2'] },
+  stepButton: {
+    width: size.touchMin,
+    height: size.touchMin,
+    borderRadius: radius.full,
+    backgroundColor: colors.surface2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  clear: { paddingVertical: spacing.sm, paddingHorizontal: spacing.md },
-  clearText: { color: colors.tint, fontSize: 14 },
-  error: { color: formColors.danger, fontSize: 13 },
+  number: { textAlign: 'center' },
+  unrated: { color: colors.textSecondary, textAlign: 'center' },
+  clear: {
+    minHeight: size.touchMin,
+    paddingHorizontal: space['4'],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  clearDisabled: { opacity: 0.4 },
+  error: { color: colors.danger, alignSelf: 'flex-start' },
 });
