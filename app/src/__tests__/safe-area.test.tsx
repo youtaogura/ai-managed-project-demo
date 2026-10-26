@@ -53,7 +53,7 @@ describe('上端インセットのある端末（ヘッダー付き画面）', (
   it('「追加」ボタンが表示され、押すと記録の追加画面へ遷移する', async () => {
     await renderRouter(routes);
     await fireEvent.press(await screen.findByRole('button', { name: '追加' }));
-    expect(await screen.findByLabelText('タイトル')).toBeTruthy();
+    expect(await screen.findByLabelText('タイトル（必須）')).toBeTruthy();
     expect(screen).toHavePathname('/record/new');
   });
 });

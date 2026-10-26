@@ -1,77 +1,76 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
+import { colors, radius, space } from '../design/tokens';
 import { usePhotoPicker } from '../hooks/usePhotoPicker';
-import { colors, formColors, spacing } from '../theme';
 import type { MediaRecord } from '../types/record';
-import { Thumbnail } from './Thumbnail';
+import { AppText } from './AppText';
+import { Button } from './Button';
+import { Cover } from './Cover';
 
 type PhotoFieldProps = {
-  record: Pick<MediaRecord, 'kind' | 'photoUri' | 'coverUrl'>;
+  record: Pick<MediaRecord, 'kind' | 'title' | 'creator' | 'photoUri' | 'coverUrl'>;
   /** 新しく作成した保存先 URI、または null（写真を外す） */
   onChange: (uri: string | null) => void;
 };
 
+const COVER_WIDTH = 112;
+
+function describe(record: PhotoFieldProps['record']): string | null {
+  if (record.photoUri) return null;
+  if (record.coverUrl) return '書影を取得しました。自分で撮った写真に変えることもできます';
+  return 'ポスターがないので、タイトルから表紙を作っています。写真を付けるとこちらに表示されます';
+}
+
 export function PhotoField({ record, onChange }: PhotoFieldProps) {
   const { busy, error, choose, openSettings } = usePhotoPicker(onChange);
 
+  const description = describe(record);
+
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>写真</Text>
-      <View style={styles.preview}>
-        <Thumbnail record={record} width={112} height={160} />
+      <View style={styles.cover}>
+        <Cover record={record} width={COVER_WIDTH} radius={radius.thumb} />
       </View>
-      <View style={styles.buttons}>
-        <Pressable
-          accessibilityRole="button"
+      <View style={styles.side}>
+        {description ? (
+          <AppText variant="label" style={{ color: colors.textSecondary }}>
+            {description}
+          </AppText>
+        ) : null}
+        <Button
+          variant="outline"
+          label="カメラで撮影"
           disabled={busy}
           onPress={() => void choose('camera')}
-          style={[styles.button, busy && styles.disabled]}
-        >
-          <Text style={styles.buttonText}>カメラで撮影</Text>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
+        />
+        <Button
+          variant="outline"
+          label="ライブラリから選択"
           disabled={busy}
           onPress={() => void choose('library')}
-          style={[styles.button, busy && styles.disabled]}
-        >
-          <Text style={styles.buttonText}>ライブラリから選択</Text>
-        </Pressable>
+        />
         {record.photoUri ? (
-          <Pressable
-            accessibilityRole="button"
+          <Button
+            variant="outline"
+            tone="danger"
+            label="写真を削除"
             disabled={busy}
             onPress={() => onChange(null)}
-            style={[styles.button, busy && styles.disabled]}
-          >
-            <Text style={styles.removeText}>写真を削除</Text>
-          </Pressable>
+          />
         ) : null}
+        {error ? (
+          <AppText variant="micro" style={{ color: colors.danger }}>
+            {error.message}
+          </AppText>
+        ) : null}
+        {error?.denied ? <Button variant="outline" label="設定を開く" onPress={openSettings} /> : null}
       </View>
-      {error ? <Text style={styles.error}>{error.message}</Text> : null}
-      {error?.denied ? (
-        <Pressable accessibilityRole="button" onPress={openSettings} style={styles.button}>
-          <Text style={styles.buttonText}>設定を開く</Text>
-        </Pressable>
-      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  field: { gap: spacing.sm },
-  label: { fontSize: 14, fontWeight: '600', color: colors.text },
-  preview: { alignItems: 'center' },
-  buttons: { gap: spacing.sm },
-  button: {
-    borderWidth: 1,
-    borderColor: colors.tint,
-    borderRadius: 8,
-    padding: spacing.md,
-    alignItems: 'center',
-  },
-  buttonText: { color: colors.tint, fontSize: 16, fontWeight: '600' },
-  removeText: { color: formColors.danger, fontSize: 16, fontWeight: '600' },
-  error: { color: formColors.danger, fontSize: 13 },
-  disabled: { opacity: 0.5 },
+  field: { flexDirection: 'row', gap: space[4], alignItems: 'flex-start' },
+  cover: { width: COVER_WIDTH },
+  side: { flex: 1, gap: space[2] },
 });

@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
+import { router } from 'expo-router';
+import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 
 import { RECORDS_STORAGE_KEY } from '../lib/recordRepository';
 import RootLayout from '../app/_layout';
@@ -10,6 +11,7 @@ import AnalyticsRoute from '../app/(tabs)/analytics';
 import RecordsRoute from '../app/(tabs)/index';
 import EditRecordRoute from '../app/record/[id]';
 import NewRecordRoute from '../app/record/new';
+import RecordDetailRoute from '../app/records/[id]';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -26,6 +28,7 @@ const routes = {
   'record/search': TitleSearchRoute,
   'record/new': NewRecordRoute,
   'record/[id]': EditRecordRoute,
+  'records/[id]': RecordDetailRoute,
 };
 
 describe('タブ構成', () => {
@@ -55,9 +58,10 @@ describe('分析タブの最新表示', () => {
   it('記録を追加したあとに分析タブを開くと集計が表示される', async () => {
     await renderRouter(routes);
     await fireEvent.press(await screen.findByRole('button', { name: '追加' }));
-    await fireEvent.changeText(await screen.findByLabelText('タイトル'), '分析用の本');
-    await fireEvent.press(screen.getByRole('button', { name: '保存' }));
-    await waitFor(() => expect(screen.getByText('分析用の本')).toBeTruthy());
+    await fireEvent.changeText(await screen.findByLabelText('タイトル（必須）'), '分析用の本');
+    await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
+    expect((await screen.findAllByText('分析用の本')).length).toBeGreaterThan(0);
+    await act(async () => router.replace('/'));
     await fireEvent.press(screen.getByText('分析'));
     expect(await screen.findByText('月別の完了数')).toBeTruthy();
   });
@@ -67,9 +71,11 @@ describe('記録の追加', () => {
   it('追加 → フォーム → 保存 → 一覧に反映される', async () => {
     await renderRouter(routes);
     await fireEvent.press(await screen.findByRole('button', { name: '追加' }));
-    await fireEvent.changeText(await screen.findByLabelText('タイトル'), '統合テストの本');
-    await fireEvent.press(screen.getByRole('button', { name: '保存' }));
-    await waitFor(() => expect(screen.getByText('統合テストの本')).toBeTruthy());
+    await fireEvent.changeText(await screen.findByLabelText('タイトル（必須）'), '統合テストの本');
+    await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
+    expect((await screen.findAllByText('統合テストの本')).length).toBeGreaterThan(0);
+    await act(async () => router.replace('/'));
+    expect(await screen.findByText('統合テストの本')).toBeTruthy();
     expect(screen.getByText('本 ・ 読みたい')).toBeTruthy();
   });
 });
@@ -78,8 +84,8 @@ describe('手入力で追加（一覧内ボタン）', () => {
   it('一覧の「手入力で追加」を押すと追加フォームが表示される', async () => {
     await renderRouter(routes);
     await fireEvent.press(await screen.findByRole('button', { name: '手入力で追加' }));
-    expect(await screen.findByLabelText('タイトル')).toBeTruthy();
-    expect(screen.getByRole('button', { name: '保存' })).toBeTruthy();
+    expect(await screen.findByLabelText('タイトル（必須）')).toBeTruthy();
+    expect(screen.getByRole('button', { name: '記録する' })).toBeTruthy();
   });
 });
 
@@ -120,8 +126,8 @@ describe('ISBN で探して追加', () => {
     expect(screen.getByDisplayValue('著者A')).toBeTruthy();
     expect(screen.getByDisplayValue('出版社B')).toBeTruthy();
     expect(screen.getByDisplayValue('9784065199817')).toBeTruthy();
-    await fireEvent.press(screen.getByRole('button', { name: '保存' }));
-    await waitFor(() => expect(screen.getByText('取得した本')).toBeTruthy());
+    await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
+    await waitFor(() => expect(screen.getAllByText('取得した本').length).toBeGreaterThan(0));
     const raw = await AsyncStorage.getItem(RECORDS_STORAGE_KEY);
     const saved: unknown = raw === null ? null : JSON.parse(raw);
     return Array.isArray(saved) ? saved : [];

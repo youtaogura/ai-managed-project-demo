@@ -1,7 +1,9 @@
 import { act, fireEvent, render as rtlRender, screen } from '@testing-library/react-native';
 import type { ReactElement } from 'react';
-import { Alert, Linking, type AlertButton } from 'react-native';
+import { Linking, StyleSheet } from 'react-native';
+import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
+import { space } from '../../design/tokens';
 import { PhotoServiceContextProvider } from '../../hooks/usePhotoService';
 import type { PhotoService } from '../../lib/photo/PhotoService';
 import { createMockPhotoService } from '../../testUtils';
@@ -40,23 +42,23 @@ describe('RecordForm', () => {
   it('タイトルが空だと保存せずエラーを表示する', async () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined);
     await render(<RecordForm onSubmit={onSubmit} />);
-    await press('保存');
+    await press('記録する');
     expect(screen.getByText('タイトルを入力してください')).toBeTruthy();
     expect(onSubmit).not.toHaveBeenCalled();
-    await type('タイトル', 'あ');
+    await type('タイトル（必須）', 'あ');
     expect(screen.queryByText('タイトルを入力してください')).toBeNull();
   });
 
   it('入力値が NewRecordInput として onSubmit に渡る', async () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined);
     await render(<RecordForm onSubmit={onSubmit} />);
-    await type('タイトル', ' 吾輩は猫である ');
-    await type('作者・著者・監督など', '夏目漱石');
+    await type('タイトル（必須）', ' 吾輩は猫である ');
+    await type('作者・著者', '夏目漱石');
     await type('出版社', '新潮社');
     await type('ISBN', '9784101010013');
-    await type('感想', '良い');
+    await type('感想（任意）', '良い');
     await setRating(148);
-    await press('保存');
+    await press('記録する');
     expect(onSubmit).toHaveBeenCalledWith({
       kind: 'book',
       title: '吾輩は猫である',
@@ -73,44 +75,88 @@ describe('RecordForm', () => {
     });
   });
 
-  it('開始日・終了日は空で始まり、入力・今日・クリアができる', async () => {
-    await render(<RecordForm onSubmit={jest.fn()} />);
-    expect(screen.getByLabelText('開始日').props.value).toBe('');
-    expect(screen.getByLabelText('終了日').props.value).toBe('');
-    await type('開始日', '2024-01-01');
-    expect(screen.getByLabelText('開始日').props.value).toBe('2024-01-01');
-    await press('開始日をクリア');
-    expect(screen.getByLabelText('開始日').props.value).toBe('');
-    await press('開始日を今日にする');
-    expect(screen.getByLabelText('開始日').props.value).toBe('2024-05-10');
-    await press('終了日を今日にする');
-    expect(screen.getByLabelText('終了日').props.value).toBe('2024-05-10');
-  });
+  describe('日付', () => {
+    const dateButton = (label: string, value = '選択してください') =>
+      screen.getByRole('button', { name: `${label} ${value}` });
 
-  it('日付の形式違い・逆転でエラーを表示し保存しない', async () => {
-    const onSubmit = jest.fn();
-    await render(<RecordForm onSubmit={onSubmit} />);
-    await type('タイトル', 'a');
-    await type('開始日', '2024-02-30');
-    await press('保存');
-    expect(screen.getByText('日付は YYYY-MM-DD の形式で入力してください')).toBeTruthy();
-    await type('開始日', '2024-03-02');
-    await type('終了日', '2024-03-01');
-    await press('保存');
-    expect(screen.getByText('終了日は開始日以降にしてください')).toBeTruthy();
-    expect(onSubmit).not.toHaveBeenCalled();
-  });
+    it('空のときは「選択してください」を表示し、シートで今日・決定ができる', async () => {
+      await render(<RecordForm onSubmit={jest.fn()} />);
+      expect(dateButton('読み始めた日')).toBeTruthy();
+      expect(dateButton('読み終えた日')).toBeTruthy();
+      await fireEvent.press(dateButton('読み始めた日'));
+      await press('今日');
+      await press('決定');
+      expect(dateButton('読み始めた日', '2024/05/10')).toBeTruthy();
+    });
 
-  it('ステータス変更で自動的に今日の日付が入り、後から変更できる', async () => {
-    await render(<RecordForm onSubmit={jest.fn()} />);
-    await fireEvent.press(screen.getByRole('radio', { name: '読んでる' }));
-    expect(screen.getByLabelText('開始日').props.value).toBe('2024-05-10');
-    await type('開始日', '2024-05-01');
-    await fireEvent.press(screen.getByRole('radio', { name: '読み終わった' }));
-    expect(screen.getByLabelText('終了日').props.value).toBe('2024-05-10');
-    expect(screen.getByLabelText('開始日').props.value).toBe('2024-05-01');
-    await press('終了日をクリア');
-    expect(screen.getByLabelText('終了日').props.value).toBe('');
+    it('シートの変更は決定まで反映されず、クリアで空になる', async () => {
+      await render(<RecordForm onSubmit={jest.fn()} initialValues={{ startDate: '2024-01-31' }} />);
+      await fireEvent.press(dateButton('読み始めた日', '2024/01/31'));
+      await press('月を増やす');
+      expect(screen.getByText('2月')).toBeTruthy();
+      expect(screen.getByText('29日')).toBeTruthy();
+      await press('日を増やす');
+      expect(screen.getByText('1日')).toBeTruthy();
+      expect(dateButton('読み始めた日', '2024/01/31')).toBeTruthy();
+      await press('クリア');
+      await press('決定');
+      expect(dateButton('読み始めた日')).toBeTruthy();
+    });
+
+    it('種別に応じて見出しとヒントが切り替わる', async () => {
+      await render(<RecordForm onSubmit={jest.fn()} />);
+      expect(screen.getByText('「読み終わった」を選ぶと、終えた日に今日が入ります')).toBeTruthy();
+      await fireEvent.press(screen.getByRole('radio', { name: '映画' }));
+      expect(dateButton('見始めた日')).toBeTruthy();
+      expect(dateButton('見終えた日')).toBeTruthy();
+      expect(screen.getByText('「見終わった」を選ぶと、終えた日に今日が入ります')).toBeTruthy();
+      expect(screen.getByLabelText('監督など')).toBeTruthy();
+    });
+
+    it('終えた日が開始日より前だとエラーを表示し保存しない', async () => {
+      const onSubmit = jest.fn();
+      await render(
+        <RecordForm
+          onSubmit={onSubmit}
+          initialValues={{ title: 'a', startDate: '2024-03-02', endDate: '2024-03-01' }}
+        />,
+      );
+      await press('記録する');
+      expect(screen.getByText('終了日は開始日以降にしてください')).toBeTruthy();
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('ステータス変更で空の日付に今日が入り、入力済みは変わらない', async () => {
+      await render(<RecordForm onSubmit={jest.fn()} />);
+      await fireEvent.press(screen.getByRole('radio', { name: '読んでる' }));
+      expect(dateButton('読み始めた日', '2024/05/10')).toBeTruthy();
+      await fireEvent.press(screen.getByRole('radio', { name: '読み終わった' }));
+      expect(dateButton('読み終えた日', '2024/05/10')).toBeTruthy();
+      await fireEvent.press(dateButton('読み始めた日', '2024/05/10'));
+      await press('日を減らす');
+      await press('決定');
+      await fireEvent.press(screen.getByRole('radio', { name: '途中でやめた' }));
+      expect(dateButton('読み始めた日', '2024/05/09')).toBeTruthy();
+      expect(dateButton('読み終えた日', '2024/05/10')).toBeTruthy();
+    });
+
+    it('ステータスは本・漫画で「読」、それ以外で「見」のラベルになる', async () => {
+      await render(<RecordForm onSubmit={jest.fn()} />);
+      expect(screen.getAllByRole('radio')).toHaveLength(9);
+      expect(screen.getByRole('radio', { name: '読みたい' })).toBeTruthy();
+    });
+
+    it('年を増減できる', async () => {
+      await render(<RecordForm onSubmit={jest.fn()} />);
+      await fireEvent.press(dateButton('読み終えた日'));
+      await press('年を減らす');
+      expect(screen.getByText('2023年')).toBeTruthy();
+      await press('年を増やす');
+      await press('月を減らす');
+      await press('日を減らす');
+      expect(screen.getByText('4月')).toBeTruthy();
+      expect(screen.getByText('9日')).toBeTruthy();
+    });
   });
 
   it('種別でステータス文言と ISBN・出版社の表示が切り替わり、ステータスは維持される', async () => {
@@ -133,7 +179,7 @@ describe('RecordForm', () => {
       <RecordForm onSubmit={onSubmit} initialValues={{ title: 'x', isbn: '1', publisher: 'p' }} />,
     );
     await fireEvent.press(screen.getByRole('radio', { name: '映画' }));
-    await press('保存');
+    await press('記録する');
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ isbn: null, publisher: null }));
   });
 
@@ -153,7 +199,7 @@ describe('RecordForm', () => {
     expect(screen.getAllByText('5.0').length).toBeGreaterThan(0);
     await touch('responderMove', -50);
     await touch('responderRelease', -50);
-    await press('保存');
+    await press('記録する');
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ rating: 1 }));
   });
 
@@ -177,7 +223,7 @@ describe('RecordForm', () => {
     expect(star().props.accessibilityValue).toEqual({ text: '2.9' });
     await press('レーティングをクリア');
     expect(star().props.accessibilityValue).toEqual({ text: '未評価' });
-    await press('保存');
+    await press('記録する');
     expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ rating: null }));
   });
 
@@ -202,14 +248,14 @@ describe('RecordForm', () => {
         }}
       />,
     );
-    expect(screen.getByLabelText('タイトル').props.value).toBe('T');
-    expect(screen.getByLabelText('作者・著者・監督など').props.value).toBe('C');
+    expect(screen.getByLabelText('タイトル（必須）').props.value).toBe('T');
+    expect(screen.getByLabelText('作者・著者').props.value).toBe('C');
     expect(screen.getByLabelText('出版社').props.value).toBe('P');
     expect(screen.getByLabelText('ISBN').props.value).toBe('I');
     expect(screen.getByRole('radio', { name: '漫画' }).props.accessibilityState.selected).toBe(
       true,
     );
-    await press('保存');
+    await press('記録する');
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({ kind: 'manga', coverUrl: 'http://c' }),
     );
@@ -218,55 +264,120 @@ describe('RecordForm', () => {
   it('保存失敗でメッセージを表示し入力値を保持する', async () => {
     const onSubmit = jest.fn().mockRejectedValue(new Error('x'));
     await render(<RecordForm onSubmit={onSubmit} initialValues={{ title: 'keep' }} />);
-    await press('保存');
+    await press('記録する');
     expect(await screen.findByText('保存に失敗しました')).toBeTruthy();
-    expect(screen.getByLabelText('タイトル').props.value).toBe('keep');
+    expect(screen.getByLabelText('タイトル（必須）').props.value).toBe('keep');
   });
 
   it('onDelete がなければ削除ボタンを出さない', async () => {
     await render(<RecordForm onSubmit={jest.fn()} />);
-    expect(screen.queryByRole('button', { name: '削除' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'この記録を削除' })).toBeNull();
+  });
+
+  it('保存中は主ボタンが無効になり、二重に呼ばれない', async () => {
+    let resolve: () => void = () => undefined;
+    const onSubmit = jest.fn(() => new Promise<void>((r) => (resolve = r)));
+    await render(<RecordForm onSubmit={onSubmit} initialValues={{ title: 'a' }} />);
+    await press('記録する');
+    const button = screen.getByRole('button', { name: '記録する' });
+    expect(button.props.accessibilityState.disabled).toBe(true);
+    await fireEvent.press(button);
+    expect(onSubmit).toHaveBeenCalledTimes(1);
+    await act(async () => resolve());
+  });
+
+  it('保存後に onSaved が呼ばれる', async () => {
+    const onSaved = jest.fn();
+    await render(
+      <RecordForm onSubmit={jest.fn().mockResolvedValue(undefined)} onSaved={onSaved} initialValues={{ title: 'a' }} />,
+    );
+    await press('記録する');
+    expect(onSaved).toHaveBeenCalledTimes(1);
+  });
+
+  it('主ボタンのラベルは submitLabel で変えられる', async () => {
+    await render(<RecordForm onSubmit={jest.fn()} submitLabel="保存する" />);
+    expect(screen.getByRole('button', { name: '保存する' })).toBeTruthy();
+  });
+
+  it('フッターの下端にセーフエリアの余白が入る', async () => {
+    await rtlRender(
+      <SafeAreaInsetsContext.Provider value={{ top: 0, left: 0, right: 0, bottom: 34 }}>
+        <PhotoServiceContextProvider service={createMockPhotoService()}>
+          <RecordForm onSubmit={jest.fn()} />
+        </PhotoServiceContextProvider>
+      </SafeAreaInsetsContext.Provider>,
+    );
+    let node = screen.getByRole('button', { name: '記録する' }).parent;
+    let padding: number | undefined;
+    while (node && padding === undefined) {
+      const style = StyleSheet.flatten(node.props.style) as { paddingBottom?: number } | undefined;
+      padding = style?.paddingBottom;
+      node = node.parent;
+    }
+    expect(padding).toBe(space[3] + 34);
   });
 
   describe('削除', () => {
-    const open = async (onDelete: () => Promise<void>) => {
-      const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
-      await render(<RecordForm onSubmit={jest.fn()} onDelete={onDelete} />);
-      await press('削除');
-      const buttons = alert.mock.calls[0]?.[2] as AlertButton[];
-      return (text: string) => buttons.find((b) => b.text === text);
+    const open = async (onDelete: () => Promise<void>, onDeleted?: () => void) => {
+      await render(<RecordForm onSubmit={jest.fn()} onDelete={onDelete} onDeleted={onDeleted} initialValues={{ title: '吾輩' }} />);
+      await press('この記録を削除');
     };
 
-    it('「削除」を選ぶと onDelete が呼ばれる', async () => {
+    it('確認シートに記録名が出て、「削除する」で onDelete と onDeleted が呼ばれる', async () => {
       const onDelete = jest.fn().mockResolvedValue(undefined);
-      const find = await open(onDelete);
-      await act(async () => {
-        find('削除')?.onPress?.();
-      });
+      const onDeleted = jest.fn();
+      await open(onDelete, onDeleted);
+      expect(screen.getByText('「吾輩」の記録と、付けた写真が削除されます。元に戻せません。')).toBeTruthy();
+      await act(async () => press('削除する'));
       expect(onDelete).toHaveBeenCalledTimes(1);
+      expect(onDeleted).toHaveBeenCalledTimes(1);
     });
 
     it('「キャンセル」では onDelete が呼ばれない', async () => {
       const onDelete = jest.fn();
-      const find = await open(onDelete);
-      expect(find('キャンセル')?.onPress).toBeUndefined();
+      await open(onDelete);
+      await press('キャンセル');
       expect(onDelete).not.toHaveBeenCalled();
     });
 
     it('削除失敗でメッセージを表示する', async () => {
-      const find = await open(jest.fn().mockRejectedValue(new Error('x')));
-      await act(async () => {
-        find('削除')?.onPress?.();
-      });
+      await open(jest.fn().mockRejectedValue(new Error('x')));
+      await act(async () => press('削除する'));
       expect(screen.getByText('削除に失敗しました')).toBeTruthy();
     });
   });
+
+  describe('書影の説明', () => {
+    it('書影があり写真がないとき、書影取得の説明を出す', async () => {
+      await render(<RecordForm onSubmit={jest.fn()} initialValues={{ coverUrl: 'http://c' }} />);
+      expect(
+        screen.getByText('書影を取得しました。自分で撮った写真に変えることもできます'),
+      ).toBeTruthy();
+    });
+
+    it('画像がないとき、文字の表紙の説明を出す', async () => {
+      await render(<RecordForm onSubmit={jest.fn()} />);
+      expect(screen.getByTestId('text-cover')).toBeTruthy();
+      expect(
+        screen.getByText(
+          'ポスターがないので、タイトルから表紙を作っています。写真を付けるとこちらに表示されます',
+        ),
+      ).toBeTruthy();
+    });
+
+    it('写真があるときは説明を出さない', async () => {
+      await render(<RecordForm onSubmit={jest.fn()} initialValues={{ photoUri: 'file:///p.jpg' }} />);
+      expect(screen.queryByText(/書影を取得しました|ポスターがない/)).toBeNull();
+    });
+  });
+
   describe('写真', () => {
     const SAVED = 'file:///documents/photos/new.jpg';
     const OLD = 'file:///documents/photos/old.jpg';
     const picked = (uri = 'file:///tmp/pick.jpg') =>
       ({ status: 'picked', uri }) as const;
-    const thumbnailUri = () => screen.getByLabelText('サムネイル').props.source.uri;
+    const thumbnailUri = () => screen.getByLabelText('a').props.source.uri;
     const choose = (name: string) => act(async () => press(name));
 
     it('撮影・選択ボタンがあり、写真が無いとき削除ボタンは出ない', async () => {
@@ -294,7 +405,7 @@ describe('RecordForm', () => {
       expect(service.pick).toHaveBeenCalledWith('library');
       expect(service.save).toHaveBeenCalledWith('file:///tmp/pick.jpg');
       expect(thumbnailUri()).toBe(SAVED);
-      await press('保存');
+      await press('記録する');
       expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ photoUri: SAVED }));
     });
 
@@ -321,7 +432,7 @@ describe('RecordForm', () => {
       );
       await choose('ライブラリから選択');
       expect(service.remove).not.toHaveBeenCalled();
-      await press('保存');
+      await press('記録する');
       expect(service.remove).toHaveBeenCalledWith(OLD);
       expect(service.remove).toHaveBeenCalledTimes(1);
     });
@@ -339,7 +450,7 @@ describe('RecordForm', () => {
         service,
       );
       await choose('ライブラリから選択');
-      await press('保存');
+      await press('記録する');
       expect(service.remove).not.toHaveBeenCalled();
     });
 
@@ -357,7 +468,7 @@ describe('RecordForm', () => {
       await press('写真を削除');
       expect(thumbnailUri()).toBe('http://c/cover.jpg');
       expect(service.remove).not.toHaveBeenCalled();
-      await press('保存');
+      await press('記録する');
       expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ photoUri: null }));
       expect(service.remove).toHaveBeenCalledWith(OLD);
     });
@@ -400,7 +511,7 @@ describe('RecordForm', () => {
         service,
       );
       await choose('ライブラリから選択');
-      await press('保存');
+      await press('記録する');
       await view.unmount();
       expect(service.remove).not.toHaveBeenCalled();
     });
@@ -410,7 +521,6 @@ describe('RecordForm', () => {
         pick: jest.fn().mockResolvedValue(picked()),
         save: jest.fn().mockResolvedValue(SAVED),
       });
-      const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
       await render(
         <RecordForm
           onSubmit={jest.fn()}
@@ -420,11 +530,8 @@ describe('RecordForm', () => {
         service,
       );
       await choose('ライブラリから選択');
-      await press('削除');
-      const buttons = alert.mock.calls[0]?.[2] as AlertButton[];
-      await act(async () => {
-        buttons.find((b) => b.text === '削除')?.onPress?.();
-      });
+      await press('この記録を削除');
+      await act(async () => press('削除する'));
       expect(service.remove).toHaveBeenCalledWith(OLD);
       expect(service.remove).toHaveBeenCalledWith(SAVED);
     });
@@ -465,7 +572,7 @@ describe('RecordForm', () => {
         .mockResolvedValueOnce({ status: 'denied', canAskAgain: true })
         .mockResolvedValueOnce(picked());
       const service = createMockPhotoService({ pick, save: jest.fn().mockResolvedValue(SAVED) });
-      await render(<RecordForm onSubmit={jest.fn()} />, service);
+      await render(<RecordForm onSubmit={jest.fn()} initialValues={{ title: 'a' }} />, service);
       await choose('ライブラリから選択');
       expect(screen.getByText('写真ライブラリへのアクセスが許可されていません')).toBeTruthy();
       await choose('設定を開く');

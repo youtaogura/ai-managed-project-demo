@@ -66,10 +66,15 @@ describe.each([
   [34, 34],
   [0, 0],
 ])('下端インセット %i', (bottom, extra) => {
-  it('記録フォームの末尾余白にインセットが加わる', async () => {
+  it('記録フォームの主ボタン領域の下端にインセットが加わる', async () => {
     await render(withInsets(bottom, <RecordForm onSubmit={jest.fn()} />));
-    await screen.findByText('種別');
-    expect(scrollPaddingBottom('種別')).toBe(spacing.lg + extra);
+    let node = (await screen.findByRole('button', { name: '記録する' })).parent;
+    let padding: number | undefined;
+    while (node && padding === undefined) {
+      padding = (StyleSheet.flatten(node.props.style) as Padded | undefined)?.paddingBottom;
+      node = node.parent;
+    }
+    expect(padding).toBe(space[3] + extra);
   });
 
   it('記録の詳細の末尾余白にインセットが加わる', async () => {
