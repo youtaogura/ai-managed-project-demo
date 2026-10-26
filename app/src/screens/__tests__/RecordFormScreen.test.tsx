@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import { router } from 'expo-router';
 
 import { withRepository } from '../../testProviders';
+import { paramsToInitialValues } from '../../lib/recordForm';
 import { createRecordRepository } from '../../lib/recordRepository';
 import type { KeyValueStorage } from '../../lib/storage';
 import { RecordFormScreen } from '../RecordFormScreen';
@@ -270,5 +271,54 @@ describe('RecordFormScreen の書影取得', () => {
     await press('保存する');
     await waitFor(() => expect(router.back).toHaveBeenCalled());
     expect((await repository.getAll())[0]?.coverUrl).toBe('https://cover/z.jpg');
+  });
+});
+
+describe('RecordFormScreen（TMDb の候補）', () => {
+  const params = {
+    kind: 'anime',
+    title: '作品',
+    creator: '監督A',
+    coverUrl: 'https://image.tmdb.org/t/p/w185/p.jpg',
+    sourceProvider: 'tmdb',
+    sourceType: 'tv',
+    sourceId: '42',
+  };
+
+  it('そのまま保存すると tmdb の source・ポスター・種別が入り、ISBN・出版社は null', async () => {
+    const repository = memoryRepository();
+    await render(
+      withRepository(repository, <RecordFormScreen initialValues={paramsToInitialValues(params)} />),
+    );
+    await press('記録する');
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
+    expect((await repository.getAll())[0]).toMatchObject({
+      kind: 'anime',
+      title: '作品',
+      creator: '監督A',
+      coverUrl: 'https://image.tmdb.org/t/p/w185/p.jpg',
+      isbn: null,
+      publisher: null,
+      source: { provider: 'tmdb', mediaType: 'tv', tmdbId: '42' },
+    });
+  });
+
+  it('保存した記録を編集して保存しても source は保持される', async () => {
+    const repository = memoryRepository();
+    const record = await repository.add({
+      ...baseInput,
+      kind: 'movie',
+      title: '映画',
+      source: { provider: 'tmdb', mediaType: 'movie', tmdbId: '603' },
+    });
+    await render(withRepository(repository, <RecordFormScreen recordId={record.id} />));
+    await screen.findByDisplayValue('映画');
+    await fireEvent.changeText(screen.getByLabelText('タイトル（必須）'), '映画（改）');
+    await press('保存する');
+    await waitFor(() => expect(router.back).toHaveBeenCalled());
+    expect((await repository.getAll())[0]).toMatchObject({
+      title: '映画（改）',
+      source: { provider: 'tmdb', mediaType: 'movie', tmdbId: '603' },
+    });
   });
 });

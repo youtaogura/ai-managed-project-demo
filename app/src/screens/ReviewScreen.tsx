@@ -9,6 +9,7 @@ import { ReviewEmpty } from '../components/ReviewEmpty';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { colors, radius, size, space } from '../design/tokens';
 import { useAddSheet } from '../hooks/useAddSheet';
+import { useMediaSearch } from '../hooks/useMediaSearch';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useRecords } from '../hooks/useRecords';
 import {
@@ -29,6 +30,7 @@ type ReviewScreenProps = {
 export function ReviewScreen({ onAdd, onOpenRecords }: ReviewScreenProps) {
   const { records, loading } = useRecords();
   const { addOpen, openAdd, closeAdd, select } = useAddSheet(onAdd);
+  const mediaSearchEnabled = useMediaSearch() !== null;
   const bottomInset = useBottomInset();
 
   const summary = useMemo(() => {
@@ -51,7 +53,12 @@ export function ReviewScreen({ onAdd, onOpenRecords }: ReviewScreenProps) {
           <AppText variant="screenTitle">振り返り</AppText>
         </View>
         <ReviewEmpty onAdd={openAdd} />
-        <AddSheet visible={addOpen} onClose={closeAdd} onSelect={select} />
+        <AddSheet
+          visible={addOpen}
+          onClose={closeAdd}
+          onSelect={select}
+          mediaSearchEnabled={mediaSearchEnabled}
+        />
       </ScreenContainer>
     );
   }

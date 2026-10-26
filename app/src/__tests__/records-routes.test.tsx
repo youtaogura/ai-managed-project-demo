@@ -50,7 +50,7 @@ describe('記録のルート配線', () => {
     await renderRouter(routes);
     await waitFor(() => expect(screen.getByText('吾輩は猫である')).toBeTruthy());
     await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
-    await fireEvent.press(screen.getByRole('button', { name: '手で入力する' }));
+    await fireEvent.press(screen.getByRole('button', { name: '本を手で入力する' }));
     await waitFor(() => expect(screen.getByText('ダミー追加画面')).toBeTruthy());
   });
 
@@ -59,7 +59,7 @@ describe('記録のルート配線', () => {
     await renderRouter(routes);
     await waitFor(() => expect(screen.getByText('最初の1作品を記録しよう')).toBeTruthy());
     await fireEvent.press(screen.getAllByRole('button', { name: '記録する' }).slice(-1)[0]);
-    await fireEvent.press(screen.getByRole('button', { name: '手で入力する' }));
+    await fireEvent.press(screen.getByRole('button', { name: '本を手で入力する' }));
     await waitFor(() => expect(screen.getByText('ダミー追加画面')).toBeTruthy());
   });
 

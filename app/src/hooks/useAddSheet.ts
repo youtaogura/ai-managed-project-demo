@@ -7,6 +7,7 @@ const ADD_ROUTES = {
   scan: '/record/scan',
   search: '/record/search',
   isbn: '/record/isbn',
+  mediaSearch: '/record/media-search',
 } as const;
 
 // 追加シートの開閉と、選んだ入口への遷移（手入力は onAdd）
@@ -17,7 +18,9 @@ export function useAddSheet(onAdd?: () => void) {
   const select = (target: AddTarget) => {
     setAddOpen(false);
     if (target === 'manual') onAdd?.();
-    else router.push(ADD_ROUTES[target]);
+    else if (target === 'mediaManual') {
+      router.push({ pathname: '/record/new', params: { kind: 'movie' } });
+    } else router.push(ADD_ROUTES[target]);
   };
   return { addOpen, openAdd, closeAdd, select };
 }

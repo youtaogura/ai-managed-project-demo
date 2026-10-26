@@ -1,6 +1,8 @@
 import { Text } from 'react-native';
 import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 
+import { MediaSearchContextProvider } from '../../hooks/useMediaSearch';
+import type { MediaSearchProvider } from '../../lib/mediaSearch/MediaSearchProvider';
 import { withRepository } from '../../testProviders';
 import { createSortOrderStore } from '../../lib/sortOrderStore';
 import { createFakeRepository, createMemoryStorage, makeRecord } from '../../testUtils';
@@ -42,16 +44,20 @@ function setup(
   repository: RecordRepository,
   storage = createMemoryStorage().storage,
   handlers: { onAdd?: () => void; onOpen?: (id: string) => void } = {},
+  mediaProvider?: MediaSearchProvider | null,
 ) {
   return renderRouter({
     index: () =>
       withRepository(
         repository,
-        <RecordsScreen sortOrderStore={createSortOrderStore(storage)} {...handlers} />,
+        <MediaSearchContextProvider provider={mediaProvider}>
+          <RecordsScreen sortOrderStore={createSortOrderStore(storage)} {...handlers} />
+        </MediaSearchContextProvider>,
       ),
     'record/new': () => <Text>ダミー手入力画面</Text>,
     'record/isbn': () => <Text>ダミーISBN画面</Text>,
     'record/search': () => <Text>ダミー検索画面</Text>,
+    'record/media-search': () => <Text>ダミー作品検索画面</Text>,
     'record/scan': () => <Text>ダミー読取画面</Text>,
   });
 }
@@ -180,7 +186,7 @@ describe('RecordsScreen', () => {
 
   it.each([
     ['バーコードを読み取る', '/record/scan'],
-    ['タイトルで探す', '/record/search'],
+    ['本をタイトルで探す', '/record/search'],
     ['ISBN を入力する', '/record/isbn'],
   ])('追加シートの「%s」で %s へ遷移する', async (label, path) => {
     await setup(createFakeRepository(records).repository);
@@ -195,16 +201,49 @@ describe('RecordsScreen', () => {
     await setup(createFakeRepository(records).repository, undefined, { onAdd });
     await screen.findByText('すべての記録');
     await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
-    await fireEvent.press(screen.getByRole('button', { name: '手で入力する' }));
+    await fireEvent.press(screen.getByRole('button', { name: '本を手で入力する' }));
     expect(onAdd).toHaveBeenCalledTimes(1);
     expect(screen.queryByText('何を記録しますか')).toBeNull();
+  });
+
+  const mediaProvider: MediaSearchProvider = {
+    attribution: 'x',
+    search: async () => ({ status: 'ok', candidates: [] }),
+  };
+
+  it('キーがあれば「映画・ドラマ・アニメをタイトルで探す」で作品検索へ遷移する', async () => {
+    await setup(createFakeRepository(records).repository, undefined, {}, mediaProvider);
+    await screen.findByText('すべての記録');
+    await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
+    await fireEvent.press(screen.getByRole('button', { name: '映画・ドラマ・アニメをタイトルで探す' }));
+    await waitFor(() => expect(screen).toHavePathname('/record/media-search'));
+  });
+
+  it('キーがなければ作品の「タイトルで探す」は出ず、手入力は使える', async () => {
+    await setup(createFakeRepository(records).repository, undefined, {}, null);
+    await screen.findByText('すべての記録');
+    await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
+    expect(screen.queryByRole('button', { name: '映画・ドラマ・アニメをタイトルで探す' })).toBeNull();
+    expect(screen.getByRole('button', { name: '本をタイトルで探す' })).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: '映画・ドラマ・アニメを手で入力する' }));
+    await waitFor(() => expect(screen).toHavePathname('/record/new'));
+    expect(screen).toHaveSearchParams({ kind: 'movie' });
+  });
+
+  it('下の段の手入力は onAdd を呼ばない', async () => {
+    const onAdd = jest.fn();
+    await setup(createFakeRepository(records).repository, undefined, { onAdd });
+    await screen.findByText('すべての記録');
+    await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
+    await fireEvent.press(screen.getByRole('button', { name: '映画・ドラマ・アニメを手で入力する' }));
+    expect(onAdd).not.toHaveBeenCalled();
   });
 
   it('onAdd 未指定でも「手で入力する」を押して落ちない', async () => {
     await setup(createFakeRepository(records).repository);
     await screen.findByText('すべての記録');
     await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
-    await fireEvent.press(screen.getByRole('button', { name: '手で入力する' }));
+    await fireEvent.press(screen.getByRole('button', { name: '本を手で入力する' }));
     expect(screen.getAllByLabelText('ベータ').length).toBeGreaterThan(0);
   });
 
