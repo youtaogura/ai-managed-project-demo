@@ -183,7 +183,7 @@ describe('BarcodeScanScreen', () => {
   it.each([
     ['カメラ表示', { granted: true, canAskAgain: true }, 'camera'],
     ['権限要求', { granted: false, canAskAgain: true }, 'カメラを許可する'],
-  ])('%s は上端インセット分の余白を確保する', async (_name, permission, target) => {
+  ])('%s は上端インセット分の余白を二重に確保しない（ヘッダーが処理する）', async (_name, permission, target) => {
     mockPermission = permission;
     const metrics = {
       frame: { x: 0, y: 0, width: 390, height: 844 },
@@ -197,11 +197,9 @@ describe('BarcodeScanScreen', () => {
       </SafeAreaProvider>,
     );
     let node = (screen.queryByTestId(target) ?? screen.getByText(target)).parent;
-    let paddingTop: unknown;
-    while (node && paddingTop !== 47) {
-      paddingTop = StyleSheet.flatten(node.props.style)?.paddingTop;
+    while (node) {
+      expect(StyleSheet.flatten(node.props.style)?.paddingTop ?? 0).toBeLessThan(47);
       node = node.parent;
     }
-    expect(paddingTop).toBe(47);
   });
 });
