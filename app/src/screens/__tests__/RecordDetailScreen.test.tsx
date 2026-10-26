@@ -1,6 +1,8 @@
 import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 import type { ReactElement } from 'react';
-import { Linking } from 'react-native';
+import { Linking, ScrollView } from 'react-native';
+
+type TestInstance = ReturnType<typeof screen.getByText>;
 
 import { triggerImpactHaptic } from '../../lib/haptics';
 import type { PhotoService } from '../../lib/photo/PhotoService';
@@ -117,9 +119,23 @@ describe('RecordDetailScreen の表示', () => {
     expect(screen.queryByLabelText('文字だけ')).toBeNull();
   });
 
-  it('「作品の情報」ボタンで押してもエラーにならない', async () => {
+  it('「作品の情報」で、情報セクションの位置（body の位置を含む）へスクロールする', async () => {
     await show();
+    const scrollTo = jest.fn();
+    Object.defineProperty(ScrollView.prototype, 'scrollTo', { value: scrollTo, configurable: true });
+    const layout = (y: number) => ({ nativeEvent: { layout: { x: 0, y, width: 100, height: 100 } } });
+    const withLayout = (start: TestInstance | null) => {
+      let node = start;
+      while (node && node.props.onLayout === undefined) node = node.parent;
+      return node;
+    };
+    const body = withLayout(screen.getAllByText('ステータス')[0].parent);
+    const info = withLayout(screen.getByText('出版社').parent);
+    if (!body || !info) throw new Error('onLayout の View が見つからない');
+    await fireEvent(body, 'layout', layout(500));
+    await fireEvent(info, 'layout', layout(300));
     await fireEvent.press(screen.getByRole('button', { name: '作品の情報' }));
+    expect(scrollTo).toHaveBeenCalledWith({ y: 800, animated: true });
   });
 });
 

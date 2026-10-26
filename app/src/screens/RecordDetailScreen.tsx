@@ -9,7 +9,7 @@ import { Cover } from '../components/Cover';
 import { InfoCell, InfoCellRow } from '../components/InfoCell';
 import { RatingStars } from '../components/RatingStars';
 import { RecordInfoSection } from '../components/RecordInfoSection';
-import { colors, shadows, size, space } from '../design/tokens';
+import { colors, radius, shadows, size, space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { usePhotoPicker } from '../hooks/usePhotoPicker';
 import { usePhotoService } from '../hooks/usePhotoService';
@@ -28,7 +28,6 @@ type RecordDetailScreenProps = {
 };
 
 const COVER_WIDTH = 196;
-const COVER_RADIUS = 6;
 const STARS_SIZE = 18;
 const REVIEW_LINES = 3;
 const HERO_TOP = space[4] + space[6];
@@ -55,6 +54,7 @@ export function RecordDetailScreen({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
+  const [bodyY, setBodyY] = useState(0);
   const [infoY, setInfoY] = useState(0);
 
   // 編集から戻ったときに最新の内容を表示するため、フォーカスのたび読み込む
@@ -148,7 +148,7 @@ export function RecordDetailScreen({
       >
         <View style={[styles.hero, { backgroundColor: getHeroBackground(record.kind) }]}>
           <View style={styles.cover}>
-            <Cover record={record} width={COVER_WIDTH} radius={COVER_RADIUS} />
+            <Cover record={record} width={COVER_WIDTH} radius={radius.thumb} />
           </View>
           <View style={styles.heroButtons}>
             <Button variant="icon" onImage accessibilityLabel="戻る" onPress={() => onBack?.()}>
@@ -159,7 +159,7 @@ export function RecordDetailScreen({
             </Button>
           </View>
         </View>
-        <View style={styles.body}>
+        <View style={styles.body} onLayout={(e) => setBodyY(e.nativeEvent.layout.y)}>
           <View style={styles.titleGroup}>
             <AppText variant="screenTitle">{record.title}</AppText>
             <AppText variant="body" style={{ color: colors.textSecondary }}>
@@ -189,7 +189,7 @@ export function RecordDetailScreen({
           variant="outline"
           label="作品の情報"
           style={styles.barButton}
-          onPress={() => scrollRef.current?.scrollTo({ y: infoY, animated: true })}
+          onPress={() => scrollRef.current?.scrollTo({ y: bodyY + infoY, animated: true })}
         />
         <Button label="編集" style={styles.barButton} onPress={() => onEdit?.(record.id)} />
       </View>
