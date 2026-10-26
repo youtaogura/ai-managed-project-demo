@@ -19,6 +19,7 @@ import { SortSheet } from '../components/SortSheet';
 import { YearCounter } from '../components/YearCounter';
 import { colors, space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
+import { useMediaSearch } from '../hooks/useMediaSearch';
 import { useRecords } from '../hooks/useRecords';
 import { useSortOrder } from '../hooks/useSortOrder';
 import { createSortOrderStore, type SortOrderStore } from '../lib/sortOrderStore';
@@ -36,6 +37,7 @@ const ADD_ROUTES = {
   scan: '/record/scan',
   search: '/record/search',
   isbn: '/record/isbn',
+  mediaSearch: '/record/media-search',
 } as const;
 
 type RecordsScreenProps = {
@@ -50,6 +52,7 @@ export function RecordsScreen({
   onOpen,
 }: RecordsScreenProps) {
   const { records, loading } = useRecords();
+  const mediaSearchEnabled = useMediaSearch() !== null;
   const [order, setOrder] = useSortOrder(sortOrderStore);
   const [addOpen, setAddOpen] = useState(false);
   const [sortOpen, setSortOpen] = useState(false);
@@ -76,13 +79,20 @@ export function RecordsScreen({
   const select = (target: AddTarget) => {
     setAddOpen(false);
     if (target === 'manual') onAdd?.();
-    else router.push(ADD_ROUTES[target]);
+    else if (target === 'mediaManual') {
+      router.push({ pathname: '/record/new', params: { kind: 'movie' } });
+    } else router.push(ADD_ROUTES[target]);
   };
   const cellWidth = (width - space[5] * 2 - GRID_GAP * (COLUMNS - 1)) / COLUMNS;
 
   const sheets = (
     <>
-      <AddSheet visible={addOpen} onClose={() => setAddOpen(false)} onSelect={select} />
+      <AddSheet
+        visible={addOpen}
+        onClose={() => setAddOpen(false)}
+        onSelect={select}
+        mediaSearchEnabled={mediaSearchEnabled}
+      />
       <SortSheet
         visible={sortOpen}
         value={order}
@@ -113,11 +123,7 @@ export function RecordsScreen({
       <View style={styles.header}>
         <AppText variant="screenTitle">記録</AppText>
         <View style={styles.actions}>
-          <Button
-            variant="icon"
-            accessibilityLabel="並び替え"
-            onPress={() => setSortOpen(true)}
-          >
+          <Button variant="icon" accessibilityLabel="並び替え" onPress={() => setSortOpen(true)}>
             <AppText variant="sectionTitle">⇅</AppText>
           </Button>
           <Button variant="record" onPress={() => setAddOpen(true)} />
@@ -191,5 +197,9 @@ const styles = StyleSheet.create({
   },
   order: { color: colors.textSecondary },
   hero: { paddingHorizontal: space[5], gap: space[3], marginBottom: space[5] },
-  gridRow: { paddingHorizontal: space[5], gap: GRID_GAP, marginBottom: GRID_GAP },
+  gridRow: {
+    paddingHorizontal: space[5],
+    gap: GRID_GAP,
+    marginBottom: GRID_GAP,
+  },
 });

@@ -60,7 +60,7 @@ describe('分析タブの最新表示', () => {
   it('記録を追加したあとに分析タブを開くと集計が表示される', async () => {
     await renderRouter(routes);
     await fireEvent.press((await screen.findAllByRole('button', { name: '記録する' }))[0]);
-    await fireEvent.press(await screen.findByRole('button', { name: '手で入力する' }));
+    await fireEvent.press(await screen.findByRole('button', { name: '本を手で入力する' }));
     await fireEvent.changeText(await screen.findByLabelText('タイトル（必須）'), '分析用の本');
     await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
     expect((await screen.findAllByText('分析用の本')).length).toBeGreaterThan(0);
@@ -74,7 +74,7 @@ describe('記録の追加', () => {
   it('追加 → フォーム → 保存 → 一覧に反映される', async () => {
     await renderRouter(routes);
     await fireEvent.press((await screen.findAllByRole('button', { name: '記録する' }))[0]);
-    await fireEvent.press(await screen.findByRole('button', { name: '手で入力する' }));
+    await fireEvent.press(await screen.findByRole('button', { name: '本を手で入力する' }));
     await fireEvent.changeText(await screen.findByLabelText('タイトル（必須）'), '統合テストの本');
     await fireEvent.press(screen.getByRole('button', { name: '記録する' }));
     expect((await screen.findAllByText('統合テストの本')).length).toBeGreaterThan(0);
@@ -88,7 +88,7 @@ describe('手入力で追加（追加シート）', () => {
   it('追加シートの「手で入力する」を押すと追加フォームが表示される', async () => {
     await renderRouter(routes);
     await fireEvent.press((await screen.findAllByRole('button', { name: '記録する' }))[0]);
-    await fireEvent.press(await screen.findByRole('button', { name: '手で入力する' }));
+    await fireEvent.press(await screen.findByRole('button', { name: '本を手で入力する' }));
     expect(await screen.findByLabelText('タイトル（必須）')).toBeTruthy();
     expect(screen.getByRole('button', { name: '記録する' })).toBeTruthy();
   });
@@ -177,7 +177,7 @@ describe('タイトルで探して追加', () => {
     });
     await renderRouter(routes);
     await fireEvent.press((await screen.findAllByRole('button', { name: '記録する' }))[0]);
-    await fireEvent.press(await screen.findByRole('button', { name: 'タイトルで探す' }));
+    await fireEvent.press(await screen.findByRole('button', { name: '本をタイトルで探す' }));
     await fireEvent.changeText(await screen.findByLabelText('タイトルのキーワード'), '候補');
     await fireEvent.press(screen.getByRole('button', { name: '検索' }));
     await fireEvent.press(await screen.findByRole('button', { name: /候補の本/ }));

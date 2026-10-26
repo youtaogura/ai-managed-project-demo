@@ -294,6 +294,31 @@ describe('source', () => {
     expect(toNewRecordInput({ ...v, isbn: '2' }).source).toEqual({ provider: 'ndl', ndlId: '9' });
   });
 
+  it('paramsToInitialValues は tmdb の source・kind・coverUrl を受ける', () => {
+    expect(
+      paramsToInitialValues({
+        kind: 'drama',
+        coverUrl: 'https://image.tmdb.org/t/p/w185/p.jpg',
+        sourceProvider: 'tmdb',
+        sourceType: 'tv',
+        sourceId: '7',
+      }),
+    ).toMatchObject({
+      kind: 'drama',
+      coverUrl: 'https://image.tmdb.org/t/p/w185/p.jpg',
+      source: { provider: 'tmdb', mediaType: 'tv', tmdbId: '7' },
+    });
+  });
+
+  it('tmdb は kind が映画などでも、ISBN 欄が空でも保持される', () => {
+    const v = createFormValues({
+      title: 'T',
+      kind: 'movie',
+      source: { provider: 'tmdb', mediaType: 'movie', tmdbId: '1' },
+    });
+    expect(toNewRecordInput(v).source).toEqual({ provider: 'tmdb', mediaType: 'movie', tmdbId: '1' });
+  });
+
   it('paramsToInitialValues はクエリから source を作る', () => {
     expect(paramsToInitialValues({ sourceProvider: 'ndl', sourceId: '5' }).source).toEqual({
       provider: 'ndl',
