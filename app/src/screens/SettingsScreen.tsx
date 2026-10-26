@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppText } from '../components/AppText';
 import { StatusDefaultSheet } from '../components/StatusDefaultSheet';
@@ -9,6 +9,8 @@ import { SettingsRow } from '../components/SettingsRow';
 import { space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useSettings } from '../hooks/useSettings';
+import { useStarterSettings } from '../hooks/useStarterSettings';
+import { starterSummary } from '../lib/starterItems';
 import { formatVersion, getAppInfo } from '../lib/appInfo';
 import { useLastExportedAt } from '../hooks/useLastExportedAt';
 import { createExportStore, type ExportStore } from '../lib/exportStore';
@@ -25,6 +27,7 @@ type SettingsScreenProps = {
   reloadKey?: number;
   onOpenData?: () => void;
   onOpenAbout?: () => void;
+  onOpenStarters?: () => void;
 };
 
 export function SettingsScreen({
@@ -32,9 +35,11 @@ export function SettingsScreen({
   reloadKey,
   onOpenData = () => undefined,
   onOpenAbout = () => undefined,
+  onOpenStarters = () => undefined,
 }: SettingsScreenProps) {
   const { lastExportedAt } = useLastExportedAt(exportStore, reloadKey);
   const { settings, update } = useSettings();
+  const { starterSettings } = useStarterSettings();
   const bottomInset = useBottomInset();
   const [statusOpen, setStatusOpen] = useState(false);
 
@@ -52,6 +57,8 @@ export function SettingsScreen({
             value={STATUS_DEFAULT_LABELS[settings.defaultStatus]}
             onPress={() => setStatusOpen(true)}
           />
+          <View style={styles.gap} />
+          <SettingsRow label="書き出し" value={starterSummary(starterSettings)} onPress={onOpenStarters} />
         </SettingsCard>
         <SettingsCard title="データ">
           <SettingsRow
@@ -86,4 +93,5 @@ export function SettingsScreen({
 const styles = StyleSheet.create({
   content: { paddingHorizontal: space[5], gap: space[5] },
   title: { paddingVertical: space[3] },
+  gap: { height: space[2] },
 });
