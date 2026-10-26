@@ -1,88 +1,105 @@
 import { router } from 'expo-router';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { EmptyState } from '../components/EmptyState';
+import { RecordListItem } from '../components/RecordListItem';
+import { SortSelector } from '../components/SortSelector';
 import { useRecords } from '../hooks/useRecords';
-import { getStatusLabel, KIND_LABELS } from '../lib/statusLabel';
-import { colors, formColors, spacing } from '../theme';
+import { useSortOrder } from '../hooks/useSortOrder';
+import { createSortOrderStore, type SortOrderStore } from '../lib/sortOrderStore';
+import { sortRecords } from '../lib/sortRecords';
+import { asyncKeyValueStorage } from '../lib/storage';
+import { colors, spacing } from '../theme';
 
-export function RecordsScreen() {
+const defaultSortOrderStore = createSortOrderStore(asyncKeyValueStorage);
+
+type RecordsScreenProps = {
+  sortOrderStore?: SortOrderStore;
+  onAdd?: () => void;
+  onOpen?: (id: string) => void;
+};
+
+export function RecordsScreen({
+  sortOrderStore = defaultSortOrderStore,
+  onAdd,
+  onOpen,
+}: RecordsScreenProps) {
   const { records, loading } = useRecords();
-  const sorted = [...records].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const [order, setOrder] = useSortOrder(sortOrderStore);
+  const sorted = useMemo(() => sortRecords(records, order), [records, order]);
 
-  return (
-    <View style={styles.container}>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => router.push('/record/new')}
-        style={styles.add}
-      >
-        <Text style={styles.addText}>追加</Text>
-      </Pressable>
+  if (loading) {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator accessibilityLabel="読み込み中" />
+      </View>
+    );
+  }
+
+  const lookupButtons = (
+    <View style={styles.lookupRow}>
       <Pressable
         accessibilityRole="button"
         onPress={() => router.push('/record/isbn')}
-        style={styles.add}
+        style={styles.lookupButton}
       >
-        <Text style={styles.addText}>ISBN で探して追加</Text>
+        <Text style={styles.addButtonText}>ISBN で探して追加</Text>
       </Pressable>
       <Pressable
         accessibilityRole="button"
         onPress={() => router.push('/record/scan')}
-        style={styles.add}
+        style={styles.lookupButton}
       >
-        <Text style={styles.addText}>バーコードで読み取って追加</Text>
+        <Text style={styles.addButtonText}>バーコードで読み取って追加</Text>
       </Pressable>
-      {sorted.length === 0 ? (
-        loading ? null : (
-          <EmptyState
-            title="まだ記録がありません"
-            description="記録を追加するとここに表示されます"
-          />
-        )
-      ) : (
-        <FlatList
-          data={sorted}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <Pressable
-              accessibilityRole="button"
-              onPress={() =>
-                router.push({
-                  pathname: '/record/[id]',
-                  params: { id: item.id },
-                })
-              }
-              style={styles.row}
-            >
-              <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.meta}>
-                {`${KIND_LABELS[item.kind]} ・ ${getStatusLabel(item.kind, item.status)}`}
-              </Text>
-            </Pressable>
-          )}
-        />
-      )}
+    </View>
+  );
+
+  if (records.length === 0) {
+    return (
+      <View style={styles.container}>
+        {lookupButtons}
+        <EmptyState title="まだ記録がありません" description="記録を追加するとここに表示されます">
+          <Pressable accessibilityRole="button" onPress={onAdd} style={styles.addButton}>
+            <Text style={styles.addButtonText}>記録を追加する</Text>
+          </Pressable>
+        </EmptyState>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      {lookupButtons}
+      <SortSelector value={order} onChange={setOrder} />
+      <FlatList
+        data={sorted}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <RecordListItem record={item} onPress={(record) => onOpen?.(record.id)} />
+        )}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  add: {
-    margin: spacing.md,
-    padding: spacing.md,
-    borderRadius: 8,
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  lookupRow: { flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
+  lookupButton: {
+    flex: 1,
     alignItems: 'center',
     backgroundColor: colors.tint,
+    padding: spacing.sm,
+    borderRadius: 8,
   },
-  addText: { color: '#fff', fontSize: 16, fontWeight: '600' },
-  row: {
-    padding: spacing.md,
-    gap: 4,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: formColors.border,
+  addButton: {
+    backgroundColor: colors.tint,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: 8,
   },
-  title: { fontSize: 16, color: colors.text },
-  meta: { fontSize: 13, color: colors.textMuted },
+  addButtonText: { color: '#fff', fontWeight: '600', textAlign: 'center' },
 });

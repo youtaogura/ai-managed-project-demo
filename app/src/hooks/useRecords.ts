@@ -12,6 +12,8 @@ export function useRecords() {
   const reload = useCallback(async () => {
     try {
       setRecords(await repository.getAll());
+    } catch {
+      setRecords([]);
     } finally {
       setLoading(false);
     }

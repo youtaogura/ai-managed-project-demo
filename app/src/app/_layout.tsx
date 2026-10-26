@@ -9,6 +9,7 @@ export default function RootLayout() {
     <RecordRepositoryProvider>
       <BookLookupContextProvider>
         <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="records/[id]" options={{ headerShown: true, title: '記録の詳細' }} />
           <Stack.Screen name="record/new" options={{ headerShown: true, title: '記録を追加' }} />
           <Stack.Screen name="record/isbn" options={{ headerShown: true, title: 'ISBN で探す' }} />
           <Stack.Screen
