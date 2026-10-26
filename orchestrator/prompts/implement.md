@@ -15,6 +15,7 @@
    - CI: `gh pr checks <番号> --json name,bucket,link` で失敗したチェックを確認し、
      `link` の URL 中の run id を使って `gh run view <run-id> --log-failed` で失敗ログを読む
 3. 受け入れ条件ごとにテストを書き（`@testing-library/react-native` + Jest）、実装する。
+   - 環境変数を追加・変更した場合は、同じ変更で `app/.env.example` に追記し、PR 本文に人間が設定すべき値を書く（CLAUDE.md「コーディング規約」）。
    - UI を作る・変える場合は、先に `docs/design-system/README.md` と使う部品の README、画面のデザイン（`docs/design-system/screens/README.md` と画像）を読み、色・文字・余白は `app/src/design/tokens.ts` の値を使う（CLAUDE.md「デザインシステム」）。
    - ライブラリを追加するときは `cd {{APP_DIR}} && npx expo install <pkg>` を使う（失敗する場合は `pnpm add`）。
 4. `cd {{APP_DIR}} && pnpm check` がすべて通るまで修正する。通らないまま PR を出さない。

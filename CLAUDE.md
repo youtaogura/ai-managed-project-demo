@@ -11,6 +11,7 @@
 - `orchestrator/` `docker/` `.github/` `docker-compose.yml` `CLAUDE.md` … 人間だけが変更する（ガードでブロックされる）
 - `app/jest.config.js` `app/eslint.config.js` `app/tsconfig.json` `app/.npmrc` `app/eas.json` … CI の閾値やルールを決めるため、これらも人間だけが変更する
 - `docs/design-system/`（デザインシステムの正本）と、そこから生成する `app/src/design/tokens.ts` … 人間だけが変更する
+- 環境変数は2つに分ける。ルートの `.env` / `.env.example` はオーケストレーターとコンテナの設定で、人間だけが変更する。アプリが読む環境変数（`EXPO_PUBLIC_*`）は `app/.env.example` に書き、エージェントが自由に追記・変更してよい（実際の値は人間が `app/.env` に書く。git では無視される）。アプリの環境変数をルートの `.env` に書かない
 - 保護対象の一覧は `orchestrator/policy.json`（ガード hook・オーケストレーター・CI が共通で参照）
 
 ## アプリの技術スタック
@@ -47,6 +48,7 @@ npx expo install <pkg>   # ライブラリ追加（SDK 互換バージョンを�
 - ナビゲーションが必要になったら Expo Router を導入する（導入判断は仕様書の判断ログに書く）
 - 状態管理はまず React の state / context で足りるか検討し、ライブラリ追加は仕様書で理由を説明できる場合のみ
 - テストは振る舞い（表示・操作結果）を検証する。実装の内部構造に依存しない
+- 環境変数を追加・変更したら、同じ PR で `app/.env.example` に追記する（用途、未設定のときの動き、値の取得方法、必須か任意か、EAS にも設定するか）。値は空にし、実際のキーは書かない。未設定でもアプリが壊れないようにする。実際の値の取得と `app/.env`・EAS への登録は人間が行うので、PR 本文に「人間の作業」として書く
 
 ## デザインシステム
 

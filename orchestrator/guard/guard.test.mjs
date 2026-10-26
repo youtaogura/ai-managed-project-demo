@@ -84,6 +84,9 @@ test('ファイル編集の範囲', () => {
   assert.ok(checkFilePath(`${WT}/CLAUDE.md`, WT));
   assert.ok(checkFilePath(`${WT}/.github/workflows/ci.yml`, WT));
   assert.ok(checkFilePath(`${WT}/.env.local`, WT));
+  assert.ok(checkFilePath(`${WT}/.env.example`, WT));
+  // アプリの環境変数の見本はエージェントが変更してよい
+  assert.equal(checkFilePath(`${WT}/app/.env.example`, WT), null);
   // CI の閾値・ルールを決める設定ファイル
   assert.ok(checkFilePath(`${WT}/app/jest.config.js`, WT));
   assert.ok(checkFilePath(`${WT}/app/eslint.config.js`, WT));
