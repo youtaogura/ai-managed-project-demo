@@ -40,7 +40,7 @@
 - [ ] `year` は movie の `release_date`、tv の `first_air_date` の先頭 4 桁（`YYYY` 形式でなければ null）
 - [ ] `posterUrl` は `poster_path` があれば `https://image.tmdb.org/t/p/w185<poster_path>`、なければ（null・空・型違い）null
 - [ ] `isAnimation` は `genre_ids` に `16`（Animation）を含むとき true
-- [ ] 監督など: 検索後、表示する候補ごとに詳細を取得する。movie は `GET /3/movie/{id}?append_to_response=credits&language=ja-JP` の `credits.crew` のうち `job === 'Director'`（複数なら「、」でなく `、` 区切りで最大 2 人）、tv は `GET /3/tv/{id}?language=ja-JP` の `created_by[].name`（最大 2 人）。取れない・詳細の取得が失敗・不正な形は `creator: null`（検索全体は失敗にしない）
+- [ ] 監督など: 検索後、表示する候補ごとに詳細を取得する。movie は `GET /3/movie/{id}?append_to_response=credits&language=ja-JP` の `credits.crew` のうち `job === 'Director'`（複数なら「、」区切りで最大 2 人）、tv は `GET /3/tv/{id}?language=ja-JP` の `created_by[].name`（最大 2 人）。取れない・詳細の取得が失敗・不正な形は `creator: null`（検索全体は失敗にしない）
 - [ ] アニメの並び: movie と tv の結果を合わせ、`isAnimation` の候補を先に、そのあとにそれ以外。各グループの中は TMDb の返した順（movie → tv の順にインターリーブ）を保つ。合計は最大 10 件（`MAX_RESULTS`）。映画・ドラマ単体も最大 10 件
 - [ ] 通信失敗・HTTP エラー（401 含む）は `{ status: 'error', reason: 'network' }`、タイムアウト（既定 10 秒）も `network`。0 件は `{ status: 'ok', candidates: [] }`
 - [ ] 認証: API キーが JWT 形式（`eyJ` で始まる Read Access Token）なら `Authorization: Bearer <token>` ヘッダ、それ以外は `api_key=<key>` クエリ。どちらも `fetchFn` のモックで検証できる
