@@ -97,12 +97,21 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
         updatedRecord.current = updated;
       }}
       onSaved={() => {
-        if (updatedRecord.current !== null) router.replace(recordHref(updatedRecord.current));
+        const updated = updatedRecord.current;
+        if (updated === null) return;
+        const href = recordHref(updated);
+        if (href === recordHref(record)) {
+          router.dismissTo(href);
+        } else {
+          // 状態が変わって行き先のパスが変わるときは、旧画面を履歴に残さず本棚から開き直す
+          router.dismissTo('/');
+          router.push(href);
+        }
       }}
       onDelete={async () => {
         await repository.delete(record.id);
       }}
-      onDeleted={() => router.replace('/')}
+      onDeleted={() => router.dismissTo('/')}
     />
   );
 }
