@@ -3,9 +3,11 @@ import {
   AccessibilityInfo,
   Animated,
   Easing,
+  KeyboardAvoidingView,
   Modal,
   PanResponder,
   Pressable,
+  ScrollView,
   StyleSheet,
   View,
 } from 'react-native';
@@ -86,31 +88,45 @@ export function BottomSheet({ visible, onClose, title, showCloseButton, children
           style={styles.scrim}
           onPress={onClose}
         />
-        <Animated.View
-          accessibilityViewIsModal
-          accessibilityRole="none"
-          role="dialog"
-          accessibilityLabel={title}
-          style={[
-            styles.sheet,
-            { paddingBottom: space[6] + bottomInset, opacity, transform: [{ translateY }] },
-          ]}
+        <KeyboardAvoidingView
+          testID="bottom-sheet-keyboard-avoiding"
+          behavior="padding"
+          pointerEvents="box-none"
+          style={styles.avoiding}
         >
-          <View {...pan.panHandlers} testID="bottom-sheet-handle-area" style={styles.handleArea}>
-            <View style={styles.handle} />
-          </View>
-          {title ? (
-            <AppText variant="sectionTitle" style={styles.title}>
-              {title}
-            </AppText>
-          ) : null}
-          {children}
-          {showCloseButton ? (
-            <View style={styles.close}>
-              <Button variant="outline" label="閉じる" onPress={onClose} />
+          <Animated.View
+            accessibilityViewIsModal
+            accessibilityRole="none"
+            role="dialog"
+            accessibilityLabel={title}
+            style={[
+              styles.sheet,
+              { paddingBottom: space[6] + bottomInset, opacity, transform: [{ translateY }] },
+            ]}
+          >
+            <View {...pan.panHandlers} testID="bottom-sheet-handle-area" style={styles.handleArea}>
+              <View style={styles.handle} />
             </View>
-          ) : null}
-        </Animated.View>
+            {title ? (
+              <AppText variant="sectionTitle" style={styles.title}>
+                {title}
+              </AppText>
+            ) : null}
+            <ScrollView
+              testID="bottom-sheet-scroll"
+              keyboardShouldPersistTaps="handled"
+              bounces={false}
+              style={styles.scroll}
+            >
+              {children}
+            </ScrollView>
+            {showCloseButton ? (
+              <View style={styles.close}>
+                <Button variant="outline" label="閉じる" onPress={onClose} />
+              </View>
+            ) : null}
+          </Animated.View>
+        </KeyboardAvoidingView>
       </View>
     </Modal>
   );
@@ -126,14 +142,17 @@ export function shouldDismissSwipe(dy: number, vy: number): boolean {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, justifyContent: 'flex-end' },
+  root: { flex: 1 },
+  avoiding: { flex: 1, justifyContent: 'flex-end' },
   scrim: { ...StyleSheet.absoluteFill, backgroundColor: colors.scrim },
   sheet: {
     backgroundColor: colors.surface1,
     borderTopLeftRadius: SHEET_RADIUS,
     borderTopRightRadius: SHEET_RADIUS,
     paddingHorizontal: space[6],
+    maxHeight: '90%',
   },
+  scroll: { flexGrow: 0 },
   handleArea: { alignItems: 'center', minHeight: size.touchMin, justifyContent: 'center' },
   handle: {
     width: HANDLE_WIDTH,
