@@ -34,3 +34,6 @@ export function resolveFontFamily(fontFamily: string, fontWeight: string): FontK
   }
   return best?.key ?? 'NotoSansJP_400Regular';
 }
+
+// 通常の太さの文字ボタン用。AppText は太さごとに別の family を選ぶので、fontWeight の上書きではなく family で指定する
+export const regularTextStyle = { fontFamily: resolveFontFamily(fontFamilies.sans, '400') };

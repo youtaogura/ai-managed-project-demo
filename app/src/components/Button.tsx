@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
+import { regularTextStyle } from '../design/fonts';
 import { colors, radius, size, space } from '../design/tokens';
 import { AppText } from './AppText';
 
@@ -42,7 +43,7 @@ export function Button(props: ButtonProps) {
     content = (
       <AppText
         variant="button"
-        style={{ color: props.tone === 'danger' ? colors.danger : colors.textSecondary, fontWeight: '400' }}
+        style={{ color: props.tone === 'danger' ? colors.danger : colors.textSecondary, ...regularTextStyle }}
       >
         {props.label}
       </AppText>
