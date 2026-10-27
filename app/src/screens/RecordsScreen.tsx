@@ -13,7 +13,7 @@ import { AppText } from '../components/AppText';
 import { Button } from '../components/Button';
 import { EmptyState } from '../components/EmptyState';
 import { ScreenContainer } from '../components/ScreenContainer';
-import { RibbonMark } from "../components/RibbonMark";
+import { RibbonMark } from '../components/RibbonMark';
 import { Shelf } from '../components/Shelf';
 import { ShelfChips } from '../components/ShelfChips';
 import { ShelfCreateSheet } from '../components/ShelfCreateSheet';
@@ -108,7 +108,7 @@ export function RecordsScreen({
       <View style={styles.titles}>
         <AppText variant="screenTitle">本棚</AppText>
         <AppText variant="label" style={styles.summary}>
-          {records.length > 0 ? `${records.length} 冊 · 今年読んだ ${yearCount} 冊` : "まだ本がありません"}
+          {records.length > 0 ? `${records.length} 冊 · 今年読んだ ${yearCount} 冊` : 'まだ本がありません'}
         </AppText>
       </View>
       <View style={styles.actions}>
@@ -144,7 +144,7 @@ export function RecordsScreen({
         <StatusTabs value={filter} counts={counts} onChange={setFilter} />
       </View>
       <View style={styles.legend}>
-        <RibbonMark width={6} length={16} />
+        <RibbonMark />
         <AppText variant="label" style={styles.summary}>
           お気に入り
         </AppText>

@@ -9,6 +9,8 @@ import { Button } from './Button';
 const GHOST_HEIGHTS = [130, 160, 118, 172, 142];
 const GHOST_WIDTH = 40;
 const GHOST_GAP = 3;
+// 主ボタンの最小幅（トークンにないため、この画面だけの定数。ボタンの高さは Button の size.buttonHeight=48）
+const ACTION_MIN_WIDTH = 220;
 
 type EmptyStateProps = {
   title: string;
@@ -55,10 +57,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: space[6],
+    paddingVertical: space[6],
     gap: space[4],
   },
-  shelf: { marginBottom: space[3], alignSelf: "stretch", alignItems: "center" },
+  shelf: { marginBottom: space[3], alignSelf: 'stretch', alignItems: 'center' },
   ghosts: { flexDirection: 'row', alignItems: 'flex-end', gap: GHOST_GAP },
   ghost: {
     width: GHOST_WIDTH,
@@ -70,14 +72,14 @@ const styles = StyleSheet.create({
     borderColor: colors.lineStrong,
   },
   board: {
-    alignSelf: "stretch",
-    marginHorizontal: -space[4],
+    alignSelf: 'stretch',
+    marginHorizontal: space[4],
     height: size.shelfBoardHeight,
     backgroundColor: colors.shelfBoard,
     borderRadius: radius.thumb,
     boxShadow: shadows.cover,
   },
-  title: { textAlign: 'center', fontSize: 20, lineHeight: 30 },
-  description: { color: colors.textSecondary, textAlign: 'center' },
-  action: { minWidth: 220 },
+  title: { textAlign: 'center', paddingHorizontal: space[6] },
+  description: { color: colors.textSecondary, textAlign: 'center', paddingHorizontal: space[6] },
+  action: { minWidth: ACTION_MIN_WIDTH },
 });

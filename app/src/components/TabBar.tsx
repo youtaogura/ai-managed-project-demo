@@ -1,7 +1,8 @@
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { colors, size, space } from '../design/tokens';
+import { resolveFontFamily } from '../design/fonts';
+import { colors, size, space, typography } from '../design/tokens';
 import { AppText } from './AppText';
 
 const TAB_MIN_WIDTH = 64;
@@ -94,7 +95,7 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: B
             style={styles.tab}
           >
             <TabIcon name={ICONS[route.name] ?? 'shelf'} color={color} />
-            <AppText variant="tab" style={{ color }}>
+            <AppText variant="tab" style={[{ color }, focused ? styles.labelSelected : styles.labelIdle]}>
               {label}
             </AppText>
           </Pressable>
@@ -104,7 +105,10 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: B
   );
 }
 
+// 選択中は tab（700）、未選択は label と同じ通常の太さ
 const styles = StyleSheet.create({
+  labelSelected: { fontFamily: resolveFontFamily(typography.tab.fontFamily, typography.tab.fontWeight) },
+  labelIdle: { fontFamily: resolveFontFamily(typography.label.fontFamily, typography.label.fontWeight) },
   icon: {
     width: ICON_SIZE,
     height: ICON_SIZE,

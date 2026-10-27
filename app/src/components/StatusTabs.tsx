@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { colors, size, space, typography } from "../design/tokens";
-import { resolveFontFamily } from "../design/fonts";
+import { colors, size, space, typography } from '../design/tokens';
+import { resolveFontFamily } from '../design/fonts';
 import type { StatusFilter } from '../lib/countByStatus';
 import { AppText } from './AppText';
 

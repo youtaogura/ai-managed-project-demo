@@ -1,4 +1,5 @@
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
+import { StyleSheet } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { TabBar } from '../TabBar';
@@ -37,5 +38,13 @@ describe('TabBar', () => {
     expect(navigateToTab).not.toHaveBeenCalled();
     await fireEvent.press(screen.getByRole('tab', { name: '設定' }));
     expect(navigateToTab).toHaveBeenCalledWith('c');
+  });
+
+  it('選択中のラベルだけ太く、未選択とフォントが変わる', async () => {
+    await render(<TabBar {...setup(0).props} />);
+    const font = (name: string) =>
+      StyleSheet.flatten(screen.getByText(name).props.style).fontFamily;
+    expect(font('本棚')).not.toBe(font('設定'));
+    expect(font('振り返り')).toBe(font('設定'));
   });
 });
