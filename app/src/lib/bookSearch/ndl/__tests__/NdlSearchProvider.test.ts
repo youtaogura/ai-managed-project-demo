@@ -12,7 +12,7 @@ describe('NdlSearchProvider', () => {
     const result = await new NdlSearchProvider({ fetchFn }).search('  ワン ピース ');
     expect(fetchFn).toHaveBeenCalledTimes(1);
     expect(fetchFn.mock.calls[0][0]).toBe(
-      'https://ndlsearch.ndl.go.jp/api/opensearch?title=%E3%83%AF%E3%83%B3%20%E3%83%94%E3%83%BC%E3%82%B9&cnt=50&dpid=iss-ndl-opac',
+      'https://ndlsearch.ndl.go.jp/api/opensearch?title=%E3%83%AF%E3%83%B3%20%E3%83%94%E3%83%BC%E3%82%B9&cnt=100&mediatype=books&dpid=iss-ndl-opac',
     );
     expect(result).toEqual({
       status: 'ok',
@@ -36,6 +36,61 @@ describe('NdlSearchProvider', () => {
     });
   });
 
+  it('429・503 は待ってやり直し、成功すれば候補を返す', async () => {
+    const sleep = jest.fn(async () => undefined);
+    const fetchFn = jest
+      .fn()
+      .mockResolvedValueOnce({ ok: false, status: 429 } as Response)
+      .mockResolvedValueOnce({ ok: false, status: 503 } as Response)
+      .mockResolvedValueOnce({ ok: true, status: 200, text: async () => xml } as Response);
+    const result = await new NdlSearchProvider({ fetchFn, sleep }).search('本');
+    expect(fetchFn).toHaveBeenCalledTimes(3);
+    expect(sleep.mock.calls).toEqual([[1000], [2000]]);
+    expect(result.status).toBe('ok');
+  });
+
+  it('やり直しても 429 が続けば network', async () => {
+    const sleep = jest.fn(async () => undefined);
+    const fetchFn = jest.fn(async () => ({ ok: false, status: 429 }) as Response);
+    expect(await new NdlSearchProvider({ fetchFn, sleep }).search('x')).toEqual({ status: 'error', reason: 'network' });
+    expect(fetchFn).toHaveBeenCalledTimes(3);
+  });
+
+  it('429・503 以外の HTTP エラーはやり直さない', async () => {
+    const sleep = jest.fn(async () => undefined);
+    const fetchFn = jest.fn(async () => ({ ok: false, status: 500 }) as Response);
+    expect((await new NdlSearchProvider({ fetchFn, sleep }).search('x')).status).toBe('error');
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(sleep).not.toHaveBeenCalled();
+  });
+
+  it('既定の待ち時間でやり直す', async () => {
+    jest.useFakeTimers();
+    try {
+      const fetchFn = jest
+        .fn()
+        .mockResolvedValueOnce({ ok: false, status: 429 } as Response)
+        .mockResolvedValueOnce({ ok: true, status: 200, text: async () => xml } as Response);
+      const promise = new NdlSearchProvider({ fetchFn }).search('本');
+      await jest.advanceTimersByTimeAsync(1000);
+      expect((await promise).status).toBe('ok');
+      expect(fetchFn).toHaveBeenCalledTimes(2);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('キーワードと一致するタイトルを先頭に並べる', async () => {
+    const item = (title: string, isbn: string) =>
+      `<item><title>${title}</title><category>図書</category><dc:identifier xsi:type="dcndl:ISBN">${isbn}</dc:identifier></item>`;
+    const body = `<rss xmlns:dc="dc" xmlns:xsi="xsi" xmlns:dcndl="dcndl" version="2.0"><channel>${item('音楽家たちの村上春樹 : ノルウェイの森と10のオマージュ', '9784000000001')}${item('ノルウェイの森', '9784062748681')}</channel></rss>`;
+    const result = await new NdlSearchProvider({ fetchFn: okFetch(body) }).search('ノルウェイの森');
+    expect(result.status === 'ok' ? result.candidates.map((c) => c.title) : []).toEqual([
+      'ノルウェイの森',
+      '音楽家たちの村上春樹 : ノルウェイの森と10のオマージュ',
+    ]);
+  });
+
   it('fetch の reject は network', async () => {
     const fetchFn = jest.fn(async () => {
       throw new Error('offline');
@@ -56,7 +111,7 @@ describe('NdlSearchProvider', () => {
           }),
       );
       const promise = new NdlSearchProvider({ fetchFn }).search('x');
-      await jest.advanceTimersByTimeAsync(10000);
+      await jest.advanceTimersByTimeAsync(15000);
       expect(await promise).toEqual({ status: 'error', reason: 'network' });
     } finally {
       jest.useRealTimers();
