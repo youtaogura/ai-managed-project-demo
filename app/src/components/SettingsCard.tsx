@@ -15,7 +15,7 @@ export function SettingsCard({ title, children }: SettingsCardProps) {
   return (
     <View style={styles.section}>
       {title ? (
-        <AppText variant="label" style={styles.title}>
+        <AppText variant="value" style={styles.title}>
           {title}
         </AppText>
       ) : null}

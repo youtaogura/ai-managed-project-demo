@@ -24,6 +24,9 @@
 5. `orchestrator/` `docker/` `.github/` `CLAUDE.md` `docker-compose.yml` は変更しない。変更が必要だと考えたら判断ログに提案として書く。
 6. 開発サーバー（`expo start` など）は起動しない。検証は `cd {{APP_DIR}} && pnpm check`（lint / typecheck / test）で行う。
 7. 長い本文を gh に渡すときは `/tmp` にファイルを書いて `--body-file` を使う。
+   **PR の本文を更新するときは `gh pr edit` を使わない**（トークンの権限が足りず失敗する）。次のコマンドを単独で実行する:
+   `gh api -X PATCH repos/{{REPO}}/pulls/<PR番号> -F body=@/tmp/pr-body.md`
+   PR にコメントを足しても本文の代わりにはならない。レビューと CI は本文を見る。
 8. 操作がガード hook にブロックされたら、ブロック理由に従って別の方法をとる。回避策を探さない。
 
 ## 最終出力の形式（必須）

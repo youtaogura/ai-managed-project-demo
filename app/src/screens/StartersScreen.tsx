@@ -82,7 +82,9 @@ export function StartersScreen() {
           />
         </View>
         <View style={styles.countRow}>
-          <AppText variant="body">一度に出す数</AppText>
+          <AppText variant="value" style={{ color: colors.textSecondary }}>
+            一度に出す数
+          </AppText>
           <View style={styles.chips}>
             <ChipGroup
               label="一度に出す数"
@@ -126,7 +128,7 @@ export function StartersScreen() {
           }}
           style={styles.addButton}
         >
-          <AppText variant="button" style={{ color: colors.textSecondary }}>
+          <AppText variant="body" style={{ color: colors.textSecondary }}>
             ＋ 自分の書き出しを追加
           </AppText>
         </Pressable>
@@ -189,7 +191,7 @@ const styles = StyleSheet.create({
     paddingVertical: space[2],
   },
   countRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space[3] },
-  chips: { flex: 1, maxWidth: 200 },
+  chips: { flexShrink: 0 },
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
