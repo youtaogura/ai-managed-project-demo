@@ -52,11 +52,13 @@ const footer = (res) => (res?.log ? `\n\n<sub>ログ: \`${path.basename(res.log)
 async function block(item, kind, message, res) {
   const label = kind === 'clarification' ? config.labels.clarification : config.labels.failed;
   const title = kind === 'clarification' ? '確認待ちで停止しました' : '自動処理を停止しました';
+  // 人間が対応して再開したら、差し戻し・コンフリクト解消の回数を数え直す
+  if (!config.dryRun) updateIssueState(item.issue.number, { rework: 0, conflicts: 0, ciWaitSince: null });
   await gh.addLabel(item.issue.number, label);
   await gh.commentIssue(
     item.issue.number,
     `🤖 **オーケストレーター: ${title}**\n\n${message}\n\n` +
-      `対応後、\`${label}\` ラベルを外して Status を再開したい列に戻してください。${footer(res)}`,
+      `対応後、\`${label}\` ラベルを外して Status を再開したい列に戻してください（差し戻しの回数は数え直します）。${footer(res)}`,
   );
   await gh.setStatus(item, S.blocked);
 }
