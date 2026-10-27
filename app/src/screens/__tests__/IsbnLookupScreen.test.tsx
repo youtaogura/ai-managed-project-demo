@@ -234,3 +234,37 @@ describe('IsbnLookupScreen', () => {
     expect(router.replace).not.toHaveBeenCalled();
   });
 });
+
+describe('IsbnLookupScreen の確定キー', () => {
+  const field = () => screen.getByLabelText('ISBN（10 桁または 13 桁）');
+
+  it('returnKeyType が search', async () => {
+    await setup([]);
+    expect(field().props.returnKeyType).toBe('search');
+  });
+
+  it('有効な ISBN で確定すると検索して遷移する', async () => {
+    const { lookupByIsbn } = await setup([{ status: 'found', book }]);
+    await enter('978-4-06-519981-7');
+    await fireEvent(field(), 'submitEditing');
+    await act(async () => {});
+    expect(lookupByIsbn).toHaveBeenCalledWith('9784065199817');
+    expect(router.replace).toHaveBeenCalled();
+  });
+
+  it('不正な ISBN で確定するとエラーを出し検索しない', async () => {
+    const { lookupByIsbn } = await setup([]);
+    await enter('123');
+    await fireEvent(field(), 'submitEditing');
+    expect(screen.getByText(INVALID)).toBeTruthy();
+    expect(lookupByIsbn).not.toHaveBeenCalled();
+  });
+
+  it('検索中に確定しても二重に検索しない', async () => {
+    const { lookupByIsbn } = await setup(new Promise<BookLookupResult>(() => {}));
+    await enter('9784065199817');
+    await fireEvent(field(), 'submitEditing');
+    await fireEvent(field(), 'submitEditing');
+    expect(lookupByIsbn).toHaveBeenCalledTimes(1);
+  });
+});

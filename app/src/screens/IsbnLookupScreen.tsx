@@ -98,6 +98,8 @@ export function IsbnLookupScreen({ initialIsbn = '', initialNotFound = false }: 
             value={text}
             onChangeText={onChangeText}
             editable={!loading}
+            returnKeyType="search"
+            onSubmitEditing={() => void search()}
             error={status === 'invalid' ? ERROR_ISBN_INVALID : undefined}
           />
           <AppText variant="label" style={styles.hint}>
