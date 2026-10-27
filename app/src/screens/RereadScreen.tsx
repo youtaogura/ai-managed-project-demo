@@ -7,10 +7,11 @@ import { Button } from '../components/Button';
 import { MemoRow } from '../components/MemoRow';
 import { Quote } from '../components/Quote';
 import { RatingStars } from '../components/RatingStars';
+import { RuledText } from '../components/RuledText';
 import { SettingsRow } from '../components/SettingsRow';
 import { ShelfPickSheet } from '../components/ShelfPickSheet';
 import { StarterText } from '../components/StarterText';
-import { colors, radius, size, space } from '../design/tokens';
+import { colors, radius, size, space, typography } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useRecordRepository } from '../hooks/useRecordRepository';
 import { useShelfPick } from '../hooks/useShelfPick';
@@ -98,9 +99,9 @@ export function RereadScreen({ recordId, onEdit, onWrite, onBack }: RereadScreen
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: topInset + space[2] }]}>
-        <Button variant="icon" accessibilityLabel="戻る" onPress={() => onBack?.()}>
-          <AppText variant="sectionTitle">‹</AppText>
-        </Button>
+        <Pressable accessibilityRole="button" accessibilityLabel="戻る" style={styles.back} onPress={() => onBack?.()}>
+          <AppText style={styles.backMark}>‹</AppText>
+        </Pressable>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="編集"
@@ -127,7 +128,7 @@ export function RereadScreen({ recordId, onEdit, onWrite, onBack }: RereadScreen
                 <RatingStars rating={record.rating} size={STARS_SIZE} showValue={false} />
                 <AppText variant="value">{formatRating(record.rating)}</AppText>
                 {word ? (
-                  <AppText variant="label" style={{ color: colors.textSecondary }}>
+                  <AppText variant="value" style={{ color: colors.ribbon }}>
                     {word}
                   </AppText>
                 ) : null}
@@ -151,30 +152,33 @@ export function RereadScreen({ recordId, onEdit, onWrite, onBack }: RereadScreen
             <View style={styles.entries}>
               {entries.map((item) => {
                 if (item.kind === 'starter') {
-                  return <StarterText key={`starter-${item.entry.id}`} starter={item.entry.starter} text={item.entry.text} />;
+                  return (
+                    <RuledText key={`starter-${item.entry.id}`}>
+                      <StarterText starter={item.entry.starter} text={item.entry.text} />
+                    </RuledText>
+                  );
                 }
                 if (item.kind === 'quote') {
                   return <Quote key={`quote-${item.entry.id}`} quote={item.entry} />;
                 }
                 return (
-                  <AppText key={`free-${item.entry.id}`} variant="reading">
-                    {item.entry.text.trim()}
-                  </AppText>
+                  <RuledText key={`free-${item.entry.id}`}>
+                    <AppText variant="reading">{item.entry.text.trim()}</AppText>
+                  </RuledText>
                 );
               })}
             </View>
-            <View style={styles.ruled} />
           </>
         ) : null}
 
         {memos.length > 0 ? (
           <>
             <View style={styles.divider} />
-            <AppText variant="label" style={{ color: colors.textSecondary }}>
+            <AppText variant="value" style={{ color: colors.textSecondary }}>
               メモ
             </AppText>
             {memos.map((memo) => (
-              <MemoRow key={memo.id} memo={memo} />
+              <MemoRow key={memo.id} memo={memo} textColor={colors.textSecondary} />
             ))}
           </>
         ) : null}
@@ -227,6 +231,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[4],
     paddingBottom: space[2],
   },
+  back: { minHeight: size.touchMin, minWidth: size.touchMin, justifyContent: 'center' },
+  backMark: {
+    fontSize: typography.screenTitle.fontSize,
+    lineHeight: typography.screenTitle.lineHeight,
+    color: colors.textSecondary,
+  },
   edit: { minHeight: size.touchMin, minWidth: size.touchMin, alignItems: 'center', justifyContent: 'center' },
   body: { paddingHorizontal: space[5], gap: space[3] },
   ratingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
@@ -238,8 +248,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[3],
     paddingVertical: space[1],
   },
-  divider: { height: 1, backgroundColor: colors.line, marginVertical: space[2] },
+  divider: { height: 1, backgroundColor: colors.line, marginVertical: space[3] },
   entries: { gap: space[4] },
-  ruled: { height: 1, backgroundColor: colors.line },
   guide: { gap: space[4], paddingVertical: space[4] },
 });
