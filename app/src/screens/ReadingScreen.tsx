@@ -10,6 +10,7 @@ import { Quote } from '../components/Quote';
 import { Spine } from '../components/Spine';
 import { regularTextStyle } from '../design/fonts';
 import { colors, radius, size, space } from '../design/tokens';
+import { useHeroSpine, HERO_SPINE_SIZE } from '../hooks/useBookFlight';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useRecordRepository } from '../hooks/useRecordRepository';
 import { useShelves } from '../hooks/useShelves';
@@ -31,7 +32,7 @@ import type { MediaRecord, NewRecordInput } from '../types/record';
 
 const ERROR_FINISH = '保存できませんでした。もう一度お試しください';
 const BAR_PADDING = space[4];
-const SPINE_SIZE = { width: 40, height: 150 };
+const SPINE_SIZE = HERO_SPINE_SIZE;
 
 type SheetState = { mode: 'new' } | { mode: 'edit'; item: NoteItem } | null;
 
@@ -50,6 +51,7 @@ function startLabel(startDate: string | null): string {
 export function ReadingScreen({ recordId, onEdit, onFinished, onBack }: ReadingScreenProps) {
   const bottomInset = useBottomInset();
   const topInset = useTopInset();
+  const { ref: heroRef, onLayout: onHeroLayout, hidden: heroHidden } = useHeroSpine(recordId);
   const repository = useRecordRepository();
   const { shelves } = useShelves();
   const [record, setRecord] = useState<MediaRecord | null>(null);
@@ -142,7 +144,14 @@ export function ReadingScreen({ recordId, onEdit, onFinished, onBack }: ReadingS
         ]}
       >
         <View style={styles.hero}>
-          <Spine record={record} dimensions={SPINE_SIZE} />
+          <View
+            ref={heroRef}
+            onLayout={onHeroLayout}
+            collapsable={false}
+            style={heroHidden ? styles.heroHidden : undefined}
+          >
+            <Spine record={record} dimensions={SPINE_SIZE} />
+          </View>
           <View style={styles.heroText}>
             <AppText variant="value" style={{ color: colors.ribbon }}>
               {startLabel(record.startDate)}
@@ -233,6 +242,7 @@ const styles = StyleSheet.create({
   edit: { minHeight: size.touchMin, minWidth: size.touchMin, alignItems: 'center', justifyContent: 'center' },
   body: { paddingHorizontal: space[5], gap: space[3] },
   hero: { flexDirection: 'row', alignItems: 'flex-end', gap: space[5], paddingTop: space[4], paddingBottom: space[2] },
+  heroHidden: { opacity: 0 },
   heroText: { flex: 1, gap: space[2] },
   sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   add: {
