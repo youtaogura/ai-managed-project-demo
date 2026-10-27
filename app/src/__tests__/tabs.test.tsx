@@ -12,7 +12,7 @@ import SettingsRoute from '../app/(tabs)/settings';
 import RecordsRoute from '../app/(tabs)/index';
 import EditRecordRoute from '../app/record/[id]';
 import NewRecordRoute from '../app/record/new';
-import RecordDetailRoute from '../app/records/[id]';
+import RereadRoute from '../app/records/[id]';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -30,7 +30,7 @@ const routes = {
   'record/search': TitleSearchRoute,
   'record/new': NewRecordRoute,
   'record/[id]': EditRecordRoute,
-  'records/[id]': RecordDetailRoute,
+  'records/[id]': RereadRoute,
 };
 
 describe('タブ構成', () => {

@@ -6,7 +6,7 @@ import RootLayout from '../app/_layout';
 import TabsLayout from '../app/(tabs)/_layout';
 import AnalyticsRoute from '../app/(tabs)/analytics';
 import RecordsRoute from '../app/(tabs)/index';
-import RecordDetailRoute from '../app/records/[id]';
+import RereadRoute from '../app/records/[id]';
 import { RECORDS_STORAGE_KEY } from '../lib/recordRepository';
 import { makeRecord } from '../testUtils';
 
@@ -19,7 +19,7 @@ const routes = {
   '(tabs)/_layout': TabsLayout,
   '(tabs)/index': RecordsRoute,
   '(tabs)/analytics': AnalyticsRoute,
-  'records/[id]': RecordDetailRoute,
+  'records/[id]': RereadRoute,
   // #3 が実装するルートの代わりのダミー
   'record/new': () => <Text>ダミー追加画面</Text>,
   'record/[id]': () => <Text>ダミー編集画面</Text>,

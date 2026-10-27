@@ -10,7 +10,7 @@ import IsbnLookupRoute from '../app/record/isbn';
 import NewRecordRoute from '../app/record/new';
 import BarcodeScanRoute from '../app/record/scan';
 import TitleSearchRoute from '../app/record/search';
-import RecordDetailRoute from '../app/records/[id]';
+import RereadRoute from '../app/records/[id]';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -29,7 +29,7 @@ const routes = {
   '(tabs)/_layout': TabsLayout,
   '(tabs)/index': RecordsRoute,
   '(tabs)/analytics': AnalyticsRoute,
-  'records/[id]': RecordDetailRoute,
+  'records/[id]': RereadRoute,
   'record/new': NewRecordRoute,
   'record/isbn': IsbnLookupRoute,
   'record/scan': BarcodeScanRoute,

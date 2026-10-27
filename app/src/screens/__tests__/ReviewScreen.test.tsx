@@ -22,7 +22,7 @@ jest.mock('expo-router', () => {
   };
 });
 
-type Handlers = { onAdd?: () => void; onOpenRecord?: (id: string) => void };
+type Handlers = { onAdd?: () => void; onOpenRecord?: (record: MediaRecord) => void };
 
 async function setup(records: MediaRecord[], handlers: Handlers = {}, bottom = 0) {
   await render(
@@ -101,7 +101,7 @@ describe('ReviewScreen', () => {
     );
     expect(await screen.findByText('今年のお気に入り')).toBeTruthy();
     await fireEvent.press(screen.getByLabelText(/^猫、/));
-    expect(onOpenRecord).toHaveBeenCalledWith('f1');
+    expect(onOpenRecord).toHaveBeenCalledWith(expect.objectContaining({ id: 'f1' }));
   });
 
   it('onOpenRecord 未指定でも背表紙を押して落ちない', async () => {
