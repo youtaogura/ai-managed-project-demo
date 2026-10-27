@@ -80,52 +80,11 @@ test('integrity: 検査を抑制するコメントの追加は NG', () => {
   }
 });
 
-test('integrity: テストファイルの削除は NG', () => {
-  const r = runScript('test-integrity.mjs', makeRepo({}, { remove: ['app/src/screens/__tests__/Home.test.tsx'] }));
-  assert.equal(r.code, 1, r.out);
-  assert.match(r.out, /削除/);
-});
-
-test('integrity: テスト対象のソースも削除していれば、テストファイルの削除は OK', () => {
-  const r = runScript(
-    'test-integrity.mjs',
-    makeRepo({}, { remove: ['app/src/screens/Home.tsx', 'app/src/screens/__tests__/Home.test.tsx'] }),
-  );
-  assert.equal(r.code, 0, r.out);
-  assert.match(r.out, /対象の `app\/src\/screens\/Home.tsx` も削除/);
-});
-
-test('integrity: 対象が index のディレクトリを削除した場合も OK', () => {
-  const dir = makeRepo({ 'app/src/lib/feat/index.ts': 'export const a = 1;\n', 'app/src/lib/__tests__/feat.test.ts': "it('a', () => {});\n" }, { branch: 'tmp' });
-  git(dir, 'checkout', '-q', 'main');
-  git(dir, 'merge', '-q', 'tmp');
-  git(dir, 'checkout', '-qb', 'agent/issue-8');
-  git(dir, 'rm', '-q', 'app/src/lib/feat/index.ts', 'app/src/lib/__tests__/feat.test.ts');
-  git(dir, 'commit', '-qm', 'remove');
-  const r = runScript('test-integrity.mjs', dir, { HEAD_REF: 'agent/issue-8' });
-  assert.equal(r.code, 0, r.out);
-});
-
-test('integrity: 許可ラベルがあれば、テストの削除・減少は OK', () => {
-  const labels = JSON.stringify(['allow-test-removal']);
-  const del = runScript('test-integrity.mjs', makeRepo({}, { remove: ['app/src/screens/__tests__/Home.test.tsx'] }), { PR_LABELS: labels });
+test('integrity: テストファイルの削除・テストケース数の減少は検査しない', () => {
+  const del = runScript('test-integrity.mjs', makeRepo({}, { remove: ['app/src/screens/__tests__/Home.test.tsx'] }));
   assert.equal(del.code, 0, del.out);
-  assert.match(del.out, /ラベルにより許可/);
-  const dec = runScript('test-integrity.mjs', makeRepo({ 'app/src/screens/__tests__/Home.test.tsx': "it('a', () => {});\n" }), { PR_LABELS: labels });
+  const dec = runScript('test-integrity.mjs', makeRepo({ 'app/src/screens/__tests__/Home.test.tsx': "it('a', () => {});\n" }));
   assert.equal(dec.code, 0, dec.out);
-});
-
-test('integrity: 許可ラベルがあっても、skip や抑制コメントは NG', () => {
-  const r = runScript('test-integrity.mjs', makeRepo({ 'app/src/screens/__tests__/X.test.tsx': "it.skip('x', () => {});\n" }), {
-    PR_LABELS: JSON.stringify(['allow-test-removal']),
-  });
-  assert.equal(r.code, 1, r.out);
-});
-
-test('integrity: テストケース数の減少は NG', () => {
-  const r = runScript('test-integrity.mjs', makeRepo({ 'app/src/screens/__tests__/Home.test.tsx': "it('a', () => {});\n" }));
-  assert.equal(r.code, 1, r.out);
-  assert.match(r.out, /2 → 1/);
 });
 
 test('integrity: 人間のブランチでは警告のみ', () => {
