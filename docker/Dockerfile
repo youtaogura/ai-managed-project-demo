@@ -20,6 +20,14 @@ RUN apt-get update \
  && apt-get install -y --no-install-recommends gh \
  && rm -rf /var/lib/apt/lists/*
 
+# 画面の撮影用（エージェントが Web 版を Playwright で撮影し、デザインと見比べる）
+# - ブラウザは Debian の Chromium を使う。Playwright のバージョンに縛られないよう、
+#   playwright / playwright-core からは executablePath に CHROMIUM_PATH を渡す（playwright install はしない）
+# - fonts-noto-cjk はアプリのフォントが読み込まれる前や、読み込まない部分の日本語の代わり
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends chromium fonts-noto-cjk \
+ && rm -rf /var/lib/apt/lists/*
+
 # CLI 類はグローバル（root 所有）にインストール。agent ユーザーからは書き換え不可
 RUN npm install -g \
       @anthropic-ai/claude-code@${CLAUDE_CODE_VERSION} \
@@ -57,6 +65,8 @@ ENV REPO_DIR=/workspace/repo \
     DATA_DIR=/data \
     LOG_DIR=/logs \
     npm_config_store_dir=/data/pnpm-store \
+    CHROMIUM_PATH=/usr/bin/chromium \
+    PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1 \
     DISABLE_AUTOUPDATER=1
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]
