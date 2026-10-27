@@ -1,5 +1,5 @@
 import { makeRecord } from '../../testUtils';
-import { buildRereadEntries, buildRereadPeriod, hasRereadContent } from '../reread';
+import { buildRereadEntries, hasRereadContent } from '../reread';
 
 const at = (n: number) => `2024-01-0${n}T00:00:00.000Z`;
 
@@ -30,20 +30,6 @@ describe('buildRereadEntries', () => {
       freeTexts: [{ id: 'f1', text: 'z', createdAt: at(1) }],
     });
     expect(buildRereadEntries(record).map((e) => e.kind)).toEqual(['starter', 'quote', 'free']);
-  });
-});
-
-describe('buildRereadPeriod', () => {
-  it.each([
-    ['2026-10-01', '2026-10-20', '2026/10/1–10/20'],
-    ['2026-10-20', '2026-10-20', '2026/10/20'],
-    ['2026-10-01', null, '2026/10/1 から'],
-    [null, '2026-10-20', '2026/10/20'],
-    [null, null, null],
-    ['2025-12-28', '2026-01-03', '2025/12/28–2026/1/3'],
-    ['bad', 'bad', null],
-  ])('%s – %s → %s', (startDate, endDate, expected) => {
-    expect(buildRereadPeriod({ startDate, endDate })).toBe(expected);
   });
 });
 

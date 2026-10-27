@@ -77,10 +77,11 @@ async function show(
 }
 
 describe('RereadScreen の表示', () => {
-  it('タイトル・作者 · 期間・ひとこと・星と言葉・お気に入りを出す', async () => {
+  it('上部は読んでる本と同じ組み（ステータスと期間・タイトル・作者）。ひとこと・星と言葉・お気に入りも出す', async () => {
     await show();
     await screen.findByText('吾輩は猫である');
-    expect(screen.getByText('夏目漱石 · 2026/10/1–10/20')).toBeTruthy();
+    expect(screen.getByText('読んだ · 10/1 – 10/20')).toBeTruthy();
+    expect(screen.getByText('夏目漱石 · SF、哲学')).toBeTruthy();
     expect(screen.getByText('「猫の目で人間を笑う本」')).toBeTruthy();
     expect(screen.getByLabelText('どうだった？ 4.2 よかった')).toBeTruthy();
     expect(screen.getByText('4.2')).toBeTruthy();
@@ -100,13 +101,28 @@ describe('RereadScreen の表示', () => {
   });
 
   it('作者だけの行を出す', async () => {
-    await show([{ ...full, endDate: null, startDate: null }]);
+    await show([{ ...full, endDate: null, startDate: null, shelfIds: [] }]);
     expect(await screen.findByText('夏目漱石')).toBeTruthy();
   });
 
-  it('期間だけの行を出す', async () => {
+  it('終えた日だけなら「読んだ · 終えた日」', async () => {
     await show([{ ...full, creator: null, startDate: null }]);
-    expect(await screen.findByText('2026/10/20')).toBeTruthy();
+    expect(await screen.findByText('読んだ · 10/20')).toBeTruthy();
+  });
+
+  it('読みたい・途中でやめた本もステータスを上部に出す', async () => {
+    await show([{ ...full, status: 'planned', startDate: null, endDate: null }]);
+    expect(await screen.findByText('読みたい')).toBeTruthy();
+  });
+
+  it('途中でやめた本は「途中でやめた · 終えた日 まで」', async () => {
+    await show([{ ...full, status: 'dropped', endDate: '2026-10-05' }]);
+    expect(await screen.findByText('途中でやめた · 10/5 まで')).toBeTruthy();
+  });
+
+  it('入っている本棚を作者の横に出す', async () => {
+    await show([{ ...full, shelfIds: ['s1'] }]);
+    expect(await screen.findByText('夏目漱石 · SF')).toBeTruthy();
   });
 
   it('書き出しは同じ Text の中で続きと一続きになり、引用・自由記述と書いた順に並ぶ', async () => {
@@ -213,7 +229,7 @@ describe('RereadScreen の入口', () => {
 
   it('期間・評価の言葉の色・お気に入りの枠・罫線（引用には付けない）', async () => {
     await show();
-    expect(await screen.findByText(/2026\/10\/1–10\/20/)).toBeTruthy();
+    expect(await screen.findByText('読んだ · 10/1 – 10/20')).toBeTruthy();
     const word = screen.getByText('よかった');
     expect(StyleSheet.flatten(word.props.style).color).toBe(colors.ribbon);
     expect(StyleSheet.flatten(word.props.style).fontSize).toBe(

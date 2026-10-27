@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppText } from '../components/AppText';
+import { BookHero } from '../components/BookHero';
 import { Button } from '../components/Button';
 import { MemoRow } from '../components/MemoRow';
 import { NoteSheet } from '../components/NoteSheet';
@@ -12,6 +13,7 @@ import { RuledText } from '../components/RuledText';
 import { SettingsRow } from '../components/SettingsRow';
 import { ShelfPickSheet } from '../components/ShelfPickSheet';
 import { StarterText } from '../components/StarterText';
+import { regularTextStyle } from '../design/fonts';
 import { colors, radius, size, space, typography } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useRecordRepository } from '../hooks/useRecordRepository';
@@ -28,7 +30,7 @@ import {
   type NoteItem,
 } from '../lib/notes';
 import { getRatingWord } from '../lib/ratingWord';
-import { buildRereadEntries, buildRereadPeriod, hasRereadContent } from '../lib/reread';
+import { buildRereadEntries, hasRereadContent } from '../lib/reread';
 import { formatRating, todayString } from '../lib/recordForm';
 import { shelfNames } from '../lib/shelfSelectors';
 import type { MediaRecord, NewRecordInput } from '../types/record';
@@ -144,7 +146,6 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
     );
   }
 
-  const meta = [record.creator, buildRereadPeriod(record)].filter((v): v is string => !!v).join(' · ');
   const oneLiner = record.oneLiner?.trim() ?? '';
   const word = getRatingWord(record.rating);
   const completed = record.status === 'completed';
@@ -166,18 +167,11 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
           style={styles.edit}
           onPress={() => onEdit?.(record.id)}
         >
-          <AppText variant="button">編集</AppText>
+          <AppText variant="button" style={{ color: colors.textSecondary, ...regularTextStyle }}>編集</AppText>
         </Pressable>
       </View>
       <ScrollView contentContainerStyle={[styles.body, { paddingBottom: bottomInset + space[6] }]}>
-        <AppText variant="bookTitle" style={{ color: colors.textSecondary }}>
-          {record.title}
-        </AppText>
-        {meta ? (
-          <AppText variant="label" style={{ color: colors.textSecondary }}>
-            {meta}
-          </AppText>
-        ) : null}
+        <BookHero record={record} shelves={shelves} />
         {oneLiner ? <AppText variant="oneLine">{`「${oneLiner}」`}</AppText> : null}
         {record.rating !== null || record.favorite ? (
           <View style={styles.ratingRow}>

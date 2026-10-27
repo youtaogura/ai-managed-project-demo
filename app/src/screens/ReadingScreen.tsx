@@ -3,18 +3,17 @@ import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppText } from '../components/AppText';
+import { BookHero } from '../components/BookHero';
 import { Button } from '../components/Button';
 import { MemoRow } from '../components/MemoRow';
 import { NoteSheet } from '../components/NoteSheet';
 import { Quote } from '../components/Quote';
-import { Spine } from '../components/Spine';
 import { regularTextStyle } from '../design/fonts';
 import { colors, radius, size, space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useRecordRepository } from '../hooks/useRecordRepository';
 import { useShelves } from '../hooks/useShelves';
 import { useTopInset } from '../hooks/useTopInset';
-import { parseDateParts } from '../lib/date';
 import { triggerImpactHaptic } from '../lib/haptics';
 import {
   addNote,
@@ -26,12 +25,10 @@ import {
   type NoteItem,
 } from '../lib/notes';
 import { todayString } from '../lib/recordForm';
-import { shelfNames } from '../lib/shelfSelectors';
 import type { MediaRecord, NewRecordInput } from '../types/record';
 
 const ERROR_FINISH = '保存できませんでした。もう一度お試しください';
 const BAR_PADDING = space[4];
-const SPINE_SIZE = { width: 40, height: 150 };
 
 type SheetState = { mode: 'new' } | { mode: 'edit'; item: NoteItem } | null;
 
@@ -42,10 +39,6 @@ type ReadingScreenProps = {
   onBack?: () => void;
 };
 
-function startLabel(startDate: string | null): string {
-  const parts = startDate ? parseDateParts(startDate) : null;
-  return parts ? `読んでる · ${parts.m}/${parts.d} から` : '読んでる';
-}
 
 export function ReadingScreen({ recordId, onEdit, onFinished, onBack }: ReadingScreenProps) {
   const bottomInset = useBottomInset();
@@ -115,8 +108,6 @@ export function ReadingScreen({ recordId, onEdit, onFinished, onBack }: ReadingS
     );
   }
 
-  const names = shelfNames(record, shelves).join('、');
-  const meta = [record.creator, names].filter((v): v is string => !!v).join(' · ');
   const reading = record.status === 'in_progress';
   const editing = sheet?.mode === 'edit' ? sheet.item : null;
 
@@ -141,20 +132,7 @@ export function ReadingScreen({ recordId, onEdit, onFinished, onBack }: ReadingS
           { paddingBottom: (reading ? size.buttonHeight + BAR_PADDING * 2 : 0) + bottomInset + space[6] },
         ]}
       >
-        <View style={styles.hero}>
-          <Spine record={record} dimensions={SPINE_SIZE} />
-          <View style={styles.heroText}>
-            <AppText variant="value" style={{ color: colors.ribbon }}>
-              {startLabel(record.startDate)}
-            </AppText>
-            <AppText variant="bookTitle">{record.title}</AppText>
-            {meta ? (
-              <AppText variant="label" style={{ color: colors.textSecondary }}>
-                {meta}
-              </AppText>
-            ) : null}
-          </View>
-        </View>
+        <BookHero record={record} shelves={shelves} />
         <View style={styles.sectionHead}>
           <AppText variant="sectionTitle">メモと引用</AppText>
           <AppText variant="label" style={{ color: colors.textSecondary }}>{`${items.length} 件`}</AppText>
@@ -232,8 +210,6 @@ const styles = StyleSheet.create({
   back: { minHeight: size.touchMin, minWidth: size.touchMin, justifyContent: 'center' },
   edit: { minHeight: size.touchMin, minWidth: size.touchMin, alignItems: 'center', justifyContent: 'center' },
   body: { paddingHorizontal: space[5], gap: space[3] },
-  hero: { flexDirection: 'row', alignItems: 'flex-end', gap: space[5], paddingTop: space[4], paddingBottom: space[2] },
-  heroText: { flex: 1, gap: space[2] },
   sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   add: {
     minHeight: size.touchMin,
