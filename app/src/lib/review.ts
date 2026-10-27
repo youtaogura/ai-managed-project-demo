@@ -93,8 +93,7 @@ export function summarizeReview(records: MediaRecord[], now: Date): ReviewSummar
   const starterCounts = new Map<string, number>();
   const bump = (text: string) => starterCounts.set(text, (starterCounts.get(text) ?? 0) + 1);
   for (const r of records.filter(inYear)) {
-    if (hasText(r.oneLiner)) bump(STARTER_FIXED);
-    for (const s of r.starters) if (hasText(s.text)) bump(s.starter);
+    for (const s of r.starters) if (hasText(s.text) && s.starter !== STARTER_FIXED) bump(s.starter);
   }
   let topStarter: ReviewSummary['topStarter'] = null;
   for (const [text, count] of starterCounts) {

@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
 import { StyleSheet } from 'react-native';
 
+import { colors } from '../../design/tokens';
 import { createRecordRepository, RECORDS_STORAGE_KEY, type RecordRepository } from '../../lib/recordRepository';
 import { createShelfRepository, SHELVES_STORAGE_KEY } from '../../lib/shelfRepository';
 import { withRepository } from '../../testProviders';
@@ -124,6 +125,15 @@ describe('RereadScreen の表示', () => {
     expect(memos).toEqual(['さきのメモ', 'あとのメモ', 'ページなしメモ']);
   });
 
+  it('「メモ」見出しと本文は textSecondary で、見出しは本文より小さい', async () => {
+    await show();
+    const heading = StyleSheet.flatten((await screen.findByText('メモ')).props.style);
+    const body = StyleSheet.flatten(screen.getByText('さきのメモ').props.style);
+    expect(heading.color).toBe(colors.textSecondary);
+    expect(body.color).toBe(colors.textSecondary);
+    expect(heading.fontSize).toBeLessThan(body.fontSize as number);
+  });
+
   it('メモが 0 件なら見出しごと出さない', async () => {
     await show([{ ...full, memos: [] }]);
     await screen.findByText('吾輩は猫である');
@@ -182,8 +192,24 @@ describe('RereadScreen の入口', () => {
     await show([full], { onEdit, onBack });
     await fireEvent.press(await screen.findByRole('button', { name: '編集' }));
     expect(onEdit).toHaveBeenCalledWith('x');
-    await fireEvent.press(screen.getByRole('button', { name: '戻る' }));
+    const back = screen.getByRole('button', { name: '戻る' });
+    expect(StyleSheet.flatten(back.props.style).backgroundColor).toBeUndefined();
+    await fireEvent.press(back);
     expect(onBack).toHaveBeenCalled();
+  });
+
+  it('期間・評価の言葉の色・お気に入りの枠・罫線（引用には付けない）', async () => {
+    await show();
+    expect(await screen.findByText(/2026\/10\/1–10\/20/)).toBeTruthy();
+    const word = screen.getByText('よかった');
+    expect(StyleSheet.flatten(word.props.style).color).toBe(colors.ribbon);
+    expect(StyleSheet.flatten(word.props.style).fontSize).toBe(
+      StyleSheet.flatten(screen.getByText('4.2').props.style).fontSize,
+    );
+    const pill = screen.getByText('お気に入り').parent;
+    expect(StyleSheet.flatten(pill?.props.style).borderColor).toBe(colors.ribbon);
+    // 書き出しの続きと自由記述に 1 本ずつ。引用にはない
+    expect(screen.getAllByTestId('rule')).toHaveLength(2);
   });
 });
 
