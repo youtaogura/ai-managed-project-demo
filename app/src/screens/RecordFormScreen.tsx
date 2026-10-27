@@ -4,6 +4,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import { AppText } from '../components/AppText';
 import { RecordForm } from '../components/RecordForm';
+import { ScreenHeaderBar } from '../components/ScreenHeaderBar';
 import { colors, space } from '../design/tokens';
 import { useSettings } from '../hooks/useSettings';
 import { useRecordRepository } from '../hooks/useRecordRepository';
@@ -14,6 +15,8 @@ import { todayString } from '../lib/recordForm';
 import type { MediaRecord, NewRecordInput } from '../types/record';
 
 type RecordFormScreenProps = {
+  /** 上のバーの見出し。省略すると、新規は「本を登録」、編集は「本を編集」 */
+  title?: string;
   recordId?: string;
   initialValues?: Partial<NewRecordInput>;
 };
@@ -22,7 +25,18 @@ type LoadState =
   | { status: 'loading' }
   | { status: 'ready'; record: MediaRecord | null; recordCount: number };
 
-export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenProps) {
+const cancel = () => (router.canGoBack() ? router.back() : router.replace('/'));
+
+export function RecordFormScreen({ title, recordId, initialValues }: RecordFormScreenProps) {
+  return (
+    <View style={styles.root}>
+      <ScreenHeaderBar title={title ?? (recordId === undefined ? '本を登録' : '本を編集')} closeLabel="キャンセル" onClose={cancel} />
+      <RecordFormBody recordId={recordId} initialValues={initialValues} />
+    </View>
+  );
+}
+
+function RecordFormBody({ recordId, initialValues }: Omit<RecordFormScreenProps, 'title'>) {
   const repository = useRecordRepository();
   const { settings } = useSettings();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
@@ -117,6 +131,7 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
 }
 
 const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.bg },
   center: {
     flex: 1,
     alignItems: 'center',

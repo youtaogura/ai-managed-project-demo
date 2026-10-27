@@ -9,6 +9,8 @@ import { Button } from './Button';
 type ScreenHeaderBarProps = {
   title?: string;
   onClose: () => void;
+  /** 指定すると、左の閉じるを ✕ ではなく文字のボタン（例: 「キャンセル」）にする */
+  closeLabel?: string;
   right?: ReactNode;
   onImage?: boolean;
   divider?: boolean;
@@ -18,6 +20,7 @@ type ScreenHeaderBarProps = {
 export function ScreenHeaderBar({
   title,
   onClose,
+  closeLabel,
   right,
   onImage,
   divider = true,
@@ -32,9 +35,15 @@ export function ScreenHeaderBar({
         divider && styles.divider,
       ]}
     >
-      <Button variant="icon" accessibilityLabel="閉じる" onImage={onImage} onPress={onClose}>
-        <AppText variant="sectionTitle">✕</AppText>
-      </Button>
+      {closeLabel !== undefined ? (
+        <View style={[styles.side, styles.sideStart]}>
+          <Button variant="text" label={closeLabel} onPress={onClose} />
+        </View>
+      ) : (
+        <Button variant="icon" accessibilityLabel="閉じる" onImage={onImage} onPress={onClose}>
+          <AppText variant="sectionTitle">✕</AppText>
+        </Button>
+      )}
       <View style={styles.center}>
         {children ?? (
           <AppText variant="sectionTitle" style={styles.title}>
@@ -43,7 +52,7 @@ export function ScreenHeaderBar({
         )}
       </View>
       {children === undefined || right !== undefined ? (
-        <View style={styles.side}>{right}</View>
+        <View style={[styles.side, closeLabel !== undefined && styles.sideWide]}>{right}</View>
       ) : null}
     </View>
   );
@@ -61,4 +70,7 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center' },
   title: { textAlign: 'center' },
   side: { minWidth: size.touchMin, alignItems: 'flex-end' },
+  // 文字の閉じるボタンのときは、左右の幅をそろえて見出しを中央に置く
+  sideStart: { width: size.touchMin * 2 + space[4], alignItems: 'flex-start' },
+  sideWide: { width: size.touchMin * 2 + space[4] },
 });

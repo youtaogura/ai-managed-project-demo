@@ -19,7 +19,7 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 );
 
 jest.mock('expo-router', () => ({
-  router: { back: jest.fn(), push: jest.fn(), replace: jest.fn(), dismissTo: jest.fn() },
+  router: { back: jest.fn(), push: jest.fn(), replace: jest.fn(), dismissTo: jest.fn(), canGoBack: jest.fn(() => true) },
 }));
 
 function memoryRepository() {
@@ -60,6 +60,27 @@ jest.setTimeout(30000);
 
 beforeEach(() => jest.clearAllMocks());
 afterEach(() => jest.restoreAllMocks());
+
+describe('RecordFormScreen（上のバー）', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  it('新規は「本を登録」を見出しにする', async () => {
+    const repository = memoryRepository();
+    await render(withRepository(repository, <RecordFormScreen />));
+    expect(await screen.findByText('本を登録')).toBeTruthy();
+  });
+
+  it('「キャンセル」で前の画面に戻る。戻れないときは本棚へ', async () => {
+    const repository = memoryRepository();
+    await render(withRepository(repository, <RecordFormScreen />));
+    await screen.findByText('本を登録');
+    await press('キャンセル');
+    expect(router.back).toHaveBeenCalledTimes(1);
+    jest.mocked(router.canGoBack).mockReturnValueOnce(false);
+    await press('キャンセル');
+    expect(router.replace).toHaveBeenCalledWith('/');
+  });
+});
 
 describe('RecordFormScreen（新規）', () => {
   it('保存で add が呼ばれ、保存した記録の詳細へ移る', async () => {
@@ -294,7 +315,9 @@ describe('RecordFormScreen（編集）', () => {
     await screen.findByDisplayValue('既存');
     const del = jest.spyOn(repository, 'delete');
     await press('この本を削除');
-    await press('キャンセル');
+    // 上のバーにも「キャンセル」があるので、削除の確認のシートの方（後ろ）を押す
+    const cancels = screen.getAllByRole('button', { name: 'キャンセル' });
+    await fireEvent.press(cancels[cancels.length - 1]);
     expect(del).not.toHaveBeenCalled();
     expect(router.replace).not.toHaveBeenCalled();
     expect(router.back).not.toHaveBeenCalled();
