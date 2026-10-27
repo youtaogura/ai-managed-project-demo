@@ -108,7 +108,11 @@ export function RecordsScreen({
       <View style={styles.titles}>
         <AppText variant="screenTitle">本棚</AppText>
         <AppText variant="label" style={styles.summary}>
-          {records.length > 0 ? `${records.length} 冊 · 今年読んだ ${yearCount} 冊` : 'まだ本がありません'}
+          {records.length === 0
+            ? 'まだ本がありません'
+            : yearCount > 0
+              ? `${records.length} 冊 · 今年読んだ ${yearCount} 冊`
+              : `${records.length} 冊`}
         </AppText>
       </View>
       <View style={styles.actions}>

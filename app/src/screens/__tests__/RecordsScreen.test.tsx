@@ -103,11 +103,22 @@ describe('RecordsScreen', () => {
     expect(screen.getByText('本棚')).toBeTruthy();
   });
 
+  it('読んでいる本・読みたい本だけのときは「今年読んだ」を出さない', async () => {
+    const year = new Date().getFullYear();
+    const only = [
+      makeRecord({ id: 'a', title: 'A', status: 'in_progress', endDate: `${year}-01-01` }),
+      makeRecord({ id: 'b', title: 'B', status: 'planned', endDate: `${year}-01-02` }),
+    ];
+    await setup(createFakeRepository(only).repository);
+    expect(await screen.findByText('2 冊')).toBeTruthy();
+    expect(screen.queryByText(/今年読んだ/)).toBeNull();
+  });
+
   it('冊数は絞り込みの影響を受けない', async () => {
     await setup(createFakeRepository(records).repository);
     await ready();
     await fireEvent.press(screen.getByRole('tab', { name: /^読みたい/ }));
-    expect(screen.getByText(/^5 冊 · 今年読んだ/)).toBeTruthy();
+    expect(screen.getByText(/^5 冊/)).toBeTruthy();
   });
 
   it('ステータスのタブは件数つきで、初期値は「すべて」', async () => {
@@ -320,7 +331,7 @@ describe('RecordsScreen の本棚', () => {
     await fireEvent.press(await screen.findByRole('button', { name: '哲学' }));
     expect(screen.getByRole('tab', { name: 'すべて 2' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: '読んだ 1' })).toBeTruthy();
-    expect(screen.getByText(/^4 冊 · 今年読んだ/)).toBeTruthy();
+    expect(screen.getByText(/^4 冊/)).toBeTruthy();
     await fireEvent.press(screen.getByRole('tab', { name: '読んだ 1' }));
     expect(titles()).toEqual(['ガンマ']);
     await fireEvent.press(screen.getByRole('tab', { name: '読んでる 0' }));

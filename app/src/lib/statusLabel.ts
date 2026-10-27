@@ -19,6 +19,10 @@ export function getCreatorLabel(): string {
   return '作者・著者';
 }
 
-export function getDateHint(): string {
+export function getDateHint(status: RecordStatus): string | null {
+  if (status === 'planned') return null;
+  if (status === 'in_progress') {
+    return `「${getStatusLabel('in_progress')}」を選ぶと、読み始めた日に今日が入ります`;
+  }
   return `「${getStatusLabel('completed')}」を選ぶと、終えた日に今日が入ります`;
 }

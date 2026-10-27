@@ -76,6 +76,22 @@ describe('applyStatusChange', () => {
     expect(applyStatusChange(v, 'in_progress', '2024-05-01').startDate).toBe('2024-01-01');
     expect(applyStatusChange(v, 'completed', '2024-05-01').endDate).toBe('2024-02-01');
   });
+  it('planned で両方の日付を空にする', () => {
+    const v = { ...base(), startDate: '2024-01-01', endDate: '2024-02-01' };
+    expect(applyStatusChange(v, 'planned', '2024-05-01')).toMatchObject({ startDate: '', endDate: '' });
+  });
+  it('in_progress で終了日を空にし、開始日は残す', () => {
+    const v = { ...base(), startDate: '2024-01-01', endDate: '2024-02-01' };
+    expect(applyStatusChange(v, 'in_progress', '2024-05-01')).toMatchObject({
+      startDate: '2024-01-01',
+      endDate: '',
+    });
+  });
+  it('completed / dropped で開始日は変えない', () => {
+    const v = { ...base(), startDate: '2024-01-01' };
+    expect(applyStatusChange(v, 'completed', '2024-05-01').startDate).toBe('2024-01-01');
+    expect(applyStatusChange(base(), 'dropped', '2024-05-01').startDate).toBe('');
+  });
   it('planned では日付を入れない', () => {
     expect(applyStatusChange(base(), 'planned', '2024-05-01')).toMatchObject({
       startDate: '',
