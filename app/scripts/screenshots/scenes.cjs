@@ -63,6 +63,7 @@ const SCENES = [
     url: '/record/edit-1',
     waitFor: '保存する',
   },
+  { name: 'book-form-new', data: () => ({ records: [], shelves: SHELVES }), url: '/record/new', waitFor: '棚に並べる' },
   { name: 'reading', data: () => ({ records: [makeReadingRecord()], shelves: SHELVES }), url: '/reading/reading-1', waitFor: '読み終えた' },
   {
     name: 'note-sheet',
