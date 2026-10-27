@@ -12,7 +12,6 @@ import { SettingsCard } from '../components/SettingsCard';
 import { SettingsRow } from '../components/SettingsRow';
 import { colors, size, space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
-import { usePhotoService } from '../hooks/usePhotoService';
 import { useFileService } from '../hooks/useFileService';
 import { useLastExportedAt } from '../hooks/useLastExportedAt';
 import { useRecordRepository } from '../hooks/useRecordRepository';
@@ -61,7 +60,6 @@ export function DataScreen({
   const repository = useRecordRepository();
   const shelfRepository = useShelfRepository();
   const fileService = useFileService();
-  const photoService = usePhotoService();
   const { settings, replace } = useSettings();
   const { starterSettings, replace: replaceStarterSettings } = useStarterSettings();
   const { records, reload } = useRecords();
@@ -169,7 +167,7 @@ export function DataScreen({
     setMessage(null);
     setDeleting(true);
     try {
-      await deleteAllRecords({ repository, photoService });
+      await deleteAllRecords({ repository });
       setDeleteOpen(false);
       triggerImpactHaptic();
       await reload();

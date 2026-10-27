@@ -56,7 +56,7 @@ async function show(records: MediaRecord[] = [full], handlers: Handlers = {}, fa
     : real;
   await renderRouter({
     index: () =>
-      withRepository(repository, <RereadScreen recordId="x" {...handlers} />, undefined, undefined, createShelfRepository(storage)),
+      withRepository(repository, <RereadScreen recordId="x" {...handlers} />, createShelfRepository(storage)),
     other: () => null,
   });
   return real;
@@ -68,7 +68,7 @@ describe('RereadScreen の表示', () => {
     await screen.findByText('吾輩は猫である');
     expect(screen.getByText('夏目漱石 · 2026/10/1–10/20')).toBeTruthy();
     expect(screen.getByText('「猫の目で人間を笑う本」')).toBeTruthy();
-    expect(screen.getByLabelText('レーティング 4.2')).toBeTruthy();
+    expect(screen.getByLabelText('どうだった？ 4.2 よかった')).toBeTruthy();
     expect(screen.getByText('4.2')).toBeTruthy();
     expect(screen.getByText('よかった')).toBeTruthy();
     expect(screen.getByText('お気に入り')).toBeTruthy();
@@ -81,7 +81,7 @@ describe('RereadScreen の表示', () => {
     await screen.findByText('吾輩は猫である');
     expect(screen.queryByText(/ · /)).toBeNull();
     expect(screen.queryByText(/「/)).toBeNull();
-    expect(screen.queryByLabelText(/レーティング/)).toBeNull();
+    expect(screen.queryByLabelText(/どうだった？ /)).toBeNull();
     expect(screen.queryByText('お気に入り')).toBeNull();
   });
 

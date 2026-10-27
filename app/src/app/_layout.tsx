@@ -7,11 +7,9 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { navigationTheme, stackScreenOptions } from '../design/navigationTheme';
 import { BookLookupContextProvider } from '../hooks/useBookLookup';
-import { CoverResolverContextProvider } from '../hooks/useCoverResolver';
 import { BookSearchContextProvider } from '../hooks/useBookSearch';
 import { FileServiceContextProvider } from '../hooks/useFileService';
 import { NoteDraftStoreProvider } from '../hooks/useNoteDraftStore';
-import { PhotoServiceContextProvider } from '../hooks/usePhotoService';
 import { SettingsContextProvider } from '../hooks/useSettings';
 import { ShelfRepositoryProvider } from '../hooks/useShelfRepository';
 import { StarterSettingsContextProvider } from '../hooks/useStarterSettings';
@@ -31,9 +29,7 @@ function Providers() {
         <ShelfRepositoryProvider>
           <RecordRepositoryProvider>
             <BookLookupContextProvider>
-              <CoverResolverContextProvider>
                 <BookSearchContextProvider>
-                  <PhotoServiceContextProvider>
                     <FileServiceContextProvider>
                       <NoteDraftStoreProvider>
                         <ThemeProvider value={navigationTheme}>
@@ -44,9 +40,7 @@ function Providers() {
                         <StatusBar style="dark" />
                       </NoteDraftStoreProvider>
                     </FileServiceContextProvider>
-                  </PhotoServiceContextProvider>
                 </BookSearchContextProvider>
-              </CoverResolverContextProvider>
             </BookLookupContextProvider>
           </RecordRepositoryProvider>
         </ShelfRepositoryProvider>

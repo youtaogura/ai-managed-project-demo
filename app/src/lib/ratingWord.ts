@@ -1,4 +1,4 @@
-/** 評価の言葉。小数の誤差を避けるため 10 倍の整数で比べる。 */
+/** どうだったの言葉。小数の誤差を避けるため 10 倍の整数で比べる。 */
 export function getRatingWord(rating: number | null): string | null {
   if (rating === null) return null;
   const tenths = Math.round(rating * 10);

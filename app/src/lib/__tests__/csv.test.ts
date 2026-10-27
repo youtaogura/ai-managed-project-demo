@@ -44,7 +44,7 @@ describe('recordsToCsv', () => {
       'ステータス',
       '始めた日',
       '終えた日',
-      'レーティング',
+      'どうだった？',
       'ひとこと',
       '登録日時',
       '更新日時',
@@ -52,7 +52,7 @@ describe('recordsToCsv', () => {
     expect(rows).toHaveLength(2);
   });
 
-  it('日本語ラベル・null は空欄・レーティングは数値', () => {
+  it('日本語ラベル・null は空欄・どうだった？は数値', () => {
     const csv = recordsToCsv([
       makeRecord({
         status: 'completed',

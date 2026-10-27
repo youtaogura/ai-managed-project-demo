@@ -1,4 +1,3 @@
-import type { PhotoService } from './lib/photo/PhotoService';
 import type { MediaRecord } from './types/record';
 import type { RecordRepository } from './lib/recordRepository';
 import type { KeyValueStorage } from './lib/storage';
@@ -88,11 +87,3 @@ export function createFakeRepository(initial: MediaRecord[] = []) {
   return { repository, setRecords: (next: MediaRecord[]) => (records = next) };
 }
 
-export function createMockPhotoService(overrides: Partial<PhotoService> = {}): PhotoService {
-  return {
-    pick: jest.fn().mockResolvedValue({ status: 'canceled' }),
-    save: jest.fn(async (uri: string) => `file:///documents/photos/saved-${uri.split('/').pop()}`),
-    remove: jest.fn().mockResolvedValue(undefined),
-    ...overrides,
-  };
-}

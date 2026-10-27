@@ -5,15 +5,13 @@ import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
 import { RecordForm } from '../components/RecordForm';
 import { BookLookupContextProvider } from '../hooks/useBookLookup';
-import { CoverResolverContextProvider } from '../hooks/useCoverResolver';
 import { BookSearchContextProvider } from '../hooks/useBookSearch';
-import { PhotoServiceContextProvider } from '../hooks/usePhotoService';
 import { BarcodeScanScreen } from '../screens/BarcodeScanScreen';
 import { RereadScreen } from '../screens/RereadScreen';
 import { TitleSearchScreen } from '../screens/TitleSearchScreen';
 import { space } from '../design/tokens';
 import { withRepository } from '../testProviders';
-import { createFakeRepository, createMockPhotoService, makeRecord } from '../testUtils';
+import { createFakeRepository, makeRecord } from '../testUtils';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
@@ -35,7 +33,7 @@ type Padded = { paddingBottom?: number };
 function withInsets(bottom: number, ui: ReactElement) {
   return (
     <SafeAreaInsetsContext.Provider value={{ top: 59, left: 0, right: 0, bottom }}>
-      <PhotoServiceContextProvider service={createMockPhotoService()}>{ui}</PhotoServiceContextProvider>
+      {ui}
     </SafeAreaInsetsContext.Provider>
   );
 }
@@ -94,9 +92,7 @@ describe.each([
       withInsets(
         bottom,
         <BookLookupContextProvider provider={{ lookupByIsbn: jest.fn() }}>
-          <CoverResolverContextProvider resolver={async () => null}>
-            <BarcodeScanScreen />
-          </CoverResolverContextProvider>
+          <BarcodeScanScreen />
         </BookLookupContextProvider>,
       ),
     );
@@ -114,9 +110,7 @@ describe.each([
         bottom,
         <BookLookupContextProvider provider={{ lookupByIsbn: jest.fn() }}>
           <BookSearchContextProvider provider={{ attribution: '表記', search }}>
-            <CoverResolverContextProvider resolver={async () => null}>
-              <TitleSearchScreen />
-            </CoverResolverContextProvider>
+            <TitleSearchScreen />
           </BookSearchContextProvider>
         </BookLookupContextProvider>,
       ),

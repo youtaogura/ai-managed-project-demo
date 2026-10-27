@@ -27,14 +27,6 @@
     "plugins": [
       "expo-router",
       [
-        "expo-image-picker",
-        {
-          "photosPermission": "記録に写真を付けるために写真ライブラリを使用します",
-          "cameraPermission": "記録に写真を付けるためにカメラを使用します",
-          "microphonePermission": false
-        }
-      ],
-      [
         "expo-camera",
         {
           "cameraPermission": "本のバーコードを読み取るためにカメラを使用します",

@@ -24,7 +24,7 @@ export function DeleteConfirmSheet({
   return (
     <BottomSheet visible={visible} onClose={onCancel} title="この記録を削除しますか？">
       <AppText style={[styles.message, { color: colors.textSecondary }]}>
-        {`「${title}」の記録と、付けた写真が削除されます。元に戻せません。`}
+        {`「${title}」の記録（メモ・引用・書き出しを含む）が削除されます。元に戻せません。`}
       </AppText>
       <View style={styles.actions}>
         <Button variant="outline" label="キャンセル" onPress={onCancel} disabled={busy} />

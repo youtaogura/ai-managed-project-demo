@@ -3,7 +3,6 @@ import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { router } from 'expo-router';
 
 import { BookLookupContextProvider } from '../../hooks/useBookLookup';
-import { CoverResolverContextProvider } from '../../hooks/useCoverResolver';
 import type { BookLookupProvider } from '../../lib/bookLookup/BookLookupProvider';
 import type { BookLookupResult } from '../../types/book';
 import { IsbnLookupScreen } from '../IsbnLookupScreen';
@@ -23,7 +22,6 @@ const book = {
 async function setup(
   results: BookLookupResult[] | Promise<BookLookupResult>,
   props: ComponentProps<typeof IsbnLookupScreen> = {},
-  resolveCover: jest.Mock<Promise<string | null>, [string]> = jest.fn(async (_isbn: string) => null),
 ) {
   const lookupByIsbn = jest.fn(async (_isbn: string): Promise<BookLookupResult> => {
     if (results instanceof Promise) return results;
@@ -32,9 +30,7 @@ async function setup(
   const provider: BookLookupProvider = { lookupByIsbn };
   const view = await render(
     <BookLookupContextProvider provider={provider}>
-      <CoverResolverContextProvider resolver={resolveCover}>
-        <IsbnLookupScreen {...props} />
-      </CoverResolverContextProvider>
+      <IsbnLookupScreen {...props} />
     </BookLookupContextProvider>,
   );
   return { lookupByIsbn, view };
@@ -51,38 +47,14 @@ beforeEach(() => jest.clearAllMocks());
 const INVALID = 'ISBN を正しく入力してください（10 桁または 13 桁）';
 const LOOKUP_ERROR = '書誌情報を取得できませんでした。通信状況を確認してください';
 
-describe('IsbnLookupScreen の書影補完', () => {
-  const noCover = { ...book, coverUrl: null };
-
-  it('openBD に書影がなければ取得した URL をフォームの初期値に入れる', async () => {
-    const resolveCover = jest.fn(async (_isbn: string) => 'https://cover/x.jpg');
-    await setup([{ status: 'found', book: noCover }], {}, resolveCover);
+describe('IsbnLookupScreen の遷移先の値', () => {
+  it('書影を取りに行かず、見つかった書誌情報をそのままフォームの初期値に渡す', async () => {
+    await setup([{ status: 'found', book: { ...book, coverUrl: null } }]);
     await enter('9784065199817');
     await press('探す');
-    expect(resolveCover).toHaveBeenCalledWith('9784065199817');
-    expect(router.replace).toHaveBeenCalledWith(
-      expect.objectContaining({ params: expect.objectContaining({ coverUrl: 'https://cover/x.jpg' }) }),
-    );
-  });
-
-  it('openBD に書影があれば取得しない', async () => {
-    const resolveCover = jest.fn(async (_isbn: string) => 'https://cover/x.jpg');
-    await setup([{ status: 'found', book }], {}, resolveCover);
-    await enter('9784065199817');
-    await press('探す');
-    expect(resolveCover).not.toHaveBeenCalled();
-  });
-
-  it('見つからないときは取得せず、取得が null でも遷移する', async () => {
-    const resolveCover = jest.fn(async (_isbn: string) => null);
-    await setup([{ status: 'not_found' }, { status: 'found', book: noCover }], {}, resolveCover);
-    await enter('9784065199817');
-    await press('探す');
-    expect(resolveCover).not.toHaveBeenCalled();
-    await press('もう一度探す');
-    expect(resolveCover).toHaveBeenCalledTimes(1);
     expect(router.replace).toHaveBeenCalledTimes(1);
     const call = (router.replace as jest.Mock).mock.calls[0][0];
+    expect(call.params.title).toBe(book.title);
     expect(call.params.coverUrl).toBeUndefined();
   });
 });

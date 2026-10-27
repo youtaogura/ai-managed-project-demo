@@ -1,4 +1,4 @@
-import { createMemoryStorage, createMockPhotoService, makeRecord } from '../../testUtils';
+import { createMemoryStorage, makeRecord } from '../../testUtils';
 import { DEFAULT_SETTINGS } from '../../types/settings';
 import { deleteAllRecords } from '../deleteAllRecords';
 import { createRecordRepository, RECORDS_STORAGE_KEY } from '../recordRepository';
@@ -18,61 +18,46 @@ function setup(initial = records) {
     [RECORDS_STORAGE_KEY]: JSON.stringify(initial),
   });
   const repository = createRecordRepository(memory.storage);
-  const photoService = createMockPhotoService();
-  return { memory, repository, photoService };
+  return { memory, repository };
 }
 
 describe('deleteAllRecords', () => {
-  it('全記録と写真を削除し、件数を返す（写真なしには呼ばない）', async () => {
-    const { repository, photoService } = setup();
-    expect(await deleteAllRecords({ repository, photoService })).toBe(3);
-    expect(await repository.getAll()).toEqual([]);
-    expect(photoService.remove).toHaveBeenCalledTimes(2);
-    expect(photoService.remove).toHaveBeenCalledWith('file:///a.jpg');
-    expect(photoService.remove).toHaveBeenCalledWith('file:///c.jpg');
-  });
-
-  it('0 件なら何も呼ばない', async () => {
-    const { repository, photoService } = setup([]);
-    expect(await deleteAllRecords({ repository, photoService })).toBe(0);
-    expect(photoService.remove).not.toHaveBeenCalled();
-  });
-
-  it('記録の削除に失敗したら reject し、写真は消さない', async () => {
-    const { repository, photoService } = setup();
-    jest.spyOn(repository, 'deleteAll').mockRejectedValue(new Error('x'));
-    await expect(deleteAllRecords({ repository, photoService })).rejects.toThrow('x');
-    expect(photoService.remove).not.toHaveBeenCalled();
-  });
-
-  it('写真の削除が 1 件失敗しても残りを続け、成功として返す', async () => {
+  it('全記録を削除し、件数を返す（photoUri が入った記録もそのまま消える）', async () => {
     const { repository } = setup();
-    const photoService = createMockPhotoService({
-      remove: jest.fn().mockRejectedValueOnce(new Error('x')).mockResolvedValue(undefined),
-    });
-    expect(await deleteAllRecords({ repository, photoService })).toBe(3);
-    expect(photoService.remove).toHaveBeenCalledTimes(2);
+    expect(await deleteAllRecords({ repository })).toBe(3);
+    expect(await repository.getAll()).toEqual([]);
+  });
+
+  it('0 件なら 0 を返す', async () => {
+    const { repository } = setup([]);
+    expect(await deleteAllRecords({ repository })).toBe(0);
+  });
+
+  it('記録の削除に失敗したら reject する', async () => {
+    const { repository } = setup();
+    jest.spyOn(repository, 'deleteAll').mockRejectedValue(new Error('x'));
+    await expect(deleteAllRecords({ repository })).rejects.toThrow('x');
   });
 
   it('設定は変わらない', async () => {
-    const { memory, repository, photoService } = setup();
+    const { memory, repository } = setup();
     const settingsStore = createSettingsStore(memory.storage);
     await settingsStore.save({
       ...DEFAULT_SETTINGS,
       defaultStatus: 'planned',
     });
     const before = await settingsStore.load();
-    await deleteAllRecords({ repository, photoService });
+    await deleteAllRecords({ repository });
     expect(await settingsStore.load()).toEqual(before);
   });
 
   it('本棚と書き出し設定は残る', async () => {
-    const { memory, repository, photoService } = setup();
+    const { memory, repository } = setup();
     const shelfRepository = createShelfRepository(memory.storage);
     await shelfRepository.create('積ん読');
     const starterStore = createStarterSettingsStore(memory.storage);
     await starterStore.save({ ...defaultStarterSettings(), count: 5 });
-    await deleteAllRecords({ repository, photoService });
+    await deleteAllRecords({ repository });
     expect((await shelfRepository.getAll()).map((s) => s.name)).toEqual(['積ん読']);
     expect((await starterStore.load()).count).toBe(5);
   });

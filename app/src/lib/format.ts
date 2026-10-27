@@ -6,7 +6,7 @@ export function formatPeriod(start: string | null, end: string | null): string |
 }
 
 export function formatRating(rating: number | null): string {
-  return rating === null ? '未評価' : `★ ${rating.toFixed(1)}`;
+  return rating === null ? 'まだ選んでいません' : `★ ${rating.toFixed(1)}`;
 }
 
 const pad = (n: number) => String(n).padStart(2, '0');

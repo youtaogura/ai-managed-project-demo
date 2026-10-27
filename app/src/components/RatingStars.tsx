@@ -2,6 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { colors, space } from '../design/tokens';
 import { formatRating, starFills } from '../lib/recordForm';
+import { getRatingWord } from '../lib/ratingWord';
 import { AppText } from './AppText';
 
 type RatingStarsProps = {
@@ -23,7 +24,10 @@ export function RatingStars({
     width: size,
     textAlign: 'center',
   } as const;
-  const label = `レーティング ${rating === null ? '未評価' : formatRating(rating)}`;
+  const label =
+    rating === null
+      ? 'どうだった？ まだ選んでいません'
+      : `どうだった？ ${formatRating(rating)} ${getRatingWord(rating) ?? ''}`.trim();
   return (
     <View style={styles.row}>
       <View
@@ -53,7 +57,7 @@ export function RatingStars({
       {showValue ? (
         rating === null ? (
           <AppText variant="label" style={styles.unrated}>
-            未評価
+            まだ選んでいません
           </AppText>
         ) : (
           <AppText variant={valueVariant}>{formatRating(rating)}</AppText>
