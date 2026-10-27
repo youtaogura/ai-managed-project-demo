@@ -14,10 +14,11 @@ import { useBottomInset } from '../hooks/useBottomInset';
 import { useRecords } from '../hooks/useRecords';
 import { formatAverage } from '../lib/analytics';
 import { summarizeReview } from '../lib/review';
+import type { MediaRecord } from '../types/record';
 
 type ReviewScreenProps = {
   onAdd?: () => void;
-  onOpenRecord?: (id: string) => void;
+  onOpenRecord?: (record: MediaRecord) => void;
 };
 
 export function ReviewScreen({ onAdd, onOpenRecord }: ReviewScreenProps) {
@@ -94,7 +95,7 @@ export function ReviewScreen({ onAdd, onOpenRecord }: ReviewScreenProps) {
             <Shelf
               records={favorites}
               width={width - space[4] * 2}
-              onPressRecord={(record) => onOpenRecord?.(record.id)}
+              onPressRecord={(record) => onOpenRecord?.(record)}
             />
           </View>
         ) : null}

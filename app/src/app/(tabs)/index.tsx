@@ -1,6 +1,7 @@
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 
+import { recordHref } from '../../lib/recordRoute';
 import { RecordsScreen } from '../../screens/RecordsScreen';
 import type { MediaRecord } from '../../types/record';
 
@@ -10,9 +11,8 @@ export default function RecordsRoute() {
   const [reloadKey, setReloadKey] = useState(0);
   useFocusEffect(useCallback(() => setReloadKey((k) => k + 1), []));
 
-  // 背表紙のタップ先。読んでる本は「読んでる本」、それ以外は今の詳細画面（読み返す画面は #89 以降で差し替える）
-  const openRecord = (record: MediaRecord) =>
-    router.push(record.status === 'in_progress' ? `/reading/${record.id}` : `/records/${record.id}`);
+  // 背表紙のタップ先。読んでる本は「読んでる本」、それ以外は「読み返す」
+  const openRecord = (record: MediaRecord) => router.push(recordHref(record));
 
   return (
     <RecordsScreen

@@ -7,7 +7,7 @@ import TabsLayout from '../app/(tabs)/_layout';
 import AnalyticsRoute from '../app/(tabs)/analytics';
 import RecordsRoute from '../app/(tabs)/index';
 import FinishedRoute from '../app/finished/[id]';
-import RecordDetailRoute from '../app/records/[id]';
+import RereadRoute from '../app/records/[id]';
 import WriteRoute from '../app/write/[id]';
 import { RECORDS_STORAGE_KEY } from '../lib/recordRepository';
 import { makeRecord } from '../testUtils';
@@ -23,7 +23,7 @@ const routes = {
   '(tabs)/_layout': TabsLayout,
   '(tabs)/index': RecordsRoute,
   '(tabs)/analytics': AnalyticsRoute,
-  'records/[id]': RecordDetailRoute,
+  'records/[id]': RereadRoute,
   'finished/[id]': FinishedRoute,
   'write/[id]': WriteRoute,
   'record/[id]': () => <Text>ダミー編集画面</Text>,

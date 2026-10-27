@@ -8,6 +8,7 @@ import { colors, space } from '../design/tokens';
 import { useCoverResolver } from '../hooks/useCoverResolver';
 import { useSettings } from '../hooks/useSettings';
 import { useRecordRepository } from '../hooks/useRecordRepository';
+import { recordHref } from '../lib/recordRoute';
 import { spineColorForIndex } from '../lib/spineColor';
 import { applyDefaultStatus } from '../lib/statusDefault';
 import { todayString } from '../lib/recordForm';
@@ -28,7 +29,7 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
   const { settings } = useSettings();
   const resolveCover = useCoverResolver();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
-  const addedId = useRef<string | null>(null);
+  const addedRecord = useRef<MediaRecord | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -79,10 +80,10 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
         )}
         onSubmit={async (input) => {
           const added = await repository.add(await fillCover(input));
-          addedId.current = added.id;
+          addedRecord.current = added;
         }}
         onSaved={() => {
-          if (addedId.current !== null) router.replace(`/records/${addedId.current}`);
+          if (addedRecord.current !== null) router.replace(recordHref(addedRecord.current));
         }}
       />
     );
