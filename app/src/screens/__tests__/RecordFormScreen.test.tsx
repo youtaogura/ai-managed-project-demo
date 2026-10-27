@@ -171,7 +171,7 @@ describe('RecordFormScreen（背表紙の色と本棚）', () => {
     expect(await screen.findByRole('radio', { name: '背表紙の色 8' })).toBeSelected();
     await fireEvent.press(screen.getByRole('radio', { name: '背表紙の色 2' }));
     await press('保存する');
-    await waitFor(() => expect(router.back).toHaveBeenCalled());
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
     expect((await repository.getAll())[0]?.spineColor).toBe('spine-2');
   });
 
@@ -214,7 +214,8 @@ describe('RecordFormScreen（編集）', () => {
     const update = jest.spyOn(repository, 'update');
     await fireEvent.changeText(screen.getByLabelText('タイトル（必須）'), '変更後');
     await press('保存する');
-    await waitFor(() => expect(router.back).toHaveBeenCalled());
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/records/' + record.id));
+    expect(router.back).not.toHaveBeenCalled();
     expect(update).toHaveBeenCalledWith(record.id, expect.objectContaining({ title: '変更後' }));
     const [saved] = await repository.getAll();
     expect(saved).toMatchObject({
@@ -242,6 +243,36 @@ describe('RecordFormScreen（編集）', () => {
     await press('保存する');
     expect(await screen.findByText('保存に失敗しました')).toBeTruthy();
     expect(router.back).not.toHaveBeenCalled();
+    expect(router.replace).not.toHaveBeenCalled();
+  });
+
+  it('読み終わった本を「読んでる」にして保存すると読んでる画面へ replace する', async () => {
+    const repository = memoryRepository();
+    const record = await repository.add({ ...baseInput, status: 'completed' });
+    await render(withRepository(repository, <RecordFormScreen recordId={record.id} />));
+    await fireEvent.press(await screen.findByRole('radio', { name: '読んでる' }));
+    await press('保存する');
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/reading/' + record.id));
+    expect(router.back).not.toHaveBeenCalled();
+  });
+
+  it('読んでる本を何も変えずに保存すると読んでる画面へ replace する', async () => {
+    const repository = memoryRepository();
+    const record = await repository.add({ ...baseInput, status: 'in_progress' });
+    await render(withRepository(repository, <RecordFormScreen recordId={record.id} />));
+    await screen.findByDisplayValue('既存');
+    await press('保存する');
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/reading/' + record.id));
+    expect(router.back).not.toHaveBeenCalled();
+  });
+
+  it('読み終わった本を保存すると詳細へ replace する', async () => {
+    const repository = memoryRepository();
+    const record = await repository.add({ ...baseInput, status: 'completed' });
+    await render(withRepository(repository, <RecordFormScreen recordId={record.id} />));
+    await screen.findByDisplayValue('既存');
+    await press('保存する');
+    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/records/' + record.id));
   });
 
   it('削除を確定すると delete が呼ばれ一覧へ移る', async () => {
@@ -391,7 +422,7 @@ describe('RecordFormScreen（ステータスの初期値）', () => {
     await render(withDefault('completed', withRepository(repository, <RecordFormScreen recordId={record.id} />)));
     await screen.findByLabelText('タイトル（必須）');
     await press('保存する');
-    await waitFor(() => expect(router.back).toHaveBeenCalled());
+    await waitFor(() => expect(router.replace).toHaveBeenCalled());
     expect((await repository.getAll())[0]).toMatchObject({
       status: 'planned',
       startDate: null,
