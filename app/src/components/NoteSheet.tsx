@@ -269,17 +269,17 @@ function FocusInput({ style, leading, onFocus, onBlur, ...props }: FocusInputPro
 
 const styles = StyleSheet.create({
   form: { gap: space[3] },
-  tabs: { flexDirection: 'row', padding: space[1] / 2, backgroundColor: colors.surface2, borderRadius: radius.card },
+  tabs: { flexDirection: 'row', padding: space[1], backgroundColor: colors.surface2, borderRadius: radius.card },
   tab: {
     flex: 1,
     height: size.touchMin,
-    borderRadius: radius.card - 2,
+    borderRadius: radius.button,
     alignItems: 'center',
     justifyContent: 'center',
   },
   tabSelected: { backgroundColor: colors.surface1 },
   pageRow: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
-  pageInput: { width: 88, height: size.touchMin, paddingHorizontal: space[3] },
+  pageInput: { minWidth: size.touchMin * 2, height: size.touchMin, paddingHorizontal: space[3] },
   field: {
     backgroundColor: colors.surface2,
     borderWidth: 1,
