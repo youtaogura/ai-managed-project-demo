@@ -56,7 +56,8 @@ async function shoot(browser, baseUrl, scene) {
       const target =
         'label' in action ? page.getByLabel(action.label, { exact: true }) : page.getByText(action.text, { exact: true });
       try {
-        await target.first().click({ timeout: WAIT_MS });
+        if ('fill' in action) await target.first().fill(action.fill, { timeout: WAIT_MS });
+        else await target.first().click({ timeout: WAIT_MS });
       } catch {
         throw new SceneError(scene.name, `操作の対象が見つかりません: ${JSON.stringify(action)}`);
       }

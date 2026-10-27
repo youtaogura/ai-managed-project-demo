@@ -21,7 +21,7 @@ async function setup(props: Partial<React.ComponentProps<typeof ShelfCreateSheet
 describe('ShelfCreateSheet', () => {
   it('見出し・入力欄・例のチップ（既にある名前を除く）・主ボタンを出す', async () => {
     await setup();
-    expect(screen.getByText('本棚を作る')).toBeTruthy();
+    expect(screen.getByText('新しい本棚を作る')).toBeTruthy();
     expect(screen.getByLabelText('名前')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'SF' })).toBeNull();
     for (const name of ['哲学', 'いつか読み返す', '仕事の本']) {

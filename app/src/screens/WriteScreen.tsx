@@ -157,7 +157,9 @@ export function WriteScreen({ recordId, onSaved, onLater, onBack }: WriteScreenP
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={[styles.header, { paddingTop: topInset + space[2] }]}>
         <Pressable accessibilityRole="button" accessibilityLabel="あとで" style={styles.later} onPress={leave}>
-          <AppText variant="button">あとで</AppText>
+          <AppText variant="body" style={{ color: colors.textSecondary }}>
+            あとで
+          </AppText>
         </Pressable>
       </View>
       <ScrollView
@@ -215,7 +217,7 @@ export function WriteScreen({ recordId, onSaved, onLater, onBack }: WriteScreenP
             style={styles.action}
             onPress={() => setCards((current) => replaceUnwrittenCards(current, starterSettings))}
           >
-            <AppText variant="button" style={{ color: colors.textSecondary }}>
+            <AppText variant="body" style={{ color: colors.textSecondary }}>
               ↻ ほかの書き出しを見る
             </AppText>
           </Pressable>
@@ -227,7 +229,7 @@ export function WriteScreen({ recordId, onSaved, onLater, onBack }: WriteScreenP
             style={styles.action}
             onPress={() => setCards((current) => [...current, createFreeCard()])}
           >
-            <AppText variant="button" style={{ color: colors.textSecondary }}>
+            <AppText variant="body" style={{ color: colors.textSecondary }}>
               自由に書く
             </AppText>
           </Pressable>
@@ -277,5 +279,7 @@ const styles = StyleSheet.create({
     paddingTop: BAR_PADDING,
     paddingHorizontal: space[5],
     backgroundColor: colors.bg,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
   },
 });

@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { AppText } from '../components/AppText';
 import { Button } from '../components/Button';
@@ -17,7 +17,7 @@ import { formatRating } from '../lib/recordForm';
 import type { MediaRecord } from '../types/record';
 
 const ERROR_SAVE = '保存できませんでした。もう一度お試しください';
-const SPINE_SHELF_WIDTH = 96;
+const SPINE_SHELF_WIDTH = space[6] * 5;
 const BAR_PADDING = space[4];
 const TOGGLE_ROW_HEIGHT = 52;
 
@@ -134,10 +134,12 @@ export function FinishedScreen({ recordId, onWrite, onLater, onBack }: FinishedS
         <AppText variant="label" style={[styles.centered, { color: colors.textSecondary }]}>
           {buildFinishedSummary(record)}
         </AppText>
-        <AppText variant="sectionTitle" style={styles.centered}>
+        <AppText variant="value" style={[styles.centered, styles.question]}>
           どうだった？
         </AppText>
-        <RatingSlider value={rating} onChange={changeRating} />
+        <View style={styles.stars}>
+          <RatingSlider value={rating} onChange={changeRating} />
+        </View>
         {rating !== null && word !== null ? (
           <View style={styles.result}>
             <AppText variant="displayNumber">{formatRating(rating)}</AppText>
@@ -166,7 +168,11 @@ export function FinishedScreen({ recordId, onWrite, onLater, onBack }: FinishedS
       </ScrollView>
       <View style={[styles.bar, { paddingBottom: BAR_PADDING + bottomInset }]}>
         <Button label="記録を書く" onPress={() => onWrite?.(record.id)} />
-        <Button variant="outline" label="あとで書く" style={styles.later} onPress={() => onLater?.()} />
+        <Pressable accessibilityRole="button" accessibilityLabel="あとで書く" style={styles.later} onPress={() => onLater?.()}>
+          <AppText variant="body" style={{ color: colors.textSecondary }}>
+            あとで書く
+          </AppText>
+        </Pressable>
       </View>
     </View>
   );
@@ -184,6 +190,8 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: space[5], gap: space[3], paddingTop: space[6] },
   spine: { alignItems: 'center', paddingBottom: space[2] },
   centered: { textAlign: 'center' },
+  question: { color: colors.textSecondary },
+  stars: { alignItems: 'center' },
   result: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: space[2] },
   toggleRow: {
     minHeight: TOGGLE_ROW_HEIGHT,
@@ -206,6 +214,8 @@ const styles = StyleSheet.create({
     paddingTop: BAR_PADDING,
     paddingHorizontal: space[5],
     backgroundColor: colors.bg,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
   },
-  later: { borderWidth: 0 },
+  later: { minHeight: size.touchMin, alignItems: 'center', justifyContent: 'center' },
 });

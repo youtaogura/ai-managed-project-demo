@@ -28,6 +28,17 @@ const STORAGE_KEYS = {
  */
 const withShelf = () => ({ records: makeShelfRecords(), shelves: SHELVES });
 
+// 書き出しは毎回ランダムに選ばれるので、操作する撮影では 3 つに絞って固定する
+const PINNED_STARTERS = {
+  enabled: true,
+  count: 3,
+  items: ['いちばん心に残ったのは、', '読み終えて、見方が変わったのは、', '少し引っかかったのは、'].map((text, i) => ({
+    id: `starter-default-${i + 1}`,
+    text,
+    enabled: true,
+    custom: false,
+  })),
+};
 // 画像と同じ状態: オン、一度に 3 つ、自分で追加が 1 件、オフが混在
 const STARTER_SETTINGS = {
   enabled: true,
@@ -91,6 +102,25 @@ const SCENES = [
   },
   { name: 'finished', data: () => ({ records: [makeFinishedRecord()] }), url: '/finished/finished-1', waitFor: '記録を書く' },
   { name: 'write', data: () => ({ records: [makeWriteRecord()] }), url: '/write/write-1', waitFor: 'ここまでを残す' },
+  {
+    name: 'finished-favorite',
+    data: () => ({ records: [makeFinishedRecord()] }),
+    url: '/finished/finished-1',
+    actions: [{ label: 'お気に入りにする' }],
+    waitFor: '記録を書く',
+  },
+  {
+    name: 'write-selected',
+    data: () => ({ records: [makeWriteRecord()], starterSettings: PINNED_STARTERS }),
+    url: '/write/write-1',
+    actions: [
+      { label: '読み終えて、見方が変わったのは、' },
+      { label: '読み終えて、見方が変わったのは、の続き', fill: '登場人物の見え方が変わったこと。' },
+      { label: '引用として残す' },
+      { label: 'ページ（任意）', fill: '120' },
+    ],
+    waitFor: 'ここまでを残す',
+  },
   { name: 'reread', data: () => ({ records: [makeRereadRecord()], shelves: SHELVES }), url: '/records/reread-1', waitFor: '宇宙はとても静かで、とても怖い。' },
   { name: 'review', data: () => ({ records: makeReviewRecords() }), url: '/analytics', waitFor: '振り返り' },
   { name: 'settings', data: () => ({ ...withShelf(), starterSettings: STARTER_SETTINGS, lastExportedAt: '2026-10-01T09:00:00.000Z' }), url: '/settings', waitFor: '設定' },

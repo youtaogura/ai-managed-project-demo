@@ -201,6 +201,7 @@ export function RereadScreen({ recordId, onEdit, onWrite, onBack }: RereadScreen
         visible={shelfOpen}
         shelves={shelves}
         counts={counts}
+        bookTitle={record.title}
         selectedIds={record.shelfIds}
         onSubmit={saveShelves}
         onCreate={createShelf}

@@ -49,6 +49,7 @@ export function NoteSheet({ visible, onClose, ...rest }: NoteSheetProps) {
       onClose={() => (closeRef.current ?? onClose)()}
       title={rest.bookTitle}
       showCloseButton
+      closeInTitleRow
     >
       {visible ? <Form {...rest} onClose={onClose} closeRef={closeRef} /> : null}
     </BottomSheet>

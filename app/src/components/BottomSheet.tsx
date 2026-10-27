@@ -13,11 +13,12 @@ import {
 } from 'react-native';
 
 import { useBottomInset } from '../hooks/useBottomInset';
-import { colors, radius, size, space } from '../design/tokens';
+import { colors, radius, size, space, typography } from '../design/tokens';
 import { AppText } from './AppText';
 import { Button } from './Button';
 
-const SHEET_RADIUS = 20;
+const TITLE_SIZE = 20;
+const TITLE_LINE_HEIGHT = Math.round((TITLE_SIZE * typography.bookTitle.lineHeight) / typography.bookTitle.fontSize);
 const HANDLE_WIDTH = 36;
 const HANDLE_HEIGHT = 4;
 const SLIDE_DURATION = 250;
@@ -29,11 +30,27 @@ type BottomSheetProps = {
   visible: boolean;
   onClose: () => void;
   title?: string;
+  /** 見出しの上に小さく出す文字（本のタイトルなど） */
+  eyebrow?: string;
   showCloseButton?: boolean;
+  /**
+   * 見出しを小さなラベルにして、同じ行の右に「閉じる」（文字ボタン）を出す（メモ・引用を書くシート用）。
+   * showCloseButton と title があるときだけ効く。ほかのシートの見た目は変えない
+   */
+  closeInTitleRow?: boolean;
   children?: ReactNode;
 };
 
-export function BottomSheet({ visible, onClose, title, showCloseButton, children }: BottomSheetProps) {
+export function BottomSheet({
+  visible,
+  onClose,
+  title,
+  eyebrow,
+  showCloseButton,
+  closeInTitleRow,
+  children,
+}: BottomSheetProps) {
+  const titleRow = Boolean(closeInTitleRow && showCloseButton && title);
   const bottomInset = useBottomInset();
   const [translateY] = useState(() => new Animated.Value(SLIDE_DISTANCE));
   const [opacity] = useState(() => new Animated.Value(0));
@@ -107,15 +124,20 @@ export function BottomSheet({ visible, onClose, title, showCloseButton, children
             <View {...pan.panHandlers} testID="bottom-sheet-handle-area" style={styles.handleArea}>
               <View style={styles.handle} />
             </View>
-            {title && showCloseButton ? (
-              <View style={styles.titleRow}>
-                <AppText variant="label" numberOfLines={1} style={[styles.titleText, { color: colors.textSecondary }]}>
+            {eyebrow ? (
+              <AppText variant="label" numberOfLines={1} style={styles.eyebrow}>
+                {eyebrow}
+              </AppText>
+            ) : null}
+            {titleRow ? (
+              <View testID="bottom-sheet-title-row" style={styles.titleRow}>
+                <AppText variant="label" numberOfLines={1} style={styles.titleRowText}>
                   {title}
                 </AppText>
-                <Button variant="text" label="閉じる" onPress={onClose} style={styles.closeText} />
+                <Button variant="text" label="閉じる" onPress={onClose} style={styles.titleRowClose} />
               </View>
             ) : title ? (
-              <AppText variant="sectionTitle" style={styles.title}>
+              <AppText variant="bookTitle" style={styles.title}>
                 {title}
               </AppText>
             ) : null}
@@ -127,9 +149,9 @@ export function BottomSheet({ visible, onClose, title, showCloseButton, children
             >
               {children}
             </ScrollView>
-            {showCloseButton && !title ? (
+            {showCloseButton && !titleRow ? (
               <View style={styles.close}>
-                <Button variant="text" label="閉じる" onPress={onClose} />
+                <Button variant="outline" label="閉じる" onPress={onClose} />
               </View>
             ) : null}
           </Animated.View>
@@ -154,8 +176,8 @@ const styles = StyleSheet.create({
   scrim: { ...StyleSheet.absoluteFill, backgroundColor: colors.scrim },
   sheet: {
     backgroundColor: colors.surface1,
-    borderTopLeftRadius: SHEET_RADIUS,
-    borderTopRightRadius: SHEET_RADIUS,
+    borderTopLeftRadius: radius.sheet,
+    borderTopRightRadius: radius.sheet,
     paddingHorizontal: space[6],
     maxHeight: '90%',
   },
@@ -165,11 +187,12 @@ const styles = StyleSheet.create({
     width: HANDLE_WIDTH,
     height: HANDLE_HEIGHT,
     borderRadius: radius.full,
-    backgroundColor: colors.lineStrong,
+    backgroundColor: colors.line,
   },
-  title: { marginBottom: space[3] },
+  eyebrow: { color: colors.textSecondary, marginBottom: space[1] },
+  title: { marginBottom: space[3], fontSize: TITLE_SIZE, lineHeight: TITLE_LINE_HEIGHT },
+  close: { marginTop: space[3] },
   titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space[2] },
-  titleText: { flex: 1 },
-  closeText: { marginRight: -space[2] },
-  close: { marginTop: space[3], alignSelf: 'flex-end' },
+  titleRowText: { flex: 1, color: colors.textSecondary },
+  titleRowClose: { marginRight: -space[2] },
 });

@@ -56,6 +56,49 @@ describe('BottomSheet', () => {
     expect(onClose).toHaveBeenCalledTimes(3);
   });
 
+  it('見出しと閉じるがあるシートは、見出しを上・閉じるを下に出す（closeInTitleRow なし）', async () => {
+    const onClose = jest.fn();
+    await render(
+      <BottomSheet visible onClose={onClose} title="並び替え" showCloseButton>
+        <Text>中身</Text>
+      </BottomSheet>,
+    );
+    const title = screen.getByText('並び替え');
+    const close = screen.getByLabelText('閉じる');
+    expect(screen.queryByTestId('bottom-sheet-title-row')).toBeNull();
+    // 閉じるは中身（ScrollView）より後ろにある
+    const sheet = screen.getByLabelText('並び替え');
+    const texts = within(sheet).getAllByText(/並び替え|中身|閉じる/).map((n) => n.props.children);
+    expect(texts).toEqual(['並び替え', '中身', '閉じる']);
+    expect(title).toBeTruthy();
+    await fireEvent.press(close);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('closeInTitleRow なら、見出しと閉じるを同じ行に出し、下の閉じるは出さない', async () => {
+    const onClose = jest.fn();
+    await render(
+      <BottomSheet visible onClose={onClose} title="ノルウェイの森" showCloseButton closeInTitleRow>
+        <Text>中身</Text>
+      </BottomSheet>,
+    );
+    const row = screen.getByTestId('bottom-sheet-title-row');
+    expect(within(row).getByText('ノルウェイの森')).toBeTruthy();
+    expect(screen.getAllByLabelText('閉じる')).toHaveLength(1);
+    await fireEvent.press(within(row).getByLabelText('閉じる'));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('closeInTitleRow でも見出しがなければ、閉じるは下に出す', async () => {
+    await render(
+      <BottomSheet visible onClose={jest.fn()} showCloseButton closeInTitleRow>
+        <Text>中身</Text>
+      </BottomSheet>,
+    );
+    expect(screen.queryByTestId('bottom-sheet-title-row')).toBeNull();
+    expect(screen.getByLabelText('閉じる')).toBeTruthy();
+  });
+
   it.each(['ios', 'android'] as const)('%s でも KeyboardAvoidingView が padding で中身を包む', async (os) => {
     const original = Platform.OS;
     Platform.OS = os;
