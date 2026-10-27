@@ -181,7 +181,23 @@ function makeReviewRecords(year = new Date().getFullYear()) {
       starters: [{ id: 's2', starter: 'いちばん心に残ったのは、', text: '我思う。', createdAt: `${year}-01-16T00:00:00.000Z` }],
     }),
     done('r5', '夜と霧', '01', 2),
+    done('r6', '異邦人', '02', 4),
+    done('r7', '砂の女', '02', 4),
+    done('r8', '潮騒', '03', 3.5),
+    done('r9', '海辺のカフカ', '03', 4),
+    done('r10', '雪国', '04', 4),
   ];
 }
 
-module.exports = { makeRecord, SHELVES, makeShelfRecords, makeReadingRecord, makeFinishedRecord, makeWriteRecord, makeRereadRecord, makeReviewRecords };
+function makeNdlSearchXml(items) {
+  const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const body = items
+    .map(
+      (i) =>
+        `<item><title>${esc(i.title)}</title><dc:creator>${esc(i.author)}</dc:creator><dc:publisher>${esc(i.publisher)}</dc:publisher><dc:date>${esc(i.year)}</dc:date><category>図書</category></item>`,
+    )
+    .join('');
+  return `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>search</title>${body}</channel></rss>`;
+}
+
+module.exports = { makeNdlSearchXml, makeRecord, SHELVES, makeShelfRecords, makeReadingRecord, makeFinishedRecord, makeWriteRecord, makeRereadRecord, makeReviewRecords };

@@ -7,7 +7,7 @@ import type { SpineColor } from '../types/record';
 import { AppText } from './AppText';
 
 const SEGMENT_HEIGHT = 12;
-const SEGMENT_GAP = 2;
+const SEGMENT_GAP = 3;
 const MAX_SEGMENTS = 8;
 const COUNT_HEIGHT = 14;
 const STACK_AREA_HEIGHT =
@@ -49,7 +49,7 @@ export function BookStackChart({ months, currentMonth }: BookStackChartProps) {
                 ))}
             </View>
             <AppText
-              variant="micro"
+              variant={m.month === currentMonth ? 'tab' : 'micro'}
               numberOfLines={1}
               style={{
                 color: m.month === currentMonth ? colors.textPrimary : colors.textSecondary,
@@ -65,7 +65,7 @@ export function BookStackChart({ months, currentMonth }: BookStackChartProps) {
 }
 
 const styles = StyleSheet.create({
-  chart: { flexDirection: 'row', alignItems: 'flex-end', gap: SEGMENT_GAP },
+  chart: { flexDirection: 'row', alignItems: 'flex-end', gap: space[2] },
   column: { flex: 1, alignItems: 'center', gap: space[1] },
   stackArea: {
     height: STACK_AREA_HEIGHT,

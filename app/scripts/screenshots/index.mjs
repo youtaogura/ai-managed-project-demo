@@ -6,9 +6,11 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 
 import scenesModule from './scenes.cjs';
+import seedModule from './seed.cjs';
 import serverModule from './server.cjs';
 
-const { STORAGE_KEYS, parseSceneArgs } = scenesModule;
+const { STORAGE_KEYS, NDL_SEARCH_URL, parseSceneArgs } = scenesModule;
+const { makeNdlSearchXml } = seedModule;
 const { createStaticServer } = serverModule;
 
 const appRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
@@ -36,11 +38,18 @@ async function shoot(browser, baseUrl, scene) {
     if (data.records) entries[STORAGE_KEYS.records] = JSON.stringify(data.records);
     if (data.shelves) entries[STORAGE_KEYS.shelves] = JSON.stringify(data.shelves);
     if (data.starterSettings) entries[STORAGE_KEYS.starterSettings] = JSON.stringify(data.starterSettings);
+    if (data.lastExportedAt) entries[STORAGE_KEYS.lastExportedAt] = data.lastExportedAt;
     await context.addInitScript((items) => {
       for (const [key, value] of Object.entries(items)) window.localStorage.setItem(key, value);
     }, entries);
 
     const page = await context.newPage();
+    if (scene.search) {
+      const xml = makeNdlSearchXml(scene.search.results);
+      await page.route(NDL_SEARCH_URL, (route) =>
+        route.fulfill({ status: 200, contentType: 'application/xml; charset=utf-8', body: xml }),
+      );
+    }
     await page.goto(`${baseUrl}${scene.url}`);
     await page.evaluate(() => document.fonts.ready);
     for (const action of scene.actions ?? []) {
@@ -52,6 +61,14 @@ async function shoot(browser, baseUrl, scene) {
         throw new SceneError(scene.name, `操作の対象が見つかりません: ${JSON.stringify(action)}`);
       }
       await page.waitForTimeout(SETTLE_MS);
+    }
+    if (scene.search) {
+      try {
+        await page.getByLabel('タイトルのキーワード', { exact: true }).fill(scene.search.keyword, { timeout: WAIT_MS });
+        await page.getByText('検索', { exact: true }).first().click({ timeout: WAIT_MS });
+      } catch {
+        throw new SceneError(scene.name, '検索の操作ができませんでした');
+      }
     }
     try {
       await page.getByText(scene.waitFor, { exact: false }).first().waitFor({ timeout: WAIT_MS });
