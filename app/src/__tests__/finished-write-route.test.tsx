@@ -71,4 +71,25 @@ describe('読み終えた・書き出しの続きのルート', () => {
     await fireEvent.press(screen.getByRole('button', { name: '書き出しの続きを書く' }));
     await waitFor(() => expect(screen).toHavePathname('/write/r1'));
   });
+
+  it('読み返す画面から開いた書き出しの「あとで」で読み返す画面に戻る', async () => {
+    await renderRouter(routes, { initialUrl: '/records/r1' });
+    await waitFor(() => expect(screen.getByRole('button', { name: '書き出しの続きを書く' })).toBeTruthy());
+    await fireEvent.press(screen.getByRole('button', { name: '書き出しの続きを書く' }));
+    await waitFor(() => expect(screen.getByLabelText('ひとことで言うと、')).toBeTruthy());
+    await fireEvent.changeText(screen.getByLabelText('ひとことで言うと、'), '途中');
+    await fireEvent.press(screen.getByRole('button', { name: 'あとで' }));
+    await waitFor(() => expect(screen).toHavePathname('/records/r1'));
+    const saved = JSON.parse((await AsyncStorage.getItem(RECORDS_STORAGE_KEY)) ?? '[]');
+    expect(saved).toHaveLength(1);
+  });
+
+  it('読み終えた直後から開いた書き出しの「あとで」で本棚へ', async () => {
+    await renderRouter(routes, { initialUrl: '/finished/r1' });
+    await waitFor(() => expect(screen.getByRole('button', { name: '記録を書く' })).toBeTruthy());
+    await fireEvent.press(screen.getByRole('button', { name: '記録を書く' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'あとで' })).toBeTruthy());
+    await fireEvent.press(screen.getByRole('button', { name: 'あとで' }));
+    await waitFor(() => expect(screen).toHavePathname('/'));
+  });
 });
