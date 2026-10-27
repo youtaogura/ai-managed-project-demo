@@ -84,6 +84,10 @@ function makeShelfRecords() {
       spineColor: 'spine-7',
     }),
     makeRecord({ id: 'b8', title: '銀河鉄道の夜', creator: '宮沢賢治', status: 'in_progress', startDate: '2025-10-25', spineColor: 'spine-8' }),
+    makeRecord({ id: 'b9', title: 'ゲーム', creator: '著者', status: 'planned', spineColor: 'spine-1' }),
+    makeRecord({ id: 'b10', title: 'ONE PIECE', creator: '尾田栄一郎', status: 'planned', spineColor: 'spine-2' }),
+    makeRecord({ id: 'b11', title: '1Q84', creator: '村上春樹', status: 'planned', spineColor: 'spine-3' }),
+    makeRecord({ id: 'b12', title: '三体 II', creator: '劉慈欣', status: 'planned', spineColor: 'spine-4' }),
   ];
 }
 
