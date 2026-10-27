@@ -1,10 +1,10 @@
 import { router } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, TextInput, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { AppText } from '../components/AppText';
 import { BookSearchRow } from '../components/BookSearchRow';
-import { Button } from '../components/Button';
+import { Button, pressedStyle } from '../components/Button';
 import { ScreenHeaderBar } from '../components/ScreenHeaderBar';
 import { resolveFontFamily } from '../design/fonts';
 import { colors, radius, size, space, typography } from '../design/tokens';
@@ -32,6 +32,7 @@ export function TitleSearchScreen() {
   const [status, setStatus] = useState<Status>('idle');
   const [candidates, setCandidates] = useState<BookCandidate[]>([]);
   const [searchedKeyword, setSearchedKeyword] = useState('');
+  const [focused, setFocused] = useState(false);
   const running = useRef(false);
   const active = useRef(true);
 
@@ -105,10 +106,7 @@ export function TitleSearchScreen() {
     <View style={styles.container}>
       <ScreenHeaderBar onClose={() => router.back()}>
         <View style={styles.searchRow}>
-          <View style={styles.searchBox}>
-            <AppText variant="body" style={{ color: colors.textTertiary }}>
-              ⌕
-            </AppText>
+          <View style={[styles.searchBox, focused && styles.searchBoxFocused]}>
             <TextInput
               accessibilityLabel="タイトルのキーワード"
               placeholder="タイトルで探す"
@@ -118,6 +116,8 @@ export function TitleSearchScreen() {
               onChangeText={onChangeText}
               onSubmitEditing={() => void search()}
               editable={!busy}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setFocused(false)}
               style={[
                 styles.input,
                 {
@@ -127,12 +127,16 @@ export function TitleSearchScreen() {
               ]}
             />
           </View>
-          <Button
-            label="検索"
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="検索"
+            accessibilityState={{ disabled: busy }}
             disabled={busy}
             onPress={() => void search()}
-            style={styles.searchButton}
-          />
+            style={({ pressed }) => [styles.searchButton, busy && styles.searchButtonDisabled, pressed && pressedStyle]}
+          >
+            <AppText variant="button">検索</AppText>
+          </Pressable>
         </View>
       </ScreenHeaderBar>
       <View style={styles.body}>
@@ -201,15 +205,23 @@ const styles = StyleSheet.create({
     borderRadius: radius.button,
     borderWidth: 1,
     borderColor: colors.line,
-    backgroundColor: colors.surface2,
+    backgroundColor: colors.surface1,
   },
+  searchBoxFocused: { borderColor: colors.textPrimary },
   input: { flex: 1, color: colors.textPrimary, padding: 0 },
-  searchButton: { height: size.touchMin, minHeight: size.touchMin },
+  searchButton: {
+    height: size.touchMin,
+    minWidth: size.touchMin,
+    paddingHorizontal: space[2],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchButtonDisabled: { opacity: 0.4 },
   body: { flex: 1 },
   notice: { marginTop: space[4], paddingHorizontal: space[4] },
   center: { alignItems: 'center', justifyContent: 'center', gap: space[3], padding: space[6] },
   list: { paddingHorizontal: space[4] },
-  count: { color: colors.textSecondary, paddingVertical: space[3] },
+  count: { color: colors.textSecondary, paddingTop: space[3], paddingBottom: space[2] },
   footer: {
     gap: space[2],
     paddingHorizontal: space[4],
