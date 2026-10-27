@@ -20,7 +20,7 @@ export function ExportSheet({ visible, count, busy = false, onClose, onSelect }:
     <BottomSheet visible={visible} onClose={onClose} title="記録を書き出す" showCloseButton>
       <AppText variant="body" style={styles.count}>{`${count} 件の記録`}</AppText>
       <AppText variant="micro" style={styles.note}>
-        ファイルを作って、共有メニューから保存先を選びます。自分で撮った写真は含まれません。
+        ファイルを作って、共有メニューから保存先を選びます。
       </AppText>
       <Pressable
         accessibilityRole="button"

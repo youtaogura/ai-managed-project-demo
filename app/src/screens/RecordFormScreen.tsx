@@ -5,14 +5,12 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { AppText } from '../components/AppText';
 import { RecordForm } from '../components/RecordForm';
 import { colors, space } from '../design/tokens';
-import { useCoverResolver } from '../hooks/useCoverResolver';
 import { useSettings } from '../hooks/useSettings';
 import { useRecordRepository } from '../hooks/useRecordRepository';
 import { recordHref } from '../lib/recordRoute';
 import { spineColorForIndex } from '../lib/spineColor';
 import { applyDefaultStatus } from '../lib/statusDefault';
 import { todayString } from '../lib/recordForm';
-import { needsCover } from '../lib/coverLookup/needsCover';
 import type { MediaRecord, NewRecordInput } from '../types/record';
 
 type RecordFormScreenProps = {
@@ -27,7 +25,6 @@ type LoadState =
 export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenProps) {
   const repository = useRecordRepository();
   const { settings } = useSettings();
-  const resolveCover = useCoverResolver();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const addedRecord = useRef<MediaRecord | null>(null);
 
@@ -51,16 +48,6 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
     };
   }, [repository, recordId]);
 
-  const fillCover = async (input: NewRecordInput): Promise<NewRecordInput> => {
-    if (!needsCover(input)) return input;
-    try {
-      const coverUrl = await resolveCover(input.isbn ?? '');
-      return coverUrl === null ? input : { ...input, coverUrl };
-    } catch {
-      return input;
-    }
-  };
-
   if (state.status === 'loading') {
     return (
       <View style={styles.center}>
@@ -79,7 +66,7 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
           todayString(),
         )}
         onSubmit={async (input) => {
-          const added = await repository.add(await fillCover(input));
+          const added = await repository.add(input);
           addedRecord.current = added;
         }}
         onSaved={() => {
@@ -104,7 +91,7 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
       recordId={record.id}
       submitLabel="保存する"
       onSubmit={async (input) => {
-        const updated = await repository.update(record.id, await fillCover(input));
+        const updated = await repository.update(record.id, input);
         if (!updated) throw new Error('not found');
       }}
       onSaved={() => router.back()}

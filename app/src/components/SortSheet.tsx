@@ -27,7 +27,7 @@ export const SORT_FIELDS: readonly SortField[] = [
     ],
   },
   {
-    label: 'レーティング',
+    label: 'どうだった？',
     options: [
       { value: 'rating_desc', label: '高い順' },
       { value: 'rating_asc', label: '低い順' },

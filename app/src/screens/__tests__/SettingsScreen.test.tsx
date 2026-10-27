@@ -75,7 +75,7 @@ describe('SettingsScreen（並び順）', () => {
     expect(screen.getByText('並び替え')).toBeTruthy();
     await fireEvent.press(screen.getByRole('radio', { name: '高い順' }));
     expect(screen.queryByText('並び替え')).toBeNull();
-    expect(screen.getByRole('button', { name: '並び順、レーティングの高い順' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '並び順、どうだった？の高い順' })).toBeTruthy();
     await waitFor(() => expect(data.get(SORT_ORDER_STORAGE_KEY)).toBe('rating_desc'));
   });
 });

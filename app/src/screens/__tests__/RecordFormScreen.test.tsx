@@ -2,7 +2,6 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 
-import { CoverResolverContextProvider } from '../../hooks/useCoverResolver';
 import { withRepository, withSettings } from '../../testProviders';
 import { createShelfRepository } from '../../lib/shelfRepository';
 import { colors } from '../../design/tokens';
@@ -181,21 +180,21 @@ describe('RecordFormScreen（背表紙の色と本棚）', () => {
     const shelfRepository = createShelfRepository(memory.storage);
     const shelf = await shelfRepository.create('小説');
     const repository = memoryRepository();
-    await render(withRepository(repository, <RecordFormScreen initialValues={{ title: 'N' }} />, undefined, undefined, shelfRepository));
+    await render(withRepository(repository, <RecordFormScreen initialValues={{ title: 'N' }} />, shelfRepository));
     await fireEvent.press(await screen.findByRole('checkbox', { name: '小説' }));
     await press('棚に並べる');
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
     const [saved] = await repository.getAll();
     expect(saved?.shelfIds).toEqual([shelf.id]);
     await cleanup();
-    await render(withRepository(repository, <RecordFormScreen recordId={saved?.id} />, undefined, undefined, shelfRepository));
+    await render(withRepository(repository, <RecordFormScreen recordId={saved?.id} />, shelfRepository));
     expect(await screen.findByRole('checkbox', { name: '小説' })).toBeChecked();
   });
 
   it('本棚の読み込みに失敗したら本棚なしで開く', async () => {
     const shelfRepository = createShelfRepository(createMemoryStorage().storage);
     jest.spyOn(shelfRepository, 'getAll').mockRejectedValue(new Error('x'));
-    await render(withRepository(memoryRepository(), <RecordFormScreen initialValues={{ title: 'N' }} />, undefined, undefined, shelfRepository));
+    await render(withRepository(memoryRepository(), <RecordFormScreen initialValues={{ title: 'N' }} />, shelfRepository));
     expect(await screen.findByRole('button', { name: '本棚を作る' })).toBeTruthy();
     expect(screen.queryAllByRole('checkbox')).toHaveLength(0);
   });
@@ -279,116 +278,18 @@ describe('RecordFormScreen（編集）', () => {
   });
 });
 
-describe('RecordFormScreen の書影取得', () => {
-  const ISBN = '9784065199817';
-  const resolverFor = (value: string | null | Error) =>
-    jest.fn(async (_isbn: string) => {
-      if (value instanceof Error) throw value;
-      return value;
-    });
-  const renderNew = async (
-    resolver: ReturnType<typeof resolverFor>,
-    initialValues: React.ComponentProps<typeof RecordFormScreen>['initialValues'],
-  ) => {
+describe('RecordFormScreen（書影を取りに行かない）', () => {
+  it('ISBN があっても書影は取得せず、coverUrl: null のまま保存できる', async () => {
+    const fetchSpy = jest.spyOn(globalThis, 'fetch');
     const repository = memoryRepository();
-    await render(withRepository(repository, <RecordFormScreen initialValues={initialValues} />, undefined, resolver));
+    await render(
+      withRepository(repository, <RecordFormScreen initialValues={{ title: 'a', isbn: '9784065199817' }} />),
+    );
     await press('棚に並べる');
     await waitFor(() => expect(router.replace).toHaveBeenCalled());
-    return repository;
-  };
-
-  it('本で ISBN があり書影も写真もなければ、取得して coverUrl に保存する', async () => {
-    const resolver = resolverFor('https://cover/x.jpg');
-    const repository = await renderNew(resolver, { title: 'a', isbn: ISBN });
-    expect(resolver).toHaveBeenCalledWith(ISBN);
-    expect((await repository.getAll())[0]?.coverUrl).toBe('https://cover/x.jpg');
-  });
-
-  it('フォームで ISBN を手入力しても書影が付く', async () => {
-    const resolver = resolverFor('https://cover/y.jpg');
-    const repository = memoryRepository();
-    await render(withRepository(repository, <RecordFormScreen />, undefined, resolver));
-    await fireEvent.changeText(screen.getByLabelText('タイトル（必須）'), 'a');
-    await fireEvent.changeText(screen.getByLabelText('ISBN'), ISBN);
-    await press('棚に並べる');
-    await waitFor(() => expect(router.replace).toHaveBeenCalled());
-    expect((await repository.getAll())[0]?.coverUrl).toBe('https://cover/y.jpg');
-  });
-
-  it.each([
-    ['書影 URL がある', { title: 'a', isbn: ISBN, coverUrl: 'https://own' }],
-    ['写真がある', { title: 'a', isbn: ISBN, photoUri: 'file://p' }],
-    ['ISBN がない', { title: 'a' }],
-  ])('%s ときは取得しない', async (_name, initial) => {
-    const resolver = resolverFor('https://cover/x.jpg');
-    await renderNew(resolver, initial);
-    expect(resolver).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    ['null', null],
-    ['例外', new Error('x')],
-  ])('取得が %s でも coverUrl: null のまま保存できる', async (_name, value) => {
-    const repository = await renderNew(resolverFor(value), {
-      title: 'a',
-      isbn: ISBN,
-    });
     expect((await repository.getAll())[0]?.coverUrl).toBeNull();
-    expect(screen.queryByText('保存に失敗しました')).toBeNull();
-  });
-
-  describe('既定の取得元（openBD の fetch をモック）', () => {
-    const saveWithDefaultResolver = async () => {
-      const repository = memoryRepository();
-      await render(
-        withRepository(
-          repository,
-          <CoverResolverContextProvider>
-            <RecordFormScreen />
-          </CoverResolverContextProvider>,
-        ),
-      );
-      await fireEvent.changeText(screen.getByLabelText('タイトル（必須）'), 'a');
-      await fireEvent.changeText(screen.getByLabelText('ISBN'), ISBN);
-      await press('棚に並べる');
-      await waitFor(() => expect(router.replace).toHaveBeenCalled());
-      return repository;
-    };
-
-    it('ISBN を手入力して保存すると、openBD の書影が coverUrl に入る', async () => {
-      jest.spyOn(globalThis, 'fetch').mockResolvedValue({
-        ok: true,
-        json: async () => [{ summary: { title: 'T', cover: 'https://cover.openbd.jp/x.jpg' } }],
-      } as Response);
-      const repository = await saveWithDefaultResolver();
-      expect((await repository.getAll())[0]?.coverUrl).toBe('https://cover.openbd.jp/x.jpg');
-    });
-
-    it('openBD に書影がなければ coverUrl: null で保存は止まらない', async () => {
-      jest.spyOn(globalThis, 'fetch').mockResolvedValue({
-        ok: true,
-        json: async () => [null],
-      } as Response);
-      const repository = await saveWithDefaultResolver();
-      expect((await repository.getAll())[0]?.coverUrl).toBeNull();
-      expect(screen.queryByText('保存に失敗しました')).toBeNull();
-    });
-  });
-
-  it('編集でも、書影も写真もない本は保存時に取得する', async () => {
-    const repository = memoryRepository();
-    const record = await repository.add({
-      ...baseInput,
-      isbn: ISBN,
-      coverUrl: null,
-      photoUri: null,
-    });
-    const resolver = resolverFor('https://cover/z.jpg');
-    await render(withRepository(repository, <RecordFormScreen recordId={record.id} />, undefined, resolver));
-    await screen.findByLabelText('タイトル（必須）');
-    await press('保存する');
-    await waitFor(() => expect(router.back).toHaveBeenCalled());
-    expect((await repository.getAll())[0]?.coverUrl).toBe('https://cover/z.jpg');
+    expect(fetchSpy).not.toHaveBeenCalled();
+    fetchSpy.mockRestore();
   });
 });
 

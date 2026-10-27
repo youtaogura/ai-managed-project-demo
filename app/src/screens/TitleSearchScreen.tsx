@@ -9,11 +9,9 @@ import { ScreenHeaderBar } from '../components/ScreenHeaderBar';
 import { resolveFontFamily } from '../design/fonts';
 import { colors, radius, size, space, typography } from '../design/tokens';
 import { useBookLookup } from '../hooks/useBookLookup';
-import { useCoverResolver } from '../hooks/useCoverResolver';
 import { useBookSearch } from '../hooks/useBookSearch';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { candidateToParams, titleOnlyParams } from '../lib/candidateParams';
-import { withCover } from '../lib/coverLookup/withCover';
 import { bookInfoToParams } from '../lib/isbnLookupParams';
 import type { BookCandidate } from '../types/bookSearch';
 
@@ -27,7 +25,6 @@ export function TitleSearchScreen() {
   const bottomInset = useBottomInset();
   const searchProvider = useBookSearch();
   const lookupProvider = useBookLookup();
-  const resolveCover = useCoverResolver();
   const [keyword, setKeyword] = useState('');
   const [status, setStatus] = useState<Status>('idle');
   const [candidates, setCandidates] = useState<BookCandidate[]>([]);
@@ -79,9 +76,7 @@ export function TitleSearchScreen() {
         const result = await lookupProvider.lookupByIsbn(candidate.isbn);
         if (!active.current) return;
         if (result.status === 'found') {
-          const book = await withCover(result.book, resolveCover);
-          if (!active.current) return;
-          params = bookInfoToParams(book);
+          params = bookInfoToParams(result.book);
         }
       }
       router.replace({ pathname: '/record/new', params });

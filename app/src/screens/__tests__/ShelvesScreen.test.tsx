@@ -27,7 +27,7 @@ async function setup(names: string[] = ['SF', '哲学', '詩'], wrap?: (r: Shelf
     'replace',
   );
   const used = wrap ? wrap(shelfRepository) : shelfRepository;
-  await renderRouter({ index: () => withRepository(recordRepository, <ShelvesScreen />, undefined, undefined, used) });
+  await renderRouter({ index: () => withRepository(recordRepository, <ShelvesScreen />, used) });
   return { shelfRepository, recordRepository };
 }
 

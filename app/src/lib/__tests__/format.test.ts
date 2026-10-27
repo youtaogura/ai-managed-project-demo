@@ -11,7 +11,7 @@ describe('format', () => {
   it('レーティング', () => {
     expect(formatRating(4)).toBe('★ 4.0');
     expect(formatRating(3.5)).toBe('★ 3.5');
-    expect(formatRating(null)).toBe('未評価');
+    expect(formatRating(null)).toBe('まだ選んでいません');
   });
 
   it('日時はローカル時刻の YYYY-MM-DD HH:mm', () => {

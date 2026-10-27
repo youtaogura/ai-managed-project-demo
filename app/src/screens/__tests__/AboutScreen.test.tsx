@@ -33,16 +33,16 @@ describe('AboutScreen', () => {
     expect(screen.getByText('バージョン 1.0.0')).toBeTruthy();
   });
 
-  it('データの出典を出す。書影は openBD のみ', async () => {
+  it('データの出典を出す。openBD は書誌情報だけ', async () => {
     await render(<AboutScreen />);
     expect(screen.getByText('openBD')).toBeTruthy();
-    expect(screen.getByText('書誌情報・書影（ISBN から）')).toBeTruthy();
+    expect(screen.getByText('書誌情報（ISBN から）')).toBeTruthy();
     expect(screen.getByText('国立国会図書館サーチ')).toBeTruthy();
     expect(screen.getByText('タイトル検索')).toBeTruthy();
     expect(screen.queryByText(/TMDb/)).toBeNull();
     expect(screen.getByText('Noto Sans JP / しっぽり明朝')).toBeTruthy();
     expect(screen.getByText('フォント（SIL Open Font License）')).toBeTruthy();
-    expect(screen.queryByText(/国立国会図書館サーチ.*書影/)).toBeNull();
+    expect(screen.queryByText(/書影/)).toBeNull();
   });
 
   it('プライバシーの説明を出す', async () => {

@@ -4,7 +4,6 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'reac
 import { colors, size, space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useShelfPick } from '../hooks/useShelfPick';
-import { usePhotoService } from '../hooks/usePhotoService';
 import { formatDateDisplay } from '../lib/date';
 import {
   applyStatusChange,
@@ -65,7 +64,6 @@ export function RecordForm({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [shelfCreating, setShelfCreating] = useState(false);
   const { shelves, create: createShelf } = useShelfPick();
-  const photoService = usePhotoService();
 
   const setField = <K extends keyof RecordFormValues>(key: K, value: RecordFormValues[K]) => {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -126,8 +124,6 @@ export function RecordForm({
   const handleDelete = async (remove: () => Promise<void>) => {
     await run(async () => {
       await remove();
-      const photoUri = initialValues?.photoUri;
-      if (photoUri) void photoService.remove(photoUri);
       onDeleted?.();
     }, '削除に失敗しました');
   };

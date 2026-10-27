@@ -52,8 +52,6 @@ function setup(
       withRepository(
         repository,
         <RecordsScreen sortOrderStore={createSortOrderStore(storage)} {...handlers} />,
-        undefined,
-        undefined,
         shelfRepository,
       ),
     'record/new': () => <Text>ダミー手入力画面</Text>,

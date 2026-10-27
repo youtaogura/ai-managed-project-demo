@@ -1,40 +1,28 @@
 import type { ReactNode } from 'react';
 
-import { CoverResolverContextProvider } from './hooks/useCoverResolver';
 import { SettingsContextProvider } from './hooks/useSettings';
 import { ShelfRepositoryProvider } from './hooks/useShelfRepository';
 import { StarterSettingsContextProvider } from './hooks/useStarterSettings';
 import { NoteDraftStoreProvider } from './hooks/useNoteDraftStore';
 import { WriteDraftStoreProvider } from './hooks/useWriteDraftStore';
-import { PhotoServiceContextProvider } from './hooks/usePhotoService';
 import { RecordRepositoryProvider } from './hooks/useRecordRepository';
-import type { CoverResolver } from './lib/coverLookup/resolveCoverUrl';
 import type { NoteDraftStore } from './lib/noteDraftStore';
 import type { WriteDraftStore } from './lib/writeDraftStore';
-import type { PhotoService } from './lib/photo/PhotoService';
 import type { RecordRepository } from './lib/recordRepository';
 import type { SettingsStore } from './lib/settingsStore';
 import type { ShelfRepository } from './lib/shelfRepository';
 import type { StarterSettingsStore } from './lib/starterSettingsStore';
 import { createShelfRepository } from './lib/shelfRepository';
-import { createMemoryStorage, createMockPhotoService } from './testUtils';
-
-const noCover: CoverResolver = async () => null;
+import { createMemoryStorage } from './testUtils';
 
 export function withRepository(
   repository: RecordRepository,
   children: ReactNode,
-  photoService: PhotoService = createMockPhotoService(),
-  resolver: CoverResolver = noCover,
   shelfRepository: ShelfRepository = createShelfRepository(createMemoryStorage().storage),
 ) {
   return (
     <RecordRepositoryProvider repository={repository}>
-      <CoverResolverContextProvider resolver={resolver}>
-        <ShelfRepositoryProvider repository={shelfRepository}>
-          <PhotoServiceContextProvider service={photoService}>{children}</PhotoServiceContextProvider>
-        </ShelfRepositoryProvider>
-      </CoverResolverContextProvider>
+      <ShelfRepositoryProvider repository={shelfRepository}>{children}</ShelfRepositoryProvider>
     </RecordRepositoryProvider>
   );
 }

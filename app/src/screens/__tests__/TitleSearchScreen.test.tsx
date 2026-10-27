@@ -3,7 +3,6 @@ import { router } from 'expo-router';
 
 import { BookLookupContextProvider } from '../../hooks/useBookLookup';
 import { BookSearchContextProvider } from '../../hooks/useBookSearch';
-import { CoverResolverContextProvider } from '../../hooks/useCoverResolver';
 import { NdlSearchProvider } from '../../lib/bookSearch/ndl/NdlSearchProvider';
 import type { BookLookupProvider } from '../../lib/bookLookup/BookLookupProvider';
 import type { BookSearchProvider } from '../../lib/bookSearch/BookSearchProvider';
@@ -51,7 +50,6 @@ function deferred<T>(): Deferred<T> {
 async function setup(
   search: (keyword: string) => Promise<BookSearchResult>,
   lookup: (isbn: string) => Promise<BookLookupResult> = async () => ({ status: 'not_found' }),
-  resolveCover: jest.Mock<Promise<string | null>, [string]> = jest.fn(async (_isbn: string) => null),
 ) {
   const searchFn = jest.fn(search);
   const lookupFn = jest.fn(lookup);
@@ -59,11 +57,9 @@ async function setup(
   const lookupProvider: BookLookupProvider = { lookupByIsbn: lookupFn };
   const view = await render(
     <BookLookupContextProvider provider={lookupProvider}>
-      <CoverResolverContextProvider resolver={resolveCover}>
-        <BookSearchContextProvider provider={searchProvider}>
+      <BookSearchContextProvider provider={searchProvider}>
           <TitleSearchScreen />
         </BookSearchContextProvider>
-      </CoverResolverContextProvider>
     </BookLookupContextProvider>,
   );
   return { searchFn, lookupFn, view };
@@ -79,34 +75,20 @@ jest.setTimeout(30000);
 
 beforeEach(() => jest.clearAllMocks());
 
-describe('TitleSearchScreen の書影補完', () => {
-  it('openBD に書影がなければ取得した URL を params に入れ、あれば取得しない', async () => {
-    const resolveCover = jest.fn(async (_isbn: string) => 'https://cover/x.jpg');
-    await setup(async () => ok(withIsbn), async () => ({ status: 'found', book }), resolveCover);
+describe('TitleSearchScreen の遷移先の値', () => {
+  it('書影を取りに行かず、見つかった書誌情報を params に入れる', async () => {
+    await setup(async () => ok(withIsbn), async () => ({ status: 'found', book }));
     await enter('本');
     await press(/検索/);
     fireEvent.press(await screen.findByRole('button', { name: /本A/ }));
     await waitFor(() =>
       expect(router.replace).toHaveBeenCalledWith({
         pathname: '/record/new',
-        params: expect.objectContaining({ coverUrl: 'https://cover/x.jpg' }),
+        params: expect.objectContaining({ title: book.title }),
       }),
     );
-    expect(resolveCover).toHaveBeenCalledWith('9784065199817');
-  });
-
-  it('書影があれば取得しない', async () => {
-    const resolveCover = jest.fn(async (_isbn: string) => 'https://cover/x.jpg');
-    await setup(
-      async () => ok(withIsbn),
-      async () => ({ status: 'found', book: { ...book, coverUrl: 'https://o/c.jpg' } }),
-      resolveCover,
-    );
-    await enter('本');
-    await press(/検索/);
-    fireEvent.press(await screen.findByRole('button', { name: /本A/ }));
-    await waitFor(() => expect(router.replace).toHaveBeenCalled());
-    expect(resolveCover).not.toHaveBeenCalled();
+    const call = (router.replace as jest.Mock).mock.calls[0][0];
+    expect(call.params.coverUrl).toBeUndefined();
   });
 });
 

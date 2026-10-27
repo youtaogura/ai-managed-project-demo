@@ -60,8 +60,6 @@ async function show(
         withRepository(
           repository,
           <ReadingScreen recordId="x" {...handlers} />,
-          undefined,
-          undefined,
           createShelfRepository(storage),
         ),
       ),

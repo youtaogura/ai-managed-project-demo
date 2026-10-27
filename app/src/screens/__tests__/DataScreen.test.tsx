@@ -14,8 +14,7 @@ import { createShelfRepository } from '../../lib/shelfRepository';
 import { createStarterSettingsStore } from '../../lib/starterSettingsStore';
 import { defaultStarterSettings } from '../../lib/starterDefaults';
 import { withRepository, withSettings, withShelfRepository, withStarterSettings } from '../../testProviders';
-import { createMemoryStorage, createMockPhotoService, makeRecord } from '../../testUtils';
-import type { PhotoService } from '../../lib/photo/PhotoService';
+import { createMemoryStorage, makeRecord } from '../../testUtils';
 import { triggerImpactHaptic } from '../../lib/haptics';
 import { router } from 'expo-router';
 import { DEFAULT_SETTINGS } from '../../types/settings';
@@ -55,13 +54,11 @@ async function setup(
   fileService: FileService,
   options: {
     initial?: MediaRecord[];
-    photoService?: PhotoService;
     settingsStore?: SettingsStore;
     extra?: Record<string, string>;
   } = {},
 ) {
   const { initial = records, extra = {} } = options;
-  const photoService = options.photoService ?? createMockPhotoService();
   const memory = createMemoryStorage({
     [RECORDS_STORAGE_KEY]: JSON.stringify(initial),
     ...extra,
@@ -88,8 +85,6 @@ async function setup(
                   starterSettingsStore={starterSettingsStore}
                 />
               </FileServiceContextProvider>,
-              photoService,
-              undefined,
               shelfRepository,
             ),
           ),
@@ -100,7 +95,6 @@ async function setup(
   return {
     memory,
     repository,
-    photoService,
     settingsStore,
     shelfRepository,
     starterSettingsStore,
@@ -149,7 +143,6 @@ describe('DataScreen', () => {
     await screen.findByText('2');
     await press(/^記録を書き出す/);
     expect(screen.getByText('2 件の記録')).toBeTruthy();
-    expect(screen.getByText(/自分で撮った写真は含まれません/)).toBeTruthy();
     await press('バックアップ（JSON）');
     await waitFor(() => expect(service.saveAndShare).toHaveBeenCalledTimes(1));
     const arg = jest.mocked(service.saveAndShare).mock.calls[0]?.[0];
@@ -389,12 +382,12 @@ describe('DataScreen（すべての記録を削除）', () => {
     await openSheet();
     expect(screen.getByText('すべての記録を削除しますか？')).toBeTruthy();
     expect(
-      screen.getByText('2 件の記録と、付けた写真がすべて削除されます。元に戻せません。設定はそのまま残ります。'),
+      screen.getByText('2 件の記録（メモ・引用・書き出しを含む）がすべて削除されます。元に戻せません。設定はそのまま残ります。'),
     ).toBeTruthy();
   });
 
-  it('「すべて削除する」で記録と写真を消し、設定は残し、触覚 1 回・一覧へ戻る', async () => {
-    const { memory, photoService, settingsStore } = await setup(fakeFileService());
+  it('「すべて削除する」で記録を消し、設定は残し、触覚 1 回・一覧へ戻る', async () => {
+    const { memory, settingsStore } = await setup(fakeFileService());
     await settingsStore.save({
       ...DEFAULT_SETTINGS,
       defaultStatus: 'planned',
@@ -404,20 +397,17 @@ describe('DataScreen（すべての記録を削除）', () => {
     await press('すべて削除する');
     await waitFor(() => expect(dismissTo).toHaveBeenCalledWith('/'));
     expect(memory.data.get(RECORDS_STORAGE_KEY)).toBe('[]');
-    expect(photoService.remove).toHaveBeenCalledTimes(1);
-    expect(photoService.remove).toHaveBeenCalledWith('file:///p.jpg');
     expect(memory.data.get(SETTINGS_STORAGE_KEY)).toBe(settingsBefore);
     expect(triggerImpactHaptic).toHaveBeenCalledTimes(1);
     expect(await screen.findByText('0')).toBeTruthy();
   });
 
   it('「キャンセル」では何も消えず、触覚もない', async () => {
-    const { memory, photoService } = await setup(fakeFileService());
+    const { memory } = await setup(fakeFileService());
     await openSheet();
     await press('キャンセル');
     expect(screen.queryByText('すべての記録を削除しますか？')).toBeNull();
     expect(JSON.parse(memory.data.get(RECORDS_STORAGE_KEY) ?? '[]')).toHaveLength(2);
-    expect(photoService.remove).not.toHaveBeenCalled();
     expect(triggerImpactHaptic).not.toHaveBeenCalled();
     expect(dismissTo).not.toHaveBeenCalled();
   });
@@ -433,17 +423,15 @@ describe('DataScreen（すべての記録を削除）', () => {
 
   it('削除中は二重に実行されない', async () => {
     let release: () => void = () => undefined;
-    const photoService = createMockPhotoService({
-      remove: jest.fn(() => new Promise<void>((resolve) => (release = resolve))),
-    });
-    await setup(fakeFileService(), { photoService });
+    const { repository } = await setup(fakeFileService());
+    jest.spyOn(repository, 'deleteAll').mockImplementation(() => new Promise((resolve) => (release = () => resolve([]))));
     await openSheet();
     await press('すべて削除する');
-    await waitFor(() => expect(photoService.remove).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(repository.deleteAll).toHaveBeenCalledTimes(1));
     await press('すべて削除する');
     release();
     await waitFor(() => expect(dismissTo).toHaveBeenCalledTimes(1));
-    expect(photoService.remove).toHaveBeenCalledTimes(1);
+    expect(repository.deleteAll).toHaveBeenCalledTimes(1);
     expect(triggerImpactHaptic).toHaveBeenCalledTimes(1);
   });
 

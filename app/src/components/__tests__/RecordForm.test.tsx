@@ -4,9 +4,8 @@ import { StyleSheet } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
 import { colors, size, space } from '../../design/tokens';
-import type { PhotoService } from '../../lib/photo/PhotoService';
 import { withRepository } from '../../testProviders';
-import { createFakeRepository, createMemoryStorage, createMockPhotoService, makeRecord } from '../../testUtils';
+import { createFakeRepository, createMemoryStorage, makeRecord } from '../../testUtils';
 import { createShelfRepository } from '../../lib/shelfRepository';
 import { RecordForm } from '../RecordForm';
 
@@ -14,8 +13,7 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 
-const render = (ui: ReactElement, service: PhotoService = createMockPhotoService()) =>
-  rtlRender(withRepository(createFakeRepository().repository, ui, service));
+const render = (ui: ReactElement) => rtlRender(withRepository(createFakeRepository().repository, ui));
 
 // 初回レンダリングが CI の遅い環境で 5 秒を超えることがあるため延長する
 jest.setTimeout(30000);
@@ -341,15 +339,14 @@ describe('RecordForm', () => {
   });
 
   describe('削除', () => {
-    const open = async (onDelete: () => Promise<void>, onDeleted?: () => void, photoUri?: string, service?: PhotoService) => {
+    const open = async (onDelete: () => Promise<void>, onDeleted?: () => void) => {
       await render(
         <RecordForm
           onSubmit={jest.fn()}
           onDelete={onDelete}
           onDeleted={onDeleted}
-          initialValues={{ title: '吾輩', photoUri: photoUri ?? null }}
+          initialValues={{ title: '吾輩' }}
         />,
-        service,
       );
       await press('この本を削除');
     };
@@ -358,7 +355,7 @@ describe('RecordForm', () => {
       const onDelete = jest.fn().mockResolvedValue(undefined);
       const onDeleted = jest.fn();
       await open(onDelete, onDeleted);
-      expect(screen.getByText('「吾輩」の記録と、付けた写真が削除されます。元に戻せません。')).toBeTruthy();
+      expect(screen.getByText('「吾輩」の記録（メモ・引用・書き出しを含む）が削除されます。元に戻せません。')).toBeTruthy();
       await act(async () => press('削除する'));
       expect(onDelete).toHaveBeenCalledTimes(1);
       expect(onDeleted).toHaveBeenCalledTimes(1);
@@ -371,19 +368,12 @@ describe('RecordForm', () => {
       expect(onDelete).not.toHaveBeenCalled();
     });
 
-    it('削除失敗でメッセージを表示し、写真は消さない', async () => {
-      const service = createMockPhotoService();
-      await open(jest.fn().mockRejectedValue(new Error('x')), undefined, 'file:///p.jpg', service);
+    it('削除失敗でメッセージを表示し、onDeleted は呼ばれない', async () => {
+      const onDeleted = jest.fn();
+      await open(jest.fn().mockRejectedValue(new Error('x')), onDeleted);
       await act(async () => press('削除する'));
       expect(screen.getByText('削除に失敗しました')).toBeTruthy();
-      expect(service.remove).not.toHaveBeenCalled();
-    });
-
-    it('削除した本に写真があれば、写真ファイルも消す', async () => {
-      const service = createMockPhotoService();
-      await open(jest.fn().mockResolvedValue(undefined), undefined, 'file:///p.jpg', service);
-      await act(async () => press('削除する'));
-      expect(service.remove).toHaveBeenCalledWith('file:///p.jpg');
+      expect(onDeleted).not.toHaveBeenCalled();
     });
   });
 });
@@ -404,8 +394,6 @@ describe('RecordForm の本棚', () => {
         createFakeRepository([makeRecord({ id: 'r1', shelfIds: ['a'] }), makeRecord({ id: 'r2', shelfIds: ['a', 'b'] })])
           .repository,
         <RecordForm onSubmit={onSubmit} initialValues={{ title: '本' }} {...props} />,
-        undefined,
-        undefined,
         shelfRepository,
       ),
     );

@@ -12,14 +12,14 @@ describe('RatingStars', () => {
     await render(<RatingStars rating={4.2} size={10} />);
     expect([0, 1, 2, 3, 4].map(fillWidth)).toEqual([10, 10, 10, 10, 2]);
     expect(screen.getByText('4.2')).toBeTruthy();
-    expect(screen.getByRole('image', { name: 'レーティング 4.2' })).toBeTruthy();
+    expect(screen.getByRole('image', { name: 'どうだった？ 4.2 よかった' })).toBeTruthy();
   });
 
-  it('null は塗りなしで「未評価」を出す', async () => {
+  it('null は塗りなしで「まだ選んでいません」を出す', async () => {
     await render(<RatingStars rating={null} />);
     expect([0, 1, 2, 3, 4].map(fillWidth)).toEqual([0, 0, 0, 0, 0]);
-    expect(screen.getByText('未評価')).toBeTruthy();
-    expect(screen.getByRole('image', { name: 'レーティング 未評価' })).toBeTruthy();
+    expect(screen.getByText('まだ選んでいません')).toBeTruthy();
+    expect(screen.getByRole('image', { name: 'どうだった？ まだ選んでいません' })).toBeTruthy();
   });
 
   it('塗りは accent、未到達は starOff', async () => {

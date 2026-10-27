@@ -6,8 +6,8 @@ export const SORT_ORDER_LABELS: Record<SortOrder, string> = {
   endDate_asc: '終了日が古い順',
   startDate_desc: '開始日が新しい順',
   startDate_asc: '開始日が古い順',
-  rating_desc: '評価が高い順',
-  rating_asc: '評価が低い順',
+  rating_desc: 'どうだった？の高い順',
+  rating_asc: 'どうだった？の低い順',
   title_asc: 'タイトル順',
   createdAt_desc: '登録が新しい順',
 };

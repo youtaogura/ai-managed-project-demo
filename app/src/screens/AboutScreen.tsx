@@ -13,7 +13,7 @@ import { formatVersion, getAppInfo } from '../lib/appInfo';
 type Source = { name: string; note: string };
 
 const SOURCES: readonly Source[] = [
-  { name: 'openBD', note: '書誌情報・書影（ISBN から）' },
+  { name: 'openBD', note: '書誌情報（ISBN から）' },
   { name: '国立国会図書館サーチ', note: 'タイトル検索' },
   { name: 'Noto Sans JP / しっぽり明朝', note: 'フォント（SIL Open Font License）' },
 ];
