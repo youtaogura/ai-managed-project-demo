@@ -119,8 +119,16 @@ describe('ReviewScreen', () => {
   it('今年いちばん使った書き出しと回数を出す。なければ段ごと出さない', async () => {
     await setup(sample);
     expect(await screen.findByText('今年いちばん使った書き出し')).toBeTruthy();
-    expect(screen.getByText('ひとことで言うと、')).toBeTruthy();
+    expect(screen.getByText('もし')).toBeTruthy();
     expect(screen.getByText('· 1 回')).toBeTruthy();
+    expect(screen.queryByText('ひとことで言うと、')).toBeNull();
+  });
+
+  it('ひとことだけの本では書き出しの段を出さない', async () => {
+    await setup([done('1', { endDate: '2026-10-01', oneLiner: 'よい' })]);
+    await screen.findByText('どうだった？');
+    expect(screen.queryByText('今年いちばん使った書き出し')).toBeNull();
+    expect(screen.queryByText('ひとことで言うと、')).toBeNull();
   });
 
   it('書き出しが使われていなければ段を出さない', async () => {
