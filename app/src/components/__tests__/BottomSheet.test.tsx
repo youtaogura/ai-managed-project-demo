@@ -1,7 +1,20 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
-import { Text } from 'react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
+import { Platform, Text } from 'react-native';
 
 import { BottomSheet, releaseSwipe, shouldDismissSwipe } from '../BottomSheet';
+
+// jest の KeyboardAvoidingView はモックで props が DOM に残らないので、渡された behavior を記録する
+const mockBehaviors: unknown[] = [];
+jest.mock('react-native/Libraries/Components/Keyboard/KeyboardAvoidingView', () => {
+  const { View } = jest.requireActual('react-native');
+  return {
+    __esModule: true,
+    default: ({ behavior, ...props }: { behavior?: unknown }) => {
+      mockBehaviors.push(behavior);
+      return <View {...props} />;
+    },
+  };
+});
 
 describe('BottomSheet', () => {
   it('visible=false では描画しない', async () => {
@@ -41,6 +54,33 @@ describe('BottomSheet', () => {
       screen.getByTestId('bottom-sheet-modal').props.onRequestClose();
     });
     expect(onClose).toHaveBeenCalledTimes(3);
+  });
+
+  it.each(['ios', 'android'] as const)('%s でも KeyboardAvoidingView が padding で中身を包む', async (os) => {
+    const original = Platform.OS;
+    Platform.OS = os;
+    try {
+      await render(
+        <BottomSheet visible onClose={jest.fn()}>
+          <Text>中身</Text>
+        </BottomSheet>,
+      );
+      expect(screen.getByTestId('bottom-sheet-keyboard-avoiding')).toBeTruthy();
+      expect(mockBehaviors.at(-1)).toBe('padding');
+    } finally {
+      Platform.OS = original;
+    }
+  });
+
+  it('children は keyboardShouldPersistTaps="handled" の ScrollView 内に出る', async () => {
+    await render(
+      <BottomSheet visible onClose={jest.fn()}>
+        <Text>中身</Text>
+      </BottomSheet>,
+    );
+    const scroll = screen.getByTestId('bottom-sheet-scroll');
+    expect(scroll.props.keyboardShouldPersistTaps).toBe('handled');
+    expect(within(scroll).getByText('中身')).toBeTruthy();
   });
 
   it('スワイプ解放でしきい値を超えれば onClose、未満なら戻す', () => {
