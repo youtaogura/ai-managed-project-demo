@@ -125,6 +125,15 @@ describe('RereadScreen の表示', () => {
     expect(memos).toEqual(['さきのメモ', 'あとのメモ', 'ページなしメモ']);
   });
 
+  it('「メモ」見出しと本文は textSecondary で、見出しは本文より小さい', async () => {
+    await show();
+    const heading = StyleSheet.flatten((await screen.findByText('メモ')).props.style);
+    const body = StyleSheet.flatten(screen.getByText('さきのメモ').props.style);
+    expect(heading.color).toBe(colors.textSecondary);
+    expect(body.color).toBe(colors.textSecondary);
+    expect(heading.fontSize).toBeLessThan(body.fontSize as number);
+  });
+
   it('メモが 0 件なら見出しごと出さない', async () => {
     await show([{ ...full, memos: [] }]);
     await screen.findByText('吾輩は猫である');
