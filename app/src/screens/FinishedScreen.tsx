@@ -7,7 +7,7 @@ import { Button } from '../components/Button';
 import { RatingSlider } from '../components/RatingSlider';
 import { Shelf } from '../components/Shelf';
 import { Toggle } from '../components/Toggle';
-import { colors, size, space } from '../design/tokens';
+import { colors, radius, size, space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useRecordRepository } from '../hooks/useRecordRepository';
 import { buildFinishedSummary, RATING_GUIDE } from '../lib/finished';
@@ -125,15 +125,18 @@ export function FinishedScreen({ recordId, onWrite, onLater, onBack }: FinishedS
         <View style={styles.spine}>
           <Shelf records={[record]} width={SPINE_SHELF_WIDTH} onPressRecord={() => undefined} />
         </View>
-        <AppText variant="label" style={{ color: colors.ribbon }}>
+        <AppText variant="label" style={[styles.centered, { color: colors.ribbon }]}>
           読み終えた
         </AppText>
-        <AppText variant="bookTitle">{record.title}</AppText>
-        <AppText variant="label" style={{ color: colors.textSecondary }}>
+        <AppText variant="bookTitle" style={styles.centered}>
+          {record.title}
+        </AppText>
+        <AppText variant="label" style={[styles.centered, { color: colors.textSecondary }]}>
           {buildFinishedSummary(record)}
         </AppText>
-        <View style={styles.divider} />
-        <AppText variant="sectionTitle">どうだった？</AppText>
+        <AppText variant="sectionTitle" style={styles.centered}>
+          どうだった？
+        </AppText>
         <RatingSlider value={rating} onChange={changeRating} />
         {rating !== null && word !== null ? (
           <View style={styles.result}>
@@ -143,13 +146,12 @@ export function FinishedScreen({ recordId, onWrite, onLater, onBack }: FinishedS
             </AppText>
           </View>
         ) : null}
-        <AppText variant="micro" style={{ color: colors.textSecondary }}>
+        <AppText variant="micro" style={[styles.centered, { color: colors.textSecondary }]}>
           {RATING_GUIDE.map((g) => `${g.word} ${g.range}`).join(' · ')}
         </AppText>
-        <AppText variant="micro" style={{ color: colors.textSecondary }}>
+        <AppText variant="micro" style={[styles.centered, { color: colors.textSecondary }]}>
           星をなぞると 0.1 ずつ変わります
         </AppText>
-        <View style={styles.divider} />
         <View style={styles.toggleRow}>
           <AppText variant="body" style={styles.toggleLabel}>
             お気に入りにする
@@ -181,10 +183,15 @@ const styles = StyleSheet.create({
   },
   body: { paddingHorizontal: space[5], gap: space[3], paddingTop: space[6] },
   spine: { alignItems: 'center', paddingBottom: space[2] },
-  divider: { height: 1, backgroundColor: colors.line, marginVertical: space[2] },
-  result: { flexDirection: 'row', alignItems: 'baseline', gap: space[2] },
+  centered: { textAlign: 'center' },
+  result: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: space[2] },
   toggleRow: {
     minHeight: TOGGLE_ROW_HEIGHT,
+    paddingHorizontal: space[4],
+    borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.surface1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

@@ -69,6 +69,7 @@ Chromium・日本語フォントは入った（#111、`CHROMIUM_PATH=/usr/bin/ch
 ## 設計
 
 ### 追加・変更するファイル（すべて `app/` 配下）
+- ※実装では Jest が `.mjs` を読めないため、`server` / `scenes` / `seed` は `.cjs`（型は `.d.cts`）
 - `scripts/screenshots/index.mjs` … エントリ。引数解釈 → `expo export --platform web` → サーバー起動 → 各シーン撮影 → 後片付け
 - `scripts/screenshots/server.mjs` … `resolveRequestPath(distDir, urlPath)` と `createStaticServer(distDir)`
 - `scripts/screenshots/scenes.mjs` … シーン定義（`SCENES`）と `parseSceneArgs(argv)`

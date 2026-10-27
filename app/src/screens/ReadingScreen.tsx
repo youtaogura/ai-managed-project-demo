@@ -7,7 +7,7 @@ import { Button } from '../components/Button';
 import { MemoRow } from '../components/MemoRow';
 import { NoteSheet } from '../components/NoteSheet';
 import { Quote } from '../components/Quote';
-import { Shelf } from '../components/Shelf';
+import { Spine } from '../components/Spine';
 import { colors, radius, size, space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useRecordRepository } from '../hooks/useRecordRepository';
@@ -29,7 +29,6 @@ import { shelfNames } from '../lib/shelfSelectors';
 import type { MediaRecord, NewRecordInput } from '../types/record';
 
 const ERROR_FINISH = '保存できませんでした。もう一度お試しください';
-const SPINE_SHELF_WIDTH = 96;
 const BAR_PADDING = space[4];
 
 type SheetState = { mode: 'new' } | { mode: 'edit'; item: NoteItem } | null;
@@ -150,19 +149,20 @@ export function ReadingScreen({ recordId, onEdit, onFinished, onBack }: ReadingS
           { paddingBottom: (reading ? size.buttonHeight + BAR_PADDING * 2 : 0) + bottomInset + space[6] },
         ]}
       >
-        <View style={styles.spine}>
-          <Shelf records={[record]} width={SPINE_SHELF_WIDTH} onPressRecord={() => undefined} />
+        <View style={styles.hero}>
+          <Spine record={record} />
+          <View style={styles.heroText}>
+            <AppText variant="label" style={{ color: colors.ribbon }}>
+              {startLabel(record.startDate)}
+            </AppText>
+            <AppText variant="bookTitle">{record.title}</AppText>
+            {meta ? (
+              <AppText variant="label" style={{ color: colors.textSecondary }}>
+                {meta}
+              </AppText>
+            ) : null}
+          </View>
         </View>
-        <AppText variant="label" style={{ color: colors.ribbon }}>
-          {startLabel(record.startDate)}
-        </AppText>
-        <AppText variant="bookTitle">{record.title}</AppText>
-        {meta ? (
-          <AppText variant="label" style={{ color: colors.textSecondary }}>
-            {meta}
-          </AppText>
-        ) : null}
-        <View style={styles.divider} />
         <View style={styles.sectionHead}>
           <AppText variant="sectionTitle">メモと引用</AppText>
           <AppText variant="label" style={{ color: colors.textSecondary }}>{`${items.length} 件`}</AppText>
@@ -239,8 +239,8 @@ const styles = StyleSheet.create({
   },
   edit: { minHeight: size.touchMin, minWidth: size.touchMin, alignItems: 'center', justifyContent: 'center' },
   body: { paddingHorizontal: space[5], gap: space[3] },
-  spine: { alignItems: 'center', paddingTop: space[4], paddingBottom: space[2] },
-  divider: { height: 1, backgroundColor: colors.line, marginVertical: space[2] },
+  hero: { flexDirection: 'row', alignItems: 'flex-end', gap: space[4], paddingTop: space[4], paddingBottom: space[2] },
+  heroText: { flex: 1, gap: space[2] },
   sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   add: {
     minHeight: size.touchMin,
