@@ -15,7 +15,7 @@ describe('parseNdlResponse', () => {
     expect(parseNdlResponse(wrap(item1 + item2))).toEqual([
       {
         title: '本1',
-        author: '著者1 著',
+        author: '著者1',
         publisher: '出版1',
         publishedYear: '2019',
         isbn: '9784065199817',
@@ -88,7 +88,7 @@ describe('parseNdlResponse', () => {
     expect(parseNdlResponse(wrap(article + audio + book))).toEqual([
       {
         title: 'ノルウェイの森',
-        author: '村上, 春樹',
+        author: '村上春樹',
         publisher: '講談社',
         publishedYear: '2004',
         isbn: '9784062748681',
@@ -99,5 +99,15 @@ describe('parseNdlResponse', () => {
 
   it('図書が 1 件もなければ候補は 0 件', () => {
     expect(parseNdlResponse(wrap('<item><title>記事</title><category>記事</category></item>'))).toEqual([]);
+  });
+});
+
+describe('parseNdlResponse の作者の整形', () => {
+  const wrap = (body: string) =>
+    `<?xml version="1.0"?><rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><item><title>本</title>${body}</item></channel></rss>`;
+
+  it('dc:creator が複数あれば整形して重複を除きつなぐ', () => {
+    const xml = wrap('<dc:creator>村上, 春樹</dc:creator><dc:creator>村上春樹 著</dc:creator><dc:creator>Liu, Cixin</dc:creator>');
+    expect(parseNdlResponse(xml)[0].author).toBe('村上春樹、Cixin Liu');
   });
 });

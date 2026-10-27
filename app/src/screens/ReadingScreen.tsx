@@ -31,6 +31,7 @@ import type { MediaRecord, NewRecordInput } from '../types/record';
 
 const ERROR_FINISH = '保存できませんでした。もう一度お試しください';
 const BAR_PADDING = space[4];
+const SPINE_SIZE = { width: 40, height: 150 };
 
 type SheetState = { mode: 'new' } | { mode: 'edit'; item: NoteItem } | null;
 
@@ -132,9 +133,9 @@ export function ReadingScreen({ recordId, onEdit, onFinished, onBack }: ReadingS
   return (
     <View style={styles.container}>
       <View style={[styles.header, { paddingTop: topInset + space[2] }]}>
-        <Button variant="icon" accessibilityLabel="戻る" onPress={() => onBack?.()}>
-          <AppText variant="sectionTitle">‹</AppText>
-        </Button>
+        <Pressable accessibilityRole="button" accessibilityLabel="戻る" style={styles.back} onPress={() => onBack?.()}>
+          <AppText variant="bookTitle" style={{ color: colors.textSecondary, ...regularTextStyle }}>‹</AppText>
+        </Pressable>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="編集"
@@ -151,7 +152,7 @@ export function ReadingScreen({ recordId, onEdit, onFinished, onBack }: ReadingS
         ]}
       >
         <View style={styles.hero}>
-          <Spine record={record} />
+          <Spine record={record} dimensions={SPINE_SIZE} />
           <View style={styles.heroText}>
             <AppText variant="value" style={{ color: colors.ribbon }}>
               {startLabel(record.startDate)}
@@ -238,9 +239,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: space[4],
     paddingBottom: space[2],
   },
+  back: { minHeight: size.touchMin, minWidth: size.touchMin, justifyContent: 'center' },
   edit: { minHeight: size.touchMin, minWidth: size.touchMin, alignItems: 'center', justifyContent: 'center' },
   body: { paddingHorizontal: space[5], gap: space[3] },
-  hero: { flexDirection: 'row', alignItems: 'flex-end', gap: space[4], paddingTop: space[4], paddingBottom: space[2] },
+  hero: { flexDirection: 'row', alignItems: 'flex-end', gap: space[5], paddingTop: space[4], paddingBottom: space[2] },
   heroText: { flex: 1, gap: space[2] },
   sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   add: {

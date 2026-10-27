@@ -1,6 +1,7 @@
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
 
 import type { BookCandidate } from '../../../types/bookSearch';
+import { normalizeAuthors } from '../../authorName';
 import { toIsbn13 } from '../../isbn';
 
 export class NdlParseError extends Error {
@@ -87,7 +88,13 @@ function isBook(item: Record<string, unknown>): boolean {
 }
 
 function extractAuthor(item: Record<string, unknown>): string | null {
-  return firstText(item['dc:creator']) ?? firstText(item.author);
+  const texts = (value: unknown) =>
+    toArray(value).flatMap((entry) => {
+      const text = textOf(entry);
+      return text === null ? [] : [text];
+    });
+  const creators = texts(item['dc:creator']);
+  return normalizeAuthors(creators.length > 0 ? creators : texts(item.author));
 }
 
 function toCandidate(item: unknown): BookCandidate | null {

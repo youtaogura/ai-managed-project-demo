@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Platform,
   Pressable,
   StyleSheet,
   TextInput,
@@ -16,6 +17,11 @@ const FIELD_PADDING_X = 14;
 const MULTILINE_MIN_HEIGHT = 120;
 const ISBN_HEIGHT = 56;
 const ISBN_FONT_SIZE = 22;
+// iOS の number-pad には確定キーがないため、return キーが出る種別にする
+const ISBN_KEYBOARD = Platform.select<TextInputProps['keyboardType']>({
+  ios: 'numbers-and-punctuation',
+  default: 'number-pad',
+});
 
 type FieldChrome = {
   label: string;
@@ -69,7 +75,7 @@ export function TextField({
       <Heading chrome={{ label, required, optionalLabel }} />
       <TextInput
         placeholderTextColor={colors.textTertiary}
-        keyboardType={isbn ? 'number-pad' : undefined}
+        keyboardType={isbn ? ISBN_KEYBOARD : undefined}
         {...inputProps}
         accessibilityLabel={headingText({ label, required, optionalLabel })}
         multiline={multiline}
