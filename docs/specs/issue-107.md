@@ -49,7 +49,7 @@ Chromium・日本語フォントは入った（#111、`CHROMIUM_PATH=/usr/bin/ch
 | shelf | 本棚 | 本が8冊前後（読んでる・読み終えた・読みたい・途中でやめた、お気に入り、表紙画像なしで背表紙）、本棚2つ | `/` |
 | shelf-empty | 本棚（本がない） | 本・本棚なし | `/` |
 | shelf-new | 本棚を作る | shelf と同じ | 本棚の「＋」をタップ |
-| shelf-pick | 本棚を選ぶ | shelf と同じ | 本棚の名前（切り替え）をタップ |
+| shelf-pick | 本棚を選ぶ | shelf と同じ | 読み返す画面の「本棚」行をタップ（本棚のチップは切り替えでシートは開かない） |
 | add-sheet | 本を追加 | shelf と同じ | 追加ボタンをタップ |
 | title-search | タイトルで探す | なし | `/record/search`。検索結果は外部 API が必要なので撮らず、入力欄の状態を撮る |
 | book-form | 本を登録・編集 | 編集で開く本1冊 | `/record/<id>` |
@@ -110,6 +110,7 @@ Playwright を起動する部分（`index.mjs`）は Jest では実行しない�
 - **撮影用データの入れ方**: Playwright の `addInitScript` で `localStorage` に入れる案を選んだ。却下案: (a) 環境変数 `EXPO_PUBLIC_*` でシードを切り替える、(b) ストアのプロバイダを差し替える撮影専用ルートを作る。どちらも本番コードに撮影用の分岐が入り、Issue の条件に反する。Web の AsyncStorage は `localStorage` なので追加のコードは要らない。
 - **配信方法**: `expo export --platform web` の出力を `node:http` で配信。却下案: 静的配信パッケージの追加（依存を増やさない）、Expo の開発サーバーを使う方法（CLAUDE.md で開発サーバーの起動を禁止）。
 - **Playwright のパッケージ**: `playwright-core` を選択（上記）。
+- **ヘルパーを `.cjs` にした**: Jest（`jest.config.js` は変更不可）が `.mjs` を読み込めないため。`index.mjs` から default import で使う。
 - **バーコード画面（scan.png）**: Web にカメラがなく、権限の画面しか撮れないため対象外。Issue の「撮影の対象から外すか、代わりの表示で撮る」のうち前者。
 - **タイトルで探す**: 外部 API に依存するため結果の表示は撮らず、入力欄の状態のみ。`page.route` でモックする案は、結果の見た目は既存の Jest で確認済みで、撮影の目的（余白・色・書体の見比べ）には入力状態で足りるため見送り。必要になれば後から追加できる。
 - **撮影スクリプトの置き場所**: `scripts/`（既存の `gen-licenses.mjs` と同じ）。`src/` に置くとアプリのバンドルとカバレッジの対象になるため。
