@@ -23,6 +23,11 @@ describe('Toggle', () => {
 });
 
 describe('ToggleRow', () => {
+  it('small とコンテナの style を受け取れる', async () => {
+    await render(<ToggleRow small style={{ borderWidth: 1 }} value onValueChange={jest.fn()} label="小さい" />);
+    expect(screen.getAllByRole('switch', { name: '小さい' })).toHaveLength(1);
+  });
+
   it('説明を出し、行全体を押して切り替える', async () => {
     const onValueChange = jest.fn();
     await render(<ToggleRow value onValueChange={onValueChange} label="書き出し" description="説明です" />);

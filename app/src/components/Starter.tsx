@@ -5,7 +5,7 @@ import { colors, radius, size, space, typography } from '../design/tokens';
 import { PAGE_MAX_LENGTH } from '../lib/notes';
 import { AppText } from './AppText';
 import { TextField } from './TextField';
-import { Toggle } from './Toggle';
+import { ToggleRow } from './Toggle';
 
 const SELECTED_BORDER = 1.5;
 const BODY_MIN_HEIGHT = typography.reading.lineHeight * 4;
@@ -78,12 +78,7 @@ export function Starter({
         onChangeText={onChangeText}
         style={[styles.input, serif('reading')]}
       />
-      <View style={styles.quoteRow}>
-        <Toggle small label="引用として残す" value={asQuote} onValueChange={onChangeAsQuote} />
-        <AppText variant="label" style={{ color: colors.textSecondary }}>
-          引用として残す
-        </AppText>
-      </View>
+      <ToggleRow small label="引用として残す" value={asQuote} onValueChange={onChangeAsQuote} />
       {asQuote ? (
         <TextField
           label="ページ"
@@ -140,7 +135,6 @@ const styles = StyleSheet.create({
   },
   selected: { borderWidth: SELECTED_BORDER, borderColor: colors.ribbon },
   summary: { flex: 1, gap: space[1] },
-  quoteRow: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
   input: {
     minHeight: BODY_MIN_HEIGHT,
     backgroundColor: colors.bg,
