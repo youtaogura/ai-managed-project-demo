@@ -78,7 +78,12 @@ export function Starter({
         onChangeText={onChangeText}
         style={[styles.input, serif('reading')]}
       />
-      <Toggle small label="引用として残す" value={asQuote} onValueChange={onChangeAsQuote} />
+      <View style={styles.quoteRow}>
+        <Toggle small label="引用として残す" value={asQuote} onValueChange={onChangeAsQuote} />
+        <AppText variant="label" style={{ color: colors.textSecondary }}>
+          引用として残す
+        </AppText>
+      </View>
       {asQuote ? (
         <TextField
           label="ページ"
@@ -135,6 +140,7 @@ const styles = StyleSheet.create({
   },
   selected: { borderWidth: SELECTED_BORDER, borderColor: colors.ribbon },
   summary: { flex: 1, gap: space[1] },
+  quoteRow: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
   input: {
     minHeight: BODY_MIN_HEIGHT,
     backgroundColor: colors.bg,

@@ -2,7 +2,7 @@ import type { MediaRecord } from '../../src/types/record';
 import type { NdlSearchItem } from './seed.cjs';
 import type { Shelf } from '../../src/types/shelf';
 
-export type SceneAction = { label: string } | { text: string };
+export type SceneAction = ({ label: string } | { text: string }) & { fill?: string };
 export type SceneData = { records?: MediaRecord[]; shelves?: Shelf[]; starterSettings?: unknown; lastExportedAt?: string };
 export type Scene = {
   name: string;
