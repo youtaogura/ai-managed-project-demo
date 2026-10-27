@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from 'react';
 import {
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   TextInput,
   View,
@@ -148,98 +145,96 @@ function Form({ recordId, editing, onSubmit, onDelete, onClose, closeRef }: Form
   const quote = draft.kind === 'quote';
   const bodyType = quote ? typography.quote : typography.body;
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.form}>
-        {isEdit ? <AppText variant="sectionTitle">{`${KIND_LABEL[draft.kind]}を直す`}</AppText> : null}
-        <View accessibilityRole="tablist" style={styles.tabs}>
-          {KINDS.map((kind) => {
-            const selected = draft.kind === kind;
-            return (
-              <Pressable
-                key={kind}
-                accessibilityRole="tab"
-                accessibilityLabel={KIND_LABEL[kind]}
-                accessibilityState={{ selected }}
-                onPress={() => patch({ kind })}
-                style={[
-                  styles.tab,
-                  selected
-                    ? { backgroundColor: colors.accent, borderColor: colors.accent }
-                    : { borderColor: colors.lineStrong },
-                ]}
-              >
-                <AppText variant="label" style={{ color: selected ? colors.accentInk : colors.textSecondary }}>
-                  {KIND_LABEL[kind]}
-                </AppText>
-              </Pressable>
-            );
-          })}
-        </View>
-        <TextField
-          label="ページ"
-          value={draft.page}
-          onChangeText={(page) => patch({ page })}
-          placeholder="なくても大丈夫"
-          keyboardType="number-pad"
-          maxLength={PAGE_MAX_LENGTH}
-        />
-        <View>
-          <AppText variant="label" style={[styles.heading, { color: colors.textSecondary }]}>
-            本文
-          </AppText>
-          <View style={styles.bodyRow}>
-            {quote ? <View testID="quote-line" style={styles.line} /> : null}
-            <TextInput
-              accessibilityLabel="本文"
-              multiline
-              textAlignVertical="top"
-              value={draft.text}
-              onChangeText={(text) => patch({ text })}
-              placeholderTextColor={colors.textTertiary}
+    <View style={styles.form}>
+      {isEdit ? <AppText variant="sectionTitle">{`${KIND_LABEL[draft.kind]}を直す`}</AppText> : null}
+      <View accessibilityRole="tablist" style={styles.tabs}>
+        {KINDS.map((kind) => {
+          const selected = draft.kind === kind;
+          return (
+            <Pressable
+              key={kind}
+              accessibilityRole="tab"
+              accessibilityLabel={KIND_LABEL[kind]}
+              accessibilityState={{ selected }}
+              onPress={() => patch({ kind })}
               style={[
-                styles.body,
-                quote && styles.bodyQuote,
-                {
-                  fontFamily: resolveFontFamily(bodyType.fontFamily, bodyType.fontWeight),
-                  fontSize: bodyType.fontSize,
-                  lineHeight: bodyType.lineHeight,
-                },
+                styles.tab,
+                selected
+                  ? { backgroundColor: colors.accent, borderColor: colors.accent }
+                  : { borderColor: colors.lineStrong },
               ]}
-            />
-          </View>
+            >
+              <AppText variant="label" style={{ color: selected ? colors.accentInk : colors.textSecondary }}>
+                {KIND_LABEL[kind]}
+              </AppText>
+            </Pressable>
+          );
+        })}
+      </View>
+      <TextField
+        label="ページ"
+        value={draft.page}
+        onChangeText={(page) => patch({ page })}
+        placeholder="なくても大丈夫"
+        keyboardType="number-pad"
+        maxLength={PAGE_MAX_LENGTH}
+      />
+      <View>
+        <AppText variant="label" style={[styles.heading, { color: colors.textSecondary }]}>
+          本文
+        </AppText>
+        <View style={styles.bodyRow}>
+          {quote ? <View testID="quote-line" style={styles.line} /> : null}
+          <TextInput
+            accessibilityLabel="本文"
+            multiline
+            textAlignVertical="top"
+            value={draft.text}
+            onChangeText={(text) => patch({ text })}
+            placeholderTextColor={colors.textTertiary}
+            style={[
+              styles.body,
+              quote && styles.bodyQuote,
+              {
+                fontFamily: resolveFontFamily(bodyType.fontFamily, bodyType.fontWeight),
+                fontSize: bodyType.fontSize,
+                lineHeight: bodyType.lineHeight,
+              },
+            ]}
+          />
         </View>
-        {quote ? (
-          <TextField
-            label="ひとこと"
-            optionalLabel
-            value={draft.comment}
-            onChangeText={(comment) => patch({ comment })}
-          />
-        ) : null}
-        {error ? (
-          <AppText variant="body" style={{ color: colors.danger }}>
-            {error}
-          </AppText>
-        ) : null}
-        <Button
-          label={isEdit ? '保存する' : '残す'}
-          disabled={busy || !isNoteSubmittable(draft)}
-          onPress={() => void submit()}
+      </View>
+      {quote ? (
+        <TextField
+          label="ひとこと"
+          optionalLabel
+          value={draft.comment}
+          onChangeText={(comment) => patch({ comment })}
         />
-        {isEdit && onDelete ? (
-          <Button
-            variant="outline"
-            tone="danger"
-            label="削除"
-            disabled={busy}
-            onPress={() => {
-              setError(null);
-              setConfirming(true);
-            }}
-          />
-        ) : null}
-      </ScrollView>
-    </KeyboardAvoidingView>
+      ) : null}
+      {error ? (
+        <AppText variant="body" style={{ color: colors.danger }}>
+          {error}
+        </AppText>
+      ) : null}
+      <Button
+        label={isEdit ? '保存する' : '残す'}
+        disabled={busy || !isNoteSubmittable(draft)}
+        onPress={() => void submit()}
+      />
+      {isEdit && onDelete ? (
+        <Button
+          variant="outline"
+          tone="danger"
+          label="削除"
+          disabled={busy}
+          onPress={() => {
+            setError(null);
+            setConfirming(true);
+          }}
+        />
+      ) : null}
+    </View>
   );
 }
 
