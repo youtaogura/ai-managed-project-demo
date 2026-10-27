@@ -53,3 +53,27 @@ export function layoutShelfRows<T extends { id: string }>(
   if (current.length > 0) rows.push(current);
   return rows;
 }
+
+export const MIN_SHELF_ROWS = 3;
+
+/** 最も細い背表紙ももう置けないとき、その段はいっぱい。 */
+export function isShelfRowFull<T extends { id: string }>(
+  row: readonly T[],
+  availableWidth: number,
+  gap: number = SPINE_GAP,
+): boolean {
+  const used = row.reduce(
+    (sum, item, i) => sum + getSpineSize(item.id).width + (i === 0 ? 0 : gap),
+    0,
+  );
+  return used + gap + size.spineWidthMin > availableWidth;
+}
+
+/** 段が MIN_SHELF_ROWS 段に満たなければ空の段で埋め、一番下がいっぱいなら空の段を 1 段足す。 */
+export function padShelfRows<T extends { id: string }>(rows: T[][], availableWidth: number): T[][] {
+  const last = rows[rows.length - 1];
+  if (rows.length >= MIN_SHELF_ROWS) {
+    return last !== undefined && isShelfRowFull(last, availableWidth) ? [...rows, []] : rows;
+  }
+  return [...rows, ...Array.from({ length: MIN_SHELF_ROWS - rows.length }, (): T[] => [])];
+}

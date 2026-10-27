@@ -1,5 +1,12 @@
 import { size } from '../../design/tokens';
-import { getSpineSize, layoutShelfRows, SPINE_GAP } from '../spineLayout';
+import {
+  getSpineSize,
+  isShelfRowFull,
+  layoutShelfRows,
+  MIN_SHELF_ROWS,
+  padShelfRows,
+  SPINE_GAP,
+} from '../spineLayout';
 
 const ids = Array.from({ length: 200 }, (_, i) => `id-${i}-${i * 7919}`);
 
@@ -55,5 +62,38 @@ describe('layoutShelfRows', () => {
 
   it('0 冊は空配列', () => {
     expect(layoutShelfRows([], 343)).toEqual([]);
+  });
+});
+
+describe('isShelfRowFull / padShelfRows', () => {
+  const item = (id: string) => ({ id });
+  const rowOf = (n: number, prefix = 'r') => Array.from({ length: n }, (_, i) => item(`${prefix}${i}`));
+  const usedWidth = (row: { id: string }[]) =>
+    row.reduce((s, r, i) => s + getSpineSize(r.id).width + (i === 0 ? 0 : SPINE_GAP), 0);
+
+  it('最小幅の背表紙が置ければ full ではなく、置けなければ full', () => {
+    const row = rowOf(3);
+    const used = usedWidth(row);
+    expect(isShelfRowFull(row, used + SPINE_GAP + size.spineWidthMin)).toBe(false);
+    expect(isShelfRowFull(row, used + SPINE_GAP + size.spineWidthMin - 1)).toBe(true);
+  });
+
+  it('本 0 冊・1 冊・2 段は 3 段になる', () => {
+    expect(padShelfRows([], 300)).toHaveLength(MIN_SHELF_ROWS);
+    expect(padShelfRows([[item('a')]], 300)).toEqual([[item('a')], [], []]);
+    expect(padShelfRows([rowOf(3, 'x'), rowOf(1, 'y')], 300)).toHaveLength(3);
+  });
+
+  it('3 段でいっぱいなら 1 段足し、余裕があれば足さない', () => {
+    const full = rowOf(3, 'f');
+    const width = usedWidth(full) + 1;
+    expect(padShelfRows([rowOf(1, 'a'), rowOf(1, 'b'), full], width)).toHaveLength(4);
+    expect(padShelfRows([rowOf(1, 'a'), rowOf(1, 'b'), rowOf(1, 'c')], 300)).toHaveLength(3);
+  });
+
+  it('4 段以上でいっぱいなら本の段数 + 1', () => {
+    const full = rowOf(3, 'f');
+    const rows = [rowOf(1, 'a'), rowOf(1, 'b'), rowOf(1, 'c'), full];
+    expect(padShelfRows(rows, usedWidth(full) + 1)).toHaveLength(5);
   });
 });

@@ -60,6 +60,7 @@ const NDL_SEARCH_URL = 'https://ndlsearch.ndl.go.jp/api/opensearch*';
 const SCENES = [
   { name: 'shelf', data: withShelf, url: '/', waitFor: '三体' },
   { name: 'shelf-empty', data: () => ({}), url: '/', waitFor: '最初の1冊を、棚に並べよう' },
+  { name: 'shelf-one', data: () => ({ records: makeShelfRecords().slice(0, 1), shelves: SHELVES }), url: '/', waitFor: '三体' },
   { name: 'shelf-new', data: withShelf, url: '/', actions: [{ label: '本棚を作る' }], waitFor: '作る' },
   {
     name: 'shelf-pick',
