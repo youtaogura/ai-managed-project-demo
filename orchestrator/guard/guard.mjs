@@ -66,7 +66,14 @@ function checkRm(command, cwd) {
   return null;
 }
 
+// 例外として許可するコマンド（コマンド全体が一致したときだけ）
+// - PR の本文・タイトルの更新。`gh pr edit` はトークンに read:org がないと失敗するため、REST で更新させる
+const ALLOWED_BASH = [
+  /^\s*gh\s+api\s+(?:-X|--method)\s*PATCH\s+\/?repos\/[\w.-]+\/[\w.-]+\/pulls\/\d+(?:\s+(?:-f|-F|--field|--raw-field)\s+(?:body|title)=[^\s|;&<>`$()]+)+\s*$/,
+];
+
 export function checkBash(command, stage = '', cwd = '') {
+  if (ALLOWED_BASH.some((re) => re.test(command))) return null;
   const rm = checkRm(command, cwd);
   if (rm) return rm;
   for (const rule of BASH_RULES) {
