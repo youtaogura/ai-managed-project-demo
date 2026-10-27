@@ -100,7 +100,7 @@ describe('summarizeReview', () => {
     expect(s.ratings.buckets.map((b) => b.count)).toEqual(counts);
   });
 
-  it('いちばん使った書き出しは今年の本から数え、固定の書き出しも含む', () => {
+  it('いちばん使った書き出しは今年の本から数え、固定の書き出し（ひとこと）は数えない', () => {
     const s = summarizeReview(
       [
         done('a', '2026-02-01', { oneLiner: 'x' }),
@@ -110,7 +110,12 @@ describe('summarizeReview', () => {
       ],
       now,
     );
-    expect(s.topStarter).toEqual({ text: 'ひとことで言うと、', count: 2 });
+    expect(s.topStarter).toEqual({ text: 'もし', count: 2 });
+  });
+
+  it('ひとことだけの年は topStarter が null', () => {
+    const s = summarizeReview([done('a', '2026-02-01', { oneLiner: 'x' })], now);
+    expect(s.topStarter).toBeNull();
   });
 
   it('同数なら先に現れた書き出し', () => {
