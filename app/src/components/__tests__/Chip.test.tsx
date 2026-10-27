@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
 import { colors } from '../../design/tokens';
-import { ChipGroup, ChipMultiGroup } from '../Chip';
+import { ChipGroup, ChipMultiGroup, DashedChip } from '../Chip';
 
 const options = [
   { value: 'a', label: 'A' },
@@ -21,29 +21,24 @@ describe('ChipGroup', () => {
     expect(sa.backgroundColor).toBe(colors.accent);
     expect(sa.borderColor).toBe(colors.accent);
     expect(StyleSheet.flatten(screen.getByText('A').props.style).color).toBe(colors.accentInk);
-    expect(StyleSheet.flatten(b.props.style).borderColor).toBe(colors.lineStrong);
-    expect(StyleSheet.flatten(screen.getByText('B').props.style).color).toBe(colors.textSecondary);
+    expect(StyleSheet.flatten(b.props.style).borderColor).toBe(colors.line);
+    expect(StyleSheet.flatten(screen.getByText('B').props.style).color).toBe(colors.textPrimary);
   });
 
   it('押すと onChange(value)', async () => {
     const onChange = jest.fn();
-    await render(<ChipGroup label="種別" options={options} value="a" onChange={onChange} columns={2} />);
+    await render(<ChipGroup label="種別" options={options} value="a" onChange={onChange} />);
     await fireEvent.press(screen.getByRole('radio', { name: 'B' }));
     expect(onChange).toHaveBeenCalledWith('b');
   });
 
-  it('compact は 40px で hitSlop により 44px 以上', async () => {
-    await render(<ChipGroup label="種別" options={options} value={null} onChange={jest.fn()} compact />);
+  it('高さ 36px で、hitSlop により 44px 以上', async () => {
+    await render(<ChipGroup label="種別" options={options} value={null} onChange={jest.fn()} />);
     const a = screen.getByRole('radio', { name: 'A' });
     const s = StyleSheet.flatten(a.props.style);
     const slop = a.props.hitSlop;
-    expect(s.height).toBe(40);
+    expect(s.height).toBe(36);
     expect(s.height + slop.top + slop.bottom).toBeGreaterThanOrEqual(44);
-  });
-
-  it('通常は高さ 44', async () => {
-    await render(<ChipGroup label="種別" options={options} value={null} onChange={jest.fn()} />);
-    expect(StyleSheet.flatten(screen.getByRole('radio', { name: 'A' }).props.style).height).toBe(44);
   });
 });
 
@@ -55,11 +50,33 @@ describe('ChipMultiGroup', () => {
 
   it('checkbox として複数選択でき、押すと onToggle が呼ばれる', async () => {
     const onToggle = jest.fn();
-    await render(<ChipMultiGroup label="本棚" options={options} value={['a']} onToggle={onToggle} compact />);
+    await render(<ChipMultiGroup label="本棚" options={options} value={['a']} onToggle={onToggle} />);
     expect(screen.getAllByRole('checkbox')).toHaveLength(2);
     expect(screen.getByRole('checkbox', { name: 'エー' })).toBeSelected();
     expect(screen.getByRole('checkbox', { name: 'ビー' })).not.toBeSelected();
     await fireEvent.press(screen.getByRole('checkbox', { name: 'ビー' }));
     expect(onToggle).toHaveBeenCalledWith('b');
+  });
+
+  it('trailing を最後に並べられる（選択肢が 0 件でも出る）', async () => {
+    const onPress = jest.fn();
+    await render(
+      <ChipMultiGroup
+        label="本棚"
+        options={[]}
+        value={[]}
+        onToggle={jest.fn()}
+        trailing={<DashedChip label="＋ 作る" accessibilityLabel="作る" onPress={onPress} />}
+      />,
+    );
+    await fireEvent.press(screen.getByRole('button', { name: '作る' }));
+    expect(onPress).toHaveBeenCalled();
+  });
+});
+
+describe('DashedChip', () => {
+  it('accessibilityLabel を省くと label がそのまま名前になる', async () => {
+    await render(<DashedChip label="＋ 作る" onPress={jest.fn()} />);
+    expect(screen.getByRole('button', { name: '＋ 作る' })).toBeTruthy();
   });
 });

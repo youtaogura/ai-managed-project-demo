@@ -189,4 +189,15 @@ function makeReviewRecords(year = new Date().getFullYear()) {
   ];
 }
 
-module.exports = { makeRecord, SHELVES, makeShelfRecords, makeReadingRecord, makeFinishedRecord, makeWriteRecord, makeRereadRecord, makeReviewRecords };
+function makeNdlSearchXml(items) {
+  const esc = (t) => String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const body = items
+    .map(
+      (i) =>
+        `<item><title>${esc(i.title)}</title><dc:creator>${esc(i.author)}</dc:creator><dc:publisher>${esc(i.publisher)}</dc:publisher><dc:date>${esc(i.year)}</dc:date><category>図書</category></item>`,
+    )
+    .join('');
+  return `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>search</title>${body}</channel></rss>`;
+}
+
+module.exports = { makeNdlSearchXml, makeRecord, SHELVES, makeShelfRecords, makeReadingRecord, makeFinishedRecord, makeWriteRecord, makeRereadRecord, makeReviewRecords };

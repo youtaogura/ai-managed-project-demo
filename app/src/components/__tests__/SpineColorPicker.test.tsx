@@ -15,11 +15,12 @@ describe('SpineColorPicker', () => {
     expect(screen.getByRole('radio', { name: '背表紙の色 4' })).not.toBeSelected();
   });
 
-  it('タップ領域は touchMin 以上', async () => {
+  it('タップ領域（hitSlop を含む）は touchMin 以上', async () => {
     await render(<SpineColorPicker value="spine-1" onChange={jest.fn()} />);
     const style = StyleSheet.flatten(screen.getAllByRole('radio')[0]?.props.style as never) as Record<string, number>;
-    expect(style.width).toBeGreaterThanOrEqual(size.touchMin);
-    expect(style.height).toBeGreaterThanOrEqual(size.touchMin);
+    const slop = screen.getAllByRole('radio')[0]?.props.hitSlop as number;
+    expect(style.width + slop * 2).toBeGreaterThanOrEqual(size.touchMin);
+    expect(style.height + slop * 2).toBeGreaterThanOrEqual(size.touchMin);
   });
 
   it('押した色が onChange に渡る', async () => {

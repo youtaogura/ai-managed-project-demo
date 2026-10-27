@@ -86,7 +86,6 @@ export function StartersScreen() {
           <View style={styles.chips}>
             <ChipGroup
               label="一度に出す数"
-              compact
               options={COUNT_CHIPS}
               value={String(starterSettings.count)}
               onChange={(value) => {

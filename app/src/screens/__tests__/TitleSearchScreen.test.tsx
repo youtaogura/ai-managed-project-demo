@@ -359,4 +359,13 @@ describe('TitleSearchScreen', () => {
     expect(await screen.findByRole('button', { name: 'ノルウェイの森' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: '記事' })).toBeNull();
   });
+
+  it('入力欄にフォーカスしても外しても入力が保たれる', async () => {
+    await setup(async () => ({ status: 'ok', candidates: [] }));
+    const input = screen.getByLabelText('タイトルのキーワード');
+    await fireEvent(input, 'focus');
+    await fireEvent.changeText(input, 'ノル');
+    await fireEvent(input, 'blur');
+    expect(screen.getByLabelText('タイトルのキーワード').props.value).toBe('ノル');
+  });
 });

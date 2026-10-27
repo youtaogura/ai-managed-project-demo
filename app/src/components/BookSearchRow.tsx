@@ -8,7 +8,7 @@ import { pressedStyle } from './Button';
 import { Spine } from './Spine';
 
 const SPINE_WIDTH = 22;
-const SPINE_HEIGHT = 66;
+const SPINE_HEIGHT = 64;
 
 type BookSearchRowProps = {
   candidate: BookCandidate;
@@ -61,9 +61,9 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: space[3],
+    gap: space[4],
     minHeight: size.touchMin,
-    paddingVertical: space[3],
+    paddingVertical: space[4],
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
   },

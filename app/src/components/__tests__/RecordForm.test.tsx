@@ -163,16 +163,17 @@ describe('RecordForm', () => {
 
     it('色の丸はタップ領域が touchMin 以上', async () => {
       await render(<RecordForm onSubmit={jest.fn()} />);
-      const style = flat(screen.getByRole('radio', { name: '背表紙の色 2' }));
-      expect(style.width).toBeGreaterThanOrEqual(size.touchMin);
+      const radio = screen.getByRole('radio', { name: '背表紙の色 2' });
+      const slop = Number(radio.props.hitSlop);
+      expect(Number(flat(radio).width) + slop * 2).toBeGreaterThanOrEqual(size.touchMin);
     });
   });
 
   describe('日付', () => {
-    const dateButton = (label: string, value = '選択してください') =>
+    const dateButton = (label: string, value = '—') =>
       screen.getByRole('button', { name: `${label} ${value}` });
 
-    it('空のときは「選択してください」を表示し、シートで今日・決定ができる', async () => {
+    it('空のときは「—」を表示し、シートで今日・決定ができる', async () => {
       await render(<RecordForm onSubmit={jest.fn()} />);
       expect(dateButton('読み始めた日')).toBeTruthy();
       expect(dateButton('読み終えた日')).toBeTruthy();
@@ -411,27 +412,40 @@ describe('RecordForm の本棚', () => {
     return { onSubmit };
   }
 
-  it('入れていないときは「まだ入れていません」を出す', async () => {
+  it('本棚がチップで出て、入れていないものは未選択。「すべての本」の説明も出る', async () => {
     await setupShelves();
-    expect(screen.getByRole('button', { name: '本棚、まだ入れていません' })).toBeTruthy();
+    expect(await screen.findByRole('checkbox', { name: 'SF' })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: '哲学' })).not.toBeChecked();
+    expect(screen.getByText('「すべての本」にはいつも入ります')).toBeTruthy();
   });
 
-  it('編集のとき初期値の本棚名を「、」でつなぎ、存在しない ID は出さない', async () => {
+  it('編集のとき初期値の本棚が選択済みで、存在しない ID は出さない', async () => {
     await setupShelves({ initialValues: { title: '本', shelfIds: ['b', 'gone', 'a'] } });
-    expect(await screen.findByRole('button', { name: '本棚、SF、哲学' })).toBeTruthy();
+    expect(await screen.findByRole('checkbox', { name: 'SF' })).toBeChecked();
+    expect(screen.getByRole('checkbox', { name: '哲学' })).toBeChecked();
+    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
   });
 
-  it('シートで選ぶと行が変わり、保存で shelfIds が入る。存在しない ID はチェックに入れない', async () => {
+  it('押すと入り切りでき、保存で shelfIds が入る。存在しない ID は保存しない', async () => {
     const { onSubmit } = await setupShelves({ initialValues: { title: '本', shelfIds: ['gone'] } });
-    await fireEvent.press(await screen.findByRole('button', { name: /^本棚、/ }));
-    expect(await screen.findByText('本棚を選ぶ')).toBeTruthy();
-    expect(screen.getByText('2 冊')).toBeTruthy();
-    expect(screen.getByRole('button', { name: '本棚に入れない' })).toBeTruthy();
-    await fireEvent.press(screen.getByRole('checkbox', { name: '哲学' }));
+    await fireEvent.press(await screen.findByRole('checkbox', { name: '哲学' }));
     await fireEvent.press(screen.getByRole('checkbox', { name: 'SF' }));
-    await fireEvent.press(screen.getByRole('button', { name: '2 つの本棚に入れる' }));
-    expect(await screen.findByRole('button', { name: '本棚、SF、哲学' })).toBeTruthy();
+    await fireEvent.press(screen.getByRole('checkbox', { name: '哲学' }));
+    await fireEvent.press(screen.getByRole('checkbox', { name: '哲学' }));
+    expect(screen.getByRole('checkbox', { name: '哲学' })).toBeChecked();
     await press('棚に並べる');
     await waitFor(() => expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ shelfIds: ['a', 'b'] })));
+  });
+
+  it('「＋ 本棚を作る」で作成シートが開き、作ると新しい本棚が選択される', async () => {
+    const { onSubmit } = await setupShelves();
+    await fireEvent.press(await screen.findByRole('button', { name: '本棚を作る' }));
+    await fireEvent.changeText(await screen.findByLabelText('名前'), '歴史');
+    await fireEvent.press(screen.getByRole('button', { name: '作る' }));
+    expect(await screen.findByRole('checkbox', { name: '歴史' })).toBeChecked();
+    await press('棚に並べる');
+    await waitFor(() =>
+      expect(onSubmit).toHaveBeenCalledWith(expect.objectContaining({ shelfIds: [expect.any(String)] })),
+    );
   });
 });
