@@ -1,8 +1,10 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { TextInput } from 'react-native';
 
 import { createNoteDraftStore } from '../../lib/noteDraftStore';
 import { createMemoryStorage } from '../../testUtils';
 import { withNoteDraftStore } from '../../testProviders';
+import { SLIDE_DURATION } from '../BottomSheet';
 import { NoteSheet, type NoteSheetProps } from '../NoteSheet';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -214,5 +216,87 @@ describe('NoteSheet（タイトル行）', () => {
     let node = screen.getByRole('button', { name: '閉じる' }).parent;
     while (node && node !== row) node = node.parent;
     expect(node).toBe(row);
+  });
+});
+
+describe('NoteSheet（開いたら本文にフォーカス）', () => {
+  const editing = { kind: 'memo' as const, page: '', text: '元の文', comment: '' };
+  const slide = () => act(() => jest.advanceTimersByTime(SLIDE_DURATION));
+  let focusSpy: jest.SpyInstance;
+  const focused = () => {
+    const calls = focusSpy.mock.contexts as { props?: { accessibilityLabel?: string } }[];
+    return calls.some((c) => c?.props?.accessibilityLabel === '本文');
+  };
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    focusSpy = jest.spyOn(TextInput.prototype, 'focus').mockImplementation(() => undefined);
+    focusSpy.mockClear();
+  });
+  afterEach(() => {
+    focusSpy.mockRestore();
+    jest.useRealTimers();
+  });
+
+  it('動きのあとに本文へフォーカスする。それまでは当てない', async () => {
+    await setup({ editing });
+    expect(focused()).toBe(false);
+    await slide();
+    expect(focused()).toBe(true);
+  });
+
+  it('下書きの読み込み後に本文へフォーカスする', async () => {
+    await setup({}, { 'noteDraft.v1.r1': JSON.stringify({ kind: 'memo', page: '', text: '途中', comment: '' }) });
+    await ready();
+    await slide();
+    expect(focused()).toBe(true);
+  });
+
+  it('編集でもフォーカスし、カーソルは末尾。動かしたあとは固定しない', async () => {
+    await setup({ editing });
+    await ready();
+    expect(screen.getByLabelText('本文').props.selection).toEqual({ start: 3, end: 3 });
+    await slide();
+    expect(focused()).toBe(true);
+    await fireEvent(screen.getByLabelText('本文'), 'selectionChange', {
+      nativeEvent: { selection: { start: 1, end: 1 } },
+    });
+    expect(screen.getByLabelText('本文').props.selection).toBeUndefined();
+  });
+
+  it('メモ⇄引用でも本文の欄は作り直されず、フォーカスし直す', async () => {
+    await setup();
+    await ready();
+    await slide();
+    const before = screen.getByLabelText('本文');
+    focusSpy.mockClear();
+    await fireEvent.press(screen.getByRole('tab', { name: '引用' }));
+    expect(screen.getByLabelText('本文')).toBe(before);
+    expect(focused()).toBe(true);
+    await fireEvent.press(screen.getByRole('tab', { name: 'メモ' }));
+    expect(screen.getByLabelText('本文')).toBe(before);
+  });
+
+  it('削除確認からキャンセルで戻ると、もう一度フォーカスする', async () => {
+    await setup({ editing, onDelete: jest.fn() });
+    await ready();
+    await slide();
+    await fireEvent.press(screen.getByRole('button', { name: '削除' }));
+    focusSpy.mockClear();
+    await fireEvent.press(screen.getByRole('button', { name: 'キャンセル' }));
+    await slide();
+    expect(focused()).toBe(true);
+  });
+
+  it('閉じて開き直すと、もう一度フォーカスする', async () => {
+    const { rerender } = await setup();
+    await ready();
+    await slide();
+    await rerender(false);
+    focusSpy.mockClear();
+    await rerender(true);
+    await ready();
+    await slide();
+    expect(focused()).toBe(true);
   });
 });
