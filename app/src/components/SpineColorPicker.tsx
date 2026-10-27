@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { colors, size } from '../design/tokens';
 import { SPINE_COLORS } from '../lib/constants';
 import type { SpineColor } from '../types/record';
-import { SPINE_FACES } from './Spine';
+import { spineColorToken } from '../lib/spineColor';
 
 const SWATCH_SIZE = 28;
 const SWATCH_BORDER = 2;
@@ -31,7 +31,7 @@ export function SpineColorPicker({ value, onChange }: SpineColorPickerProps) {
             <View
               style={[
                 styles.swatch,
-                { backgroundColor: SPINE_FACES[color] },
+                { backgroundColor: spineColorToken(color) },
                 selected && styles.selected,
               ]}
             />

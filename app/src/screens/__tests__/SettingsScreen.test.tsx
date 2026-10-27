@@ -1,10 +1,13 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import { createExportStore, LAST_EXPORTED_AT_KEY } from '../../lib/exportStore';
 import type { ReactNode } from 'react';
 import { createSettingsStore, type SettingsStore } from '../../lib/settingsStore';
+import { createSortOrderStore, SORT_ORDER_STORAGE_KEY } from '../../lib/sortOrderStore';
+import { defaultStarterSettings } from '../../lib/starterDefaults';
+import { createStarterSettingsStore } from '../../lib/starterSettingsStore';
 import { createShelfRepository } from '../../lib/shelfRepository';
-import { withSettings as baseWithSettings, withShelfRepository } from '../../testProviders';
+import { withSettings as baseWithSettings, withShelfRepository, withStarterSettings } from '../../testProviders';
 import { createMemoryStorage } from '../../testUtils';
 import { SettingsScreen } from '../SettingsScreen';
 
@@ -16,26 +19,64 @@ const withSettings = (store: SettingsStore, ui: ReactNode) =>
   withShelfRepository(createShelfRepository(createMemoryStorage().storage), baseWithSettings(store, ui));
 
 describe('SettingsScreen', () => {
-  it('見出し・各行を出し、「使う種別」は出さない', async () => {
+  it('見出し・カード見出しを出し、古い見出しと「使う種別」は出さない', async () => {
     await render(
       withSettings(createSettingsStore(createMemoryStorage().storage), <SettingsScreen />),
     );
     expect(await screen.findByText('設定')).toBeTruthy();
-    expect(screen.getByText('ステータスの初期値')).toBeTruthy();
+    expect(screen.getByText('読み終えたら')).toBeTruthy();
+    expect(screen.getByText('本棚')).toBeTruthy();
+    expect(screen.queryByText('記録するとき')).toBeNull();
+    expect(screen.queryByText('このアプリ')).toBeNull();
     expect(screen.queryByText('使う種別')).toBeNull();
+    expect(screen.queryByText('上に大きく出す作品')).toBeNull();
     expect(screen.queryByRole('checkbox')).toBeNull();
-    expect(screen.queryByText(/映画|ドラマ|アニメ|漫画/)).toBeNull();
   });
-});
 
-describe('SettingsScreen（上に大きく出す作品）', () => {
-  it('「上に大きく出す作品」の行は出ない', async () => {
+  it('書き出しはステータスの初期値より上、各行はボタン', async () => {
     await render(
       withSettings(createSettingsStore(createMemoryStorage().storage), <SettingsScreen />),
     );
-    expect(await screen.findByText('ステータスの初期値')).toBeTruthy();
-    expect(screen.queryByText('上に大きく出す作品')).toBeNull();
-    expect(screen.queryByText('記録一覧')).toBeNull();
+    await screen.findByText('設定');
+    const names = screen.getAllByRole('button').map((b) => b.props.accessibilityLabel);
+    expect(names).toEqual([
+      '書き出し、オン · 一度に 3 つ · 7 個から',
+      'ステータスの初期値、読み終わった',
+      '本棚の管理、まだありません',
+      '並び順、終了日の新しい順',
+      'データ、書き出し・読み込み · まだ書き出していません',
+      'このアプリについて',
+    ]);
+  });
+
+  it('書き出しが機能オフなら「オフ」', async () => {
+    const { storage } = createMemoryStorage();
+    await createStarterSettingsStore(storage).save({ ...defaultStarterSettings(), enabled: false });
+    await render(
+      withSettings(
+        createSettingsStore(createMemoryStorage().storage),
+        withStarterSettings(createStarterSettingsStore(storage), <SettingsScreen />),
+      ),
+    );
+    expect(await screen.findByRole('button', { name: '書き出し、オフ' })).toBeTruthy();
+  });
+});
+
+describe('SettingsScreen（並び順）', () => {
+  it('今の並び順を出し、シートで選ぶと表示が変わって保存される', async () => {
+    const { storage, data } = createMemoryStorage();
+    await render(
+      withSettings(
+        createSettingsStore(createMemoryStorage().storage),
+        <SettingsScreen sortOrderStore={createSortOrderStore(storage)} />,
+      ),
+    );
+    await fireEvent.press(await screen.findByRole('button', { name: '並び順、終了日の新しい順' }));
+    expect(screen.getByText('並び替え')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('radio', { name: '高い順' }));
+    expect(screen.queryByText('並び替え')).toBeNull();
+    expect(screen.getByRole('button', { name: '並び順、レーティングの高い順' })).toBeTruthy();
+    await waitFor(() => expect(data.get(SORT_ORDER_STORAGE_KEY)).toBe('rating_desc'));
   });
 });
 
@@ -76,7 +117,7 @@ describe('SettingsScreen（ステータスの初期値）', () => {
     await render(
       withSettings(createSettingsStore(createMemoryStorage().storage), <SettingsScreen />),
     );
-    expect(await screen.findByText('記録するとき')).toBeTruthy();
+    expect(await screen.findByText('読み終えたら')).toBeTruthy();
     await fireEvent.press(
       screen.getByRole('button', { name: 'ステータスの初期値、読み終わった' }),
     );
@@ -105,7 +146,7 @@ describe('SettingsScreen（ステータスの初期値）', () => {
 });
 
 describe('SettingsScreen（このアプリについて）', () => {
-  it('行にバージョンを出し、タップで onOpenAbout が呼ばれる', async () => {
+  it('タップで onOpenAbout が呼ばれる', async () => {
     const onOpenAbout = jest.fn();
     await render(
       withSettings(
@@ -116,7 +157,7 @@ describe('SettingsScreen（このアプリについて）', () => {
         />,
       ),
     );
-    await fireEvent.press(await screen.findByRole('button', { name: /^このアプリについて、/ }));
+    await fireEvent.press(await screen.findByRole('button', { name: 'このアプリについて' }));
     expect(onOpenAbout).toHaveBeenCalledTimes(1);
   });
 });
@@ -130,7 +171,7 @@ describe('SettingsScreen（書き出し）', () => {
         <SettingsScreen onOpenStarters={onOpenStarters} />,
       ),
     );
-    await fireEvent.press(await screen.findByRole('button', { name: '書き出し、オン · 一度に 3 つ' }));
+    await fireEvent.press(await screen.findByRole('button', { name: '書き出し、オン · 一度に 3 つ · 7 個から' }));
     expect(onOpenStarters).toHaveBeenCalledTimes(1);
   });
 });

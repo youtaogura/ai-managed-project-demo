@@ -48,7 +48,7 @@ describe('タブ構成', () => {
 
   it('タブを押すと画面が切り替わる', async () => {
     await fireEvent.press(screen.getByRole('tab', { name: '振り返り' }));
-    expect(await screen.findByText('記録がたまると、ここに振り返りが表示されます')).toBeTruthy();
+    expect(await screen.findByText('読んだ本がたまると、ここに積み上がります')).toBeTruthy();
     await fireEvent.press(screen.getByRole('tab', { name: '本棚' }));
     expect(await screen.findByText('最初の1冊を、棚に並べよう')).toBeTruthy();
   });
@@ -92,7 +92,7 @@ describe('分析タブの最新表示', () => {
     expect((await screen.findAllByText('分析用の本')).length).toBeGreaterThan(0);
     await act(async () => router.replace('/'));
     await fireEvent.press(screen.getByRole('tab', { name: '振り返り' }));
-    expect(await screen.findByText('月別の完了数')).toBeTruthy();
+    expect(await screen.findByText('月ごとに読んだ本')).toBeTruthy();
   });
 });
 
@@ -222,48 +222,11 @@ describe('振り返りタブの遷移', () => {
     await AsyncStorage.clear();
   });
 
-  it('空表示の「記録する」→「手で入力する」で記録の追加画面へ移る', async () => {
+  it('空表示の「本を追加する」→「手で入力する」で記録の追加画面へ移る', async () => {
     await renderRouter(routes);
     await fireEvent.press(screen.getByRole('tab', { name: '振り返り' }));
-    await fireEvent.press((await screen.findAllByRole('button', { name: '記録する' })).slice(-1)[0]);
+    await fireEvent.press((await screen.findAllByRole('button', { name: '本を追加する' })).slice(-1)[0]);
     await fireEvent.press(await screen.findByRole('button', { name: '手で入力する' }));
     await waitFor(() => expect(screen).toHavePathname('/record/new'));
-  });
-
-  it('「入力する」で記録一覧へ移る', async () => {
-    const now = new Date().toISOString();
-    await AsyncStorage.setItem(
-      RECORDS_STORAGE_KEY,
-      JSON.stringify([
-        {
-          id: 'u1',
-          kind: 'book',
-          title: '未入力の本',
-          creator: null,
-          publisher: null,
-          isbn: null,
-          coverUrl: null,
-          photoUri: null,
-          startDate: null,
-          endDate: null,
-          status: 'completed',
-          rating: null,
-          createdAt: now,
-          updatedAt: now,
-          source: { provider: 'manual' },
-          oneLiner: null,
-          starters: [],
-          quotes: [],
-          memos: [],
-          freeTexts: [],
-          favorite: false,
-          spineColor: 'spine-1',
-          shelfIds: [],
-        },
-      ]),
-    );
-    await renderRouter(routes, { initialUrl: '/analytics' });
-    await fireEvent.press(await screen.findByRole('button', { name: '入力する' }));
-    await waitFor(() => expect(screen).toHavePathname('/'));
   });
 });

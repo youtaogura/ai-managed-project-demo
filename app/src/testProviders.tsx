@@ -4,9 +4,13 @@ import { CoverResolverContextProvider } from './hooks/useCoverResolver';
 import { SettingsContextProvider } from './hooks/useSettings';
 import { ShelfRepositoryProvider } from './hooks/useShelfRepository';
 import { StarterSettingsContextProvider } from './hooks/useStarterSettings';
+import { NoteDraftStoreProvider } from './hooks/useNoteDraftStore';
+import { WriteDraftStoreProvider } from './hooks/useWriteDraftStore';
 import { PhotoServiceContextProvider } from './hooks/usePhotoService';
 import { RecordRepositoryProvider } from './hooks/useRecordRepository';
 import type { CoverResolver } from './lib/coverLookup/resolveCoverUrl';
+import type { NoteDraftStore } from './lib/noteDraftStore';
+import type { WriteDraftStore } from './lib/writeDraftStore';
 import type { PhotoService } from './lib/photo/PhotoService';
 import type { RecordRepository } from './lib/recordRepository';
 import type { SettingsStore } from './lib/settingsStore';
@@ -48,4 +52,14 @@ export function withShelfRepository(repository: ShelfRepository, children: React
 /** 書き出し設定のストアを注入する。 */
 export function withStarterSettings(store: StarterSettingsStore, children: ReactNode) {
   return <StarterSettingsContextProvider store={store}>{children}</StarterSettingsContextProvider>;
+}
+
+/** 書きかけ（メモ・引用）の保存先を注入する。 */
+export function withNoteDraftStore(store: NoteDraftStore, children: ReactNode) {
+  return <NoteDraftStoreProvider store={store}>{children}</NoteDraftStoreProvider>;
+}
+
+/** 書きかけ（書き出しの続き）の保存先を注入する。 */
+export function withWriteDraftStore(store: WriteDraftStore, children: ReactNode) {
+  return <WriteDraftStoreProvider store={store}>{children}</WriteDraftStoreProvider>;
 }

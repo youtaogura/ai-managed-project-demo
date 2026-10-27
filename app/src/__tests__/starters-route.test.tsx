@@ -28,7 +28,7 @@ describe('書き出し画面のルート配線', () => {
 
   it('設定の「書き出し」行から画面へ遷移し、戻れる', async () => {
     await renderRouter(routes, { initialUrl: '/settings' });
-    await fireEvent.press(await screen.findByRole('button', { name: /^書き出し、オン · 一度に 3 つ/ }));
+    await fireEvent.press(await screen.findByRole('button', { name: /^書き出し、オン · 一度に 3 つ · 7 個から/ }));
     await waitFor(() => expect(screen).toHavePathname('/starters'));
     expect(await screen.findByText('読み終えたら書き出しを出す')).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: '閉じる' }));

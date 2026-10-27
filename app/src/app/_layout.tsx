@@ -10,6 +10,7 @@ import { BookLookupContextProvider } from '../hooks/useBookLookup';
 import { CoverResolverContextProvider } from '../hooks/useCoverResolver';
 import { BookSearchContextProvider } from '../hooks/useBookSearch';
 import { FileServiceContextProvider } from '../hooks/useFileService';
+import { NoteDraftStoreProvider } from '../hooks/useNoteDraftStore';
 import { PhotoServiceContextProvider } from '../hooks/usePhotoService';
 import { SettingsContextProvider } from '../hooks/useSettings';
 import { ShelfRepositoryProvider } from '../hooks/useShelfRepository';
@@ -34,12 +35,14 @@ function Providers() {
                 <BookSearchContextProvider>
                   <PhotoServiceContextProvider>
                     <FileServiceContextProvider>
-                      <ThemeProvider value={navigationTheme}>
-                        <Stack screenOptions={stackScreenOptions}>
-                          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                        </Stack>
-                      </ThemeProvider>
-                      <StatusBar style="dark" />
+                      <NoteDraftStoreProvider>
+                        <ThemeProvider value={navigationTheme}>
+                          <Stack screenOptions={stackScreenOptions}>
+                            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                          </Stack>
+                        </ThemeProvider>
+                        <StatusBar style="dark" />
+                      </NoteDraftStoreProvider>
                     </FileServiceContextProvider>
                   </PhotoServiceContextProvider>
                 </BookSearchContextProvider>

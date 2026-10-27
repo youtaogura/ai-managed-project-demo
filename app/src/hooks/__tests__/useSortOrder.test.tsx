@@ -19,6 +19,18 @@ describe('useSortOrder', () => {
     await waitFor(() => expect(second.result.current[0]).toBe('title_asc'));
   });
 
+  it('reloadKey が変わると保存された並び順を読み直す', async () => {
+    const { storage } = createMemoryStorage();
+    const store = createSortOrderStore(storage);
+    const { result, rerender } = await renderHook(({ key }: { key: number }) => useSortOrder(store, key), {
+      initialProps: { key: 0 },
+    });
+    expect(result.current[0]).toBe('endDate_desc');
+    await store.save('title_asc');
+    await rerender({ key: 1 });
+    await waitFor(() => expect(result.current[0]).toBe('title_asc'));
+  });
+
   it('保存に失敗しても選択は反映される', async () => {
     const store = {
       load: async () => 'endDate_desc' as const,

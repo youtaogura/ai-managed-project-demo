@@ -37,12 +37,12 @@ describe('analytics ルート', () => {
     expect(await screen.findByText('振り返り')).toBeTruthy();
   });
 
-  it('記録があれば月別の完了数と平均レーティングを表示する', async () => {
+  it('記録があれば月ごとに読んだ本とどうだった？を表示する', async () => {
     await setup([
       makeRecord({ id: '1', status: 'completed', endDate: '2026-10-01', rating: 4 }),
       makeRecord({ id: '2', status: 'completed', endDate: '2026-10-03', rating: 3 }),
     ]);
-    expect(await screen.findByText('月別の完了数')).toBeTruthy();
-    expect(screen.getByText('平均レーティング')).toBeTruthy();
+    expect(await screen.findByText('月ごとに読んだ本')).toBeTruthy();
+    expect(screen.getByText('どうだった？')).toBeTruthy();
   });
 });

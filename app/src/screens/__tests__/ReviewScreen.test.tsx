@@ -22,7 +22,7 @@ jest.mock('expo-router', () => {
   };
 });
 
-type Handlers = { onAdd?: () => void; onOpenRecords?: () => void };
+type Handlers = { onAdd?: () => void; onOpenRecord?: (id: string) => void };
 
 async function setup(records: MediaRecord[], handlers: Handlers = {}, bottom = 0) {
   await render(
@@ -36,10 +36,12 @@ const done = (id: string, extra: Partial<MediaRecord>) =>
   makeRecord({ id, status: 'completed', ...extra });
 
 const sample = [
-  done('1', { endDate: '2026-10-01', rating: 4 }),
-  done('2', { endDate: '2026-10-03', rating: 3 }),
+  done('1', { endDate: '2026-10-01', rating: 4, spineColor: 'spine-4', oneLiner: 'よい', quotes: [] }),
+  done('2', { endDate: '2026-10-03', rating: 3, spineColor: 'spine-7', starters: [{ id: 's', starter: 'もし', text: 'a', createdAt: '' }] }),
   done('3', { endDate: null }),
 ];
+
+const bgOf = (id: string) => StyleSheet.flatten(screen.getByTestId(`stack-segment-${id}`).props.style).backgroundColor;
 
 describe('ReviewScreen', () => {
   beforeEach(() => {
@@ -51,73 +53,102 @@ describe('ReviewScreen', () => {
     jest.useRealTimers();
   });
 
-  it('見出し・対象期間・2 つの数字を表示する', async () => {
+  it('見出し・期間・3 つの数字を表示する', async () => {
     await setup(sample);
     expect(await screen.findByText('振り返り')).toBeTruthy();
     expect(screen.getByText('2025/11 – 2026/10')).toBeTruthy();
-    expect(screen.getByText('この1年で終えた')).toBeTruthy();
-    expect(screen.getByText('作品')).toBeTruthy();
-    expect(screen.getAllByText('2').length).toBeGreaterThan(0);
-    expect(screen.getByText('平均レーティング')).toBeTruthy();
-    expect(screen.getByText('3.5')).toBeTruthy();
+    expect(screen.getByText('読んだ')).toBeTruthy();
+    expect(screen.getByText('2 冊')).toBeTruthy();
+    expect(screen.getByText('感想')).toBeTruthy();
+    expect(screen.getByText('引用')).toBeTruthy();
+    expect(screen.getAllByText('0').length).toBeGreaterThan(0);
   });
 
-  it('評価がなければ平均は「—」で、完了 0 件でも空表示にならない', async () => {
-    await setup([makeRecord()]);
-    expect(await screen.findByText('平均レーティング')).toBeTruthy();
-    expect(screen.getByText('—')).toBeTruthy();
-    expect(screen.getByText('月別の完了数')).toBeTruthy();
-    expect(screen.queryByText(/終了日が未入力/)).toBeNull();
-    expect(screen.queryByText('入力する')).toBeNull();
-  });
-
-  it('月別の棒・月ラベル・読み上げを表示し、凡例（種別名）は出さない', async () => {
+  it('積み上げの段の色・月の数字・今月ラベル・読み上げ・注記を出す', async () => {
     await setup(sample);
-    expect(await screen.findByText('月別の完了数')).toBeTruthy();
-    expect(screen.getByLabelText('10月 2 作品')).toBeTruthy();
-    expect(screen.getByLabelText('11月 0 作品')).toBeTruthy();
+    expect(await screen.findByText('月ごとに読んだ本')).toBeTruthy();
+    expect(bgOf('1')).toBe(colors.spine4);
+    expect(bgOf('2')).toBe(colors.spine7);
+    expect(screen.getByLabelText('10月 2 冊')).toBeTruthy();
+    expect(screen.getByLabelText('11月 0 冊')).toBeTruthy();
     const color = (text: string) => StyleSheet.flatten(screen.getByText(text).props.style).color;
     expect(color('10月')).toBe(colors.textPrimary);
     expect(color('9月')).toBe(colors.textSecondary);
-    for (const kind of ['本', '漫画', '映画', 'ドラマ', 'アニメ']) {
-      expect(screen.queryByText(kind)).toBeNull();
-    }
+    expect(screen.getByText('1冊が1段。背表紙の色で積み上がります')).toBeTruthy();
   });
 
-  it('終了日が未入力の完了記録があれば案内を出し、「入力する」で一覧へ移る', async () => {
-    const onOpenRecords = jest.fn();
-    await setup(sample, { onOpenRecords });
-    expect(await screen.findByText('終了日が未入力の記録: 1 件')).toBeTruthy();
-    await fireEvent.press(screen.getByRole('button', { name: '入力する' }));
-    expect(onOpenRecords).toHaveBeenCalledTimes(1);
-  });
-
-  it('onOpenRecords 未指定でも「入力する」で落ちない', async () => {
+  it('どうだった？に平均・言葉・4 区分を出す', async () => {
     await setup(sample);
-    await fireEvent.press(await screen.findByRole('button', { name: '入力する' }));
-    expect(screen.getByText('月別の完了数')).toBeTruthy();
+    expect(await screen.findByText('どうだった？')).toBeTruthy();
+    expect(screen.getByText('平均')).toBeTruthy();
+    expect(screen.getByText('3.5')).toBeTruthy();
+    // 言葉（平均の横）と区分の見出しの 2 つ
+    expect(screen.getAllByText('まあまあ')).toHaveLength(2);
+    for (const l of ['最高', 'よかった', 'あんまり']) expect(screen.getByText(l)).toBeTruthy();
   });
 
-  it('レーティングの分布を表示し、種別ごとの平均は出さない', async () => {
+  it('評価がなければ平均は「—」で言葉は出ない', async () => {
+    await setup([done('1', { endDate: '2026-10-01' })]);
+    expect(await screen.findByText('—')).toBeTruthy();
+    expect(screen.getAllByText('まあまあ')).toHaveLength(1);
+  });
+
+  it('お気に入りがあるときだけ今年のお気に入りを出し、背表紙で詳細を開く', async () => {
+    const onOpenRecord = jest.fn();
+    await setup(
+      [done('f1', { endDate: '2026-02-01', favorite: true, title: '猫' }), ...sample],
+      { onOpenRecord },
+    );
+    expect(await screen.findByText('今年のお気に入り')).toBeTruthy();
+    await fireEvent.press(screen.getByLabelText(/^猫、/));
+    expect(onOpenRecord).toHaveBeenCalledWith('f1');
+  });
+
+  it('onOpenRecord 未指定でも背表紙を押して落ちない', async () => {
+    await setup([done('f1', { endDate: '2026-02-01', favorite: true, title: '猫' })]);
+    await fireEvent.press(await screen.findByLabelText(/^猫、/));
+    expect(screen.getByText('今年のお気に入り')).toBeTruthy();
+  });
+
+  it('お気に入りがなければ見出しごと出さない', async () => {
     await setup(sample);
-    expect(await screen.findByText('レーティング')).toBeTruthy();
-    expect(screen.getByText('4点台')).toBeTruthy();
-    expect(screen.queryByText('種別ごとの平均')).toBeNull();
-    expect(screen.queryByText('映画')).toBeNull();
+    await screen.findByText('どうだった？');
+    expect(screen.queryByText('今年のお気に入り')).toBeNull();
+  });
+
+  it('今年いちばん使った書き出しと回数を出す。なければ段ごと出さない', async () => {
+    await setup(sample);
+    expect(await screen.findByText('今年いちばん使った書き出し')).toBeTruthy();
+    expect(screen.getByText('ひとことで言うと、')).toBeTruthy();
+    expect(screen.getByText('· 1 回')).toBeTruthy();
+  });
+
+  it('書き出しが使われていなければ段を出さない', async () => {
+    await setup([done('1', { endDate: '2026-10-01' })]);
+    await screen.findByText('どうだった？');
+    expect(screen.queryByText('今年いちばん使った書き出し')).toBeNull();
+  });
+
+  it('画面のどこにも「評価」「レーティング」が出ない', async () => {
+    await setup(sample);
+    await screen.findByText('どうだった？');
+    expect(screen.queryByText(/評価|レーティング/)).toBeNull();
+    expect(screen.queryByLabelText(/評価|レーティング/)).toBeNull();
+    expect(screen.queryByText(/終了日が未入力/)).toBeNull();
   });
 
   it('記録 0 件では空表示になり、数字カードは出ない', async () => {
     await setup([]);
-    expect(await screen.findByText('記録がたまると、ここに振り返りが表示されます')).toBeTruthy();
+    expect(await screen.findByText('読んだ本がたまると、ここに積み上がります')).toBeTruthy();
     expect(screen.getByText('振り返り')).toBeTruthy();
-    expect(screen.queryByText('この1年で終えた')).toBeNull();
-    expect(screen.queryByText('月別の完了数')).toBeNull();
+    expect(screen.queryByText('読んだ')).toBeNull();
+    expect(screen.queryByText(/評価|レーティング/)).toBeNull();
   });
 
-  it('空表示の「記録する」で追加シートが開き、「手で入力する」で onAdd が呼ばれる', async () => {
+  it('空表示の「本を追加する」で追加シートが開き、「手で入力する」で onAdd が呼ばれる', async () => {
     const onAdd = jest.fn();
     await setup([], { onAdd });
-    await fireEvent.press(await screen.findByRole('button', { name: '記録する' }));
+    await fireEvent.press(await screen.findByRole('button', { name: '本を追加する' }));
     expect(screen.getByText('本の裏のバーコードを映すだけ')).toBeTruthy();
     await fireEvent.press(screen.getByRole('button', { name: '手で入力する' }));
     expect(onAdd).toHaveBeenCalledTimes(1);
@@ -125,14 +156,14 @@ describe('ReviewScreen', () => {
 
   it('追加シートの「タイトルで探す」で検索画面へ遷移する', async () => {
     await setup([]);
-    await fireEvent.press(await screen.findByRole('button', { name: '記録する' }));
+    await fireEvent.press(await screen.findByRole('button', { name: '本を追加する' }));
     await fireEvent.press(screen.getByRole('button', { name: 'タイトルで探す' }));
     expect(mockPush).toHaveBeenCalledWith('/record/search');
   });
 
   it('下端にタブバー分の余白がある', async () => {
     await setup(sample, {}, 34);
-    await screen.findByText('月別の完了数');
+    await screen.findByText('月ごとに読んだ本');
     const scroll = screen.getByTestId('review-scroll');
     const content = StyleSheet.flatten(scroll.props.contentContainerStyle);
     expect(content.paddingBottom).toBe(space[6] + 34);

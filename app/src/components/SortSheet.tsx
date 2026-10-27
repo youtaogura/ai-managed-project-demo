@@ -11,7 +11,7 @@ const CHIP_WIDTH = 112;
 type SortField = { label: string; options: readonly { value: SortOrder; label: string }[] };
 
 // 項目ごとに選べる向き。SortOrder は項目×向きの組み合わせのうち実装済みのものだけ
-const SORT_FIELDS: readonly SortField[] = [
+export const SORT_FIELDS: readonly SortField[] = [
   {
     label: '終了日',
     options: [

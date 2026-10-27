@@ -153,8 +153,8 @@ describe('parseBackup', () => {
     expect(result.ok && result.backup.records).toEqual([]);
   });
 
-  it('settings はフィールドごとに検証し（古い heroCriterion は無視）、なければ null', () => {
-    const result = parseBackup(text({ settings: { heroCriterion: 'recent', defaultStatus: 'planned' } }));
+  it('settings はフィールドごとに検証し（未知のフィールドは無視）、なければ null', () => {
+    const result = parseBackup(text({ settings: { unknownField: 'recent', defaultStatus: 'planned' } }));
     expect(result.ok && result.backup.settings).toEqual({
       defaultStatus: 'planned',
     });
