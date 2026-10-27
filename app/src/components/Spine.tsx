@@ -1,10 +1,20 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
+
 import { colors, radius, typography } from '../design/tokens';
 import { resolveFontFamily } from '../design/fonts';
 import { spineColorToken } from '../lib/spineColor';
 import { getSpineAccessibilityLabel } from '../lib/spineLabel';
 import { getSpineSize } from '../lib/spineLayout';
+import {
+  ELLIPSIS,
+  LATIN_CHAR_RATIO,
+  SHIFT_RATIO,
+  fitVerticalUnits,
+  splitVerticalUnits,
+  unitLength,
+  type VerticalUnit,
+} from '../lib/spineTitle';
 import type { MediaRecord } from '../types/record';
 import { AppText } from './AppText';
 import { RibbonMark } from './RibbonMark';
@@ -18,6 +28,8 @@ const NARROW_WIDTH = 34;
 const NARROW_FONT_SIZE = 12;
 const TITLE_TOP = 28;
 const PRESS_LIFT = -4;
+/** 実際の字幅は近似より広いことがあるので、折り返し・省略されない広さの箱に入れて中央に置く */
+const LATIN_BOX_SCALE = 2;
 
 type SpineRecord = Pick<MediaRecord, 'id' | 'title' | 'creator' | 'status' | 'favorite' | 'spineColor'>;
 
@@ -35,6 +47,14 @@ export function Spine<R extends SpineRecord>({ record, onPress, dimensions }: Sp
   const fontSize = narrow ? NARROW_FONT_SIZE : typography.spineTitle.fontSize;
   const lineHeight = narrow ? NARROW_FONT_SIZE + 3 : typography.spineTitle.lineHeight;
   const family = resolveFontFamily(typography.spineTitle.fontFamily, typography.spineTitle.fontWeight);
+
+  const shown = fitVerticalUnits(
+    splitVerticalUnits(record.title),
+    height - TITLE_TOP,
+    fontSize,
+    lineHeight,
+  );
+  const unitProps = { family, fontSize, lineHeight, maxTcyWidth: width - EDGE_WIDTH * 4 };
 
   return (
     <Pressable
@@ -57,21 +77,10 @@ export function Spine<R extends SpineRecord>({ record, onPress, dimensions }: Sp
           importantForAccessibility="no-hide-descendants"
           style={styles.title}
         >
-          {Array.from(record.title).map((char, i) => (
-            <AppText
-              key={i}
-              variant="spineTitle"
-              style={{
-                color: colors.spineInk,
-                fontFamily: family,
-                fontSize,
-                lineHeight,
-                textAlign: 'center',
-              }}
-            >
-              {char}
-            </AppText>
+          {shown.units.map((unit, i) => (
+            <SpineUnit key={i} unit={unit} {...unitProps} />
           ))}
+          {shown.truncated ? <SpineUnit unit={{ kind: 'upright', text: ELLIPSIS }} {...unitProps} /> : null}
         </View>
       </View>
       {record.favorite ? (
@@ -83,6 +92,69 @@ export function Spine<R extends SpineRecord>({ record, onPress, dimensions }: Sp
         />
       ) : null}
     </Pressable>
+  );
+}
+
+type SpineUnitProps = {
+  unit: VerticalUnit;
+  family: string;
+  fontSize: number;
+  lineHeight: number;
+  maxTcyWidth: number;
+};
+
+function SpineUnit({ unit, family, fontSize, lineHeight, maxTcyWidth }: SpineUnitProps) {
+  const textStyle = {
+    color: colors.spineInk,
+    fontFamily: family,
+    fontSize,
+    lineHeight,
+    textAlign: 'center' as const,
+  };
+  const tcyFits = unit.kind === 'tcy' && unit.text.length * fontSize * LATIN_CHAR_RATIO <= maxTcyWidth;
+  if (unit.kind === 'latin' || (unit.kind === 'tcy' && !tcyFits)) {
+    const length = unitLength({ kind: 'latin', text: unit.text }, fontSize, lineHeight);
+    const boxWidth = length * LATIN_BOX_SCALE;
+    return (
+      <View style={{ width: lineHeight, height: length }}>
+        <View
+          style={{
+            position: 'absolute',
+            width: boxWidth,
+            height: lineHeight,
+            left: (lineHeight - boxWidth) / 2,
+            top: (length - lineHeight) / 2,
+          }}
+        >
+          <AppText
+            variant="spineTitle"
+            numberOfLines={1}
+            ellipsizeMode="clip"
+            style={[textStyle, { width: boxWidth, transform: [{ rotate: '90deg' }] }]}
+          >
+            {unit.text}
+          </AppText>
+        </View>
+      </View>
+    );
+  }
+  if (unit.kind === 'rotate') {
+    return (
+      <View style={{ width: lineHeight, height: lineHeight, alignItems: 'center', justifyContent: 'center' }}>
+        <AppText variant="spineTitle" style={[textStyle, { transform: [{ rotate: '90deg' }] }]}>
+          {unit.text}
+        </AppText>
+      </View>
+    );
+  }
+  const offset = fontSize * SHIFT_RATIO;
+  return (
+    <AppText
+      variant="spineTitle"
+      style={[textStyle, unit.shift && { transform: [{ translateX: offset }, { translateY: -offset }] }]}
+    >
+      {unit.text}
+    </AppText>
   );
 }
 
