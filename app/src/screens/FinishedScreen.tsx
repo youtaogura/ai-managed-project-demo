@@ -6,7 +6,7 @@ import { AppText } from '../components/AppText';
 import { Button } from '../components/Button';
 import { RatingSlider } from '../components/RatingSlider';
 import { Shelf } from '../components/Shelf';
-import { Toggle } from '../components/Toggle';
+import { ToggleRow } from '../components/Toggle';
 import { colors, radius, size, space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useRecordRepository } from '../hooks/useRecordRepository';
@@ -154,12 +154,7 @@ export function FinishedScreen({ recordId, onWrite, onLater, onBack }: FinishedS
         <AppText variant="micro" style={[styles.centered, { color: colors.textSecondary }]}>
           星をなぞると 0.1 ずつ変わります
         </AppText>
-        <View style={styles.toggleRow}>
-          <AppText variant="body" style={styles.toggleLabel}>
-            お気に入りにする
-          </AppText>
-          <Toggle label="お気に入りにする" value={favorite} onValueChange={changeFavorite} />
-        </View>
+        <ToggleRow label="お気に入りにする" value={favorite} onValueChange={changeFavorite} style={styles.toggleRow} />
         {error ? (
           <AppText variant="body" style={{ color: colors.danger }}>
             {error}
@@ -200,11 +195,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     backgroundColor: colors.surface1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
   },
-  toggleLabel: { fontWeight: '700' },
   bar: {
     position: 'absolute',
     left: 0,

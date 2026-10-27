@@ -10,15 +10,17 @@ const PAGE_WIDTH = 38;
 type MemoRowProps = {
   memo: MemoEntry;
   onPress?: (memo: MemoEntry) => void;
+  /** 本文の色。読み返す画面では控えめにするため textSecondary を渡す。 */
+  textColor?: string;
 };
 
-export function MemoRow({ memo, onPress }: MemoRowProps) {
+export function MemoRow({ memo, onPress, textColor }: MemoRowProps) {
   const body = (
     <View style={styles.row}>
       <AppText variant="micro" style={[styles.page, { color: colors.textTertiary }]}>
         {memo.page ? formatPage(memo.page) : '—'}
       </AppText>
-      <AppText variant="body" style={styles.text}>
+      <AppText variant="body" style={[styles.text, textColor ? { color: textColor } : null]}>
         {memo.text}
       </AppText>
     </View>
