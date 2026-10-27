@@ -201,6 +201,7 @@ describe('RereadScreen の本棚', () => {
   it('シートで選んで保存すると shelfIds だけ変わり、表示に反映する', async () => {
     const repository = await show();
     await fireEvent.press(await screen.findByLabelText('本棚、SF、哲学'));
+    expect((await screen.findAllByText('吾輩は猫である')).length).toBeGreaterThan(1);
     await fireEvent.press(await screen.findByRole('checkbox', { name: 'SF' }));
     await fireEvent.press(screen.getByRole('button', { name: '1 つの本棚に入れる' }));
     await waitFor(() => expect(screen.getByLabelText('本棚、哲学')).toBeTruthy());
