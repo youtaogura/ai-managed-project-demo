@@ -1,5 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
+import { goBackOrHome } from '../../lib/navigation';
 import { ReadingScreen } from '../../screens/ReadingScreen';
 
 export default function ReadingRoute() {
@@ -12,7 +13,7 @@ export default function ReadingRoute() {
         recordId={id}
         onEdit={(recordId) => router.push({ pathname: '/record/[id]', params: { id: recordId } })}
         onFinished={(recordId) => router.replace(`/finished/${recordId}`)}
-        onBack={() => router.replace('/')}
+        onBack={() => goBackOrHome(router)}
       />
     </>
   );

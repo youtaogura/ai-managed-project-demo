@@ -1,5 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
+import { goBackOrHome } from '../../lib/navigation';
 import { WriteScreen } from '../../screens/WriteScreen';
 
 export default function WriteRoute() {
@@ -11,8 +12,10 @@ export default function WriteRoute() {
       <Stack.Screen options={{ headerShown: false }} />
       <WriteScreen
         recordId={id}
-        onSaved={(recordId) => router.replace(`/records/${recordId}`)}
-        onLater={() => (fromReread && router.canGoBack() ? router.back() : router.replace('/'))}
+        onSaved={(recordId) =>
+          fromReread ? router.dismissTo(`/records/${recordId}`) : router.replace(`/records/${recordId}`)
+        }
+        onLater={() => (fromReread ? goBackOrHome(router) : router.dismissTo('/'))}
       />
     </>
   );

@@ -19,7 +19,7 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 );
 
 jest.mock('expo-router', () => ({
-  router: { back: jest.fn(), push: jest.fn(), replace: jest.fn() },
+  router: { back: jest.fn(), push: jest.fn(), replace: jest.fn(), dismissTo: jest.fn() },
 }));
 
 function memoryRepository() {
@@ -214,7 +214,7 @@ describe('RecordFormScreen（編集）', () => {
     const update = jest.spyOn(repository, 'update');
     await fireEvent.changeText(screen.getByLabelText('タイトル（必須）'), '変更後');
     await press('保存する');
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/records/' + record.id));
+    await waitFor(() => expect(router.dismissTo).toHaveBeenCalledWith('/records/' + record.id));
     expect(router.back).not.toHaveBeenCalled();
     expect(update).toHaveBeenCalledWith(record.id, expect.objectContaining({ title: '変更後' }));
     const [saved] = await repository.getAll();
@@ -246,43 +246,45 @@ describe('RecordFormScreen（編集）', () => {
     expect(router.replace).not.toHaveBeenCalled();
   });
 
-  it('読み終わった本を「読んでる」にして保存すると読んでる画面へ replace する', async () => {
+  it('読み終わった本を「読んでる」にして保存すると本棚へ戻して読んでる画面を開き直す', async () => {
     const repository = memoryRepository();
     const record = await repository.add({ ...baseInput, status: 'completed' });
     await render(withRepository(repository, <RecordFormScreen recordId={record.id} />));
     await fireEvent.press(await screen.findByRole('radio', { name: '読んでる' }));
     await press('保存する');
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/reading/' + record.id));
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith('/reading/' + record.id));
+    expect(router.dismissTo).toHaveBeenCalledWith('/');
+    expect(router.replace).not.toHaveBeenCalled();
     expect(router.back).not.toHaveBeenCalled();
   });
 
-  it('読んでる本を何も変えずに保存すると読んでる画面へ replace する', async () => {
+  it('読んでる本を何も変えずに保存すると読んでる画面へ dismissTo する', async () => {
     const repository = memoryRepository();
     const record = await repository.add({ ...baseInput, status: 'in_progress' });
     await render(withRepository(repository, <RecordFormScreen recordId={record.id} />));
     await screen.findByDisplayValue('既存');
     await press('保存する');
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/reading/' + record.id));
+    await waitFor(() => expect(router.dismissTo).toHaveBeenCalledWith('/reading/' + record.id));
     expect(router.back).not.toHaveBeenCalled();
   });
 
-  it('読み終わった本を保存すると詳細へ replace する', async () => {
+  it('読み終わった本を保存すると詳細へ dismissTo する', async () => {
     const repository = memoryRepository();
     const record = await repository.add({ ...baseInput, status: 'completed' });
     await render(withRepository(repository, <RecordFormScreen recordId={record.id} />));
     await screen.findByDisplayValue('既存');
     await press('保存する');
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/records/' + record.id));
+    await waitFor(() => expect(router.dismissTo).toHaveBeenCalledWith('/records/' + record.id));
   });
 
-  it('削除を確定すると delete が呼ばれ一覧へ移る', async () => {
+  it('削除を確定すると delete が呼ばれ本棚へ戻る動きで移る', async () => {
     const { repository, record } = await setup();
     await screen.findByDisplayValue('既存');
     const del = jest.spyOn(repository, 'delete');
     await press('この本を削除');
     expect(screen.getByText('この記録を削除しますか？')).toBeTruthy();
     await press('削除する');
-    await waitFor(() => expect(router.replace).toHaveBeenCalledWith('/'));
+    await waitFor(() => expect(router.dismissTo).toHaveBeenCalledWith('/'));
     expect(del).toHaveBeenCalledWith(record.id);
     expect(await repository.getAll()).toHaveLength(0);
   });
@@ -422,7 +424,7 @@ describe('RecordFormScreen（ステータスの初期値）', () => {
     await render(withDefault('completed', withRepository(repository, <RecordFormScreen recordId={record.id} />)));
     await screen.findByLabelText('タイトル（必須）');
     await press('保存する');
-    await waitFor(() => expect(router.replace).toHaveBeenCalled());
+    await waitFor(() => expect(router.dismissTo).toHaveBeenCalled());
     expect((await repository.getAll())[0]).toMatchObject({
       status: 'planned',
       startDate: null,
