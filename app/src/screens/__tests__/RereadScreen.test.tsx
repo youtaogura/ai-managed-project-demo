@@ -147,8 +147,8 @@ describe('RereadScreen の表示', () => {
     expect(heading.fontSize).toBeLessThan(body.fontSize as number);
   });
 
-  it('メモが 0 件なら見出しごと出さない', async () => {
-    await show([{ ...full, memos: [] }]);
+  it('読みたい本でメモが 0 件なら見出しごと出さない', async () => {
+    await show([{ ...full, status: 'planned', memos: [] }]);
     await screen.findByText('吾輩は猫である');
     expect(screen.queryByText('メモ')).toBeNull();
   });
@@ -347,5 +347,103 @@ describe('RereadScreen の読み込み', () => {
     await act(async () => router.push('/other'));
     await act(async () => router.back());
     await waitFor(() => expect(screen.getByText('「書き換えたひとこと」')).toBeTruthy());
+  });
+});
+
+describe('RereadScreen のメモ・引用', () => {
+  const ADD = 'メモ・引用を書く';
+  const stored = async (repository: RecordRepository) => (await repository.getAll()).find((r) => r.id === 'x');
+  const open = async () => {
+    await fireEvent.press(await screen.findByRole('button', { name: ADD }));
+    await waitFor(() => expect(screen.getByLabelText('本文')).toBeTruthy());
+  };
+
+  it('completed ではメモ・引用がなくても入口が出る', async () => {
+    await show([makeRecord({ id: 'x', status: 'completed' })]);
+    expect(await screen.findByText('まだ何も書いていません', { exact: false })).toBeTruthy();
+    expect(screen.getByLabelText(ADD)).toBeTruthy();
+  });
+
+  it('dropped では出て、planned では出ない', async () => {
+    await show([makeRecord({ id: 'x', status: 'dropped' })]);
+    expect(await screen.findByLabelText(ADD)).toBeTruthy();
+  });
+
+  it('planned では入口もシートも出ず、過去のメモは押せない', async () => {
+    await show([
+      makeRecord({ id: 'x', status: 'planned', memos: [{ id: 'm', text: '昔のメモ', page: null, createdAt: at(1) }] }),
+    ]);
+    expect(await screen.findByText('昔のメモ')).toBeTruthy();
+    expect(screen.queryByLabelText(ADD)).toBeNull();
+    expect(screen.queryByLabelText('メモ 昔のメモ')).toBeNull();
+  });
+
+  it('メモを追加すると保存され、ほかの項目は残る', async () => {
+    const repository = await show();
+    await open();
+    await fireEvent.changeText(screen.getByLabelText('本文'), '思い出したこと');
+    await act(async () => {
+      await fireEvent.press(screen.getByRole('button', { name: '残す' }));
+    });
+    await waitFor(() => expect(screen.getByLabelText('メモ 思い出したこと')).toBeTruthy());
+    const saved = await stored(repository);
+    expect(saved?.memos.map((m) => m.text)).toContain('思い出したこと');
+    expect(saved?.oneLiner).toBe('猫の目で人間を笑う本');
+    expect(saved?.rating).toBe(4.2);
+    expect(saved?.shelfIds).toEqual(['s1', 's2']);
+    expect(saved?.starters).toHaveLength(1);
+  });
+
+  it('引用を追加できる', async () => {
+    const repository = await show();
+    await open();
+    await fireEvent.press(screen.getByRole('tab', { name: '引用' }));
+    await fireEvent.changeText(screen.getByLabelText('本文'), '新しい引用');
+    await act(async () => {
+      await fireEvent.press(screen.getByRole('button', { name: '残す' }));
+    });
+    await waitFor(() => expect(screen.getByLabelText('引用 新しい引用')).toBeTruthy());
+    expect((await stored(repository))?.quotes.map((q) => q.text)).toEqual(['名前はまだ無い', '新しい引用']);
+  });
+
+  it('メモを押して直せる', async () => {
+    const repository = await show();
+    await fireEvent.press(await screen.findByLabelText('メモ さきのメモ'));
+    expect(screen.getByText('メモを直す')).toBeTruthy();
+    await fireEvent.changeText(screen.getByLabelText('本文'), '直したメモ');
+    await act(async () => {
+      await fireEvent.press(screen.getByRole('button', { name: '保存する' }));
+    });
+    await waitFor(() => expect(screen.getByLabelText('メモ 直したメモ')).toBeTruthy());
+    expect(screen.queryByLabelText('メモ さきのメモ')).toBeNull();
+    expect((await stored(repository))?.memos.map((m) => m.text)).toContain('直したメモ');
+  });
+
+  it('引用を押して直せる', async () => {
+    await show();
+    await fireEvent.press(await screen.findByLabelText('引用 名前はまだ無い'));
+    expect(screen.getByText('引用を直す')).toBeTruthy();
+    await fireEvent.changeText(screen.getByLabelText('本文'), '直した引用');
+    await act(async () => {
+      await fireEvent.press(screen.getByRole('button', { name: '保存する' }));
+    });
+    await waitFor(() => expect(screen.getByLabelText('引用 直した引用')).toBeTruthy());
+  });
+
+  it('削除すると消え、メモが 0 件でも入口は残る', async () => {
+    const only = makeRecord({
+      id: 'x',
+      status: 'completed',
+      memos: [{ id: 'm1', text: '唯一のメモ', page: null, createdAt: at(1) }],
+    });
+    const repository = await show([only]);
+    await fireEvent.press(await screen.findByLabelText('メモ 唯一のメモ'));
+    await fireEvent.press(screen.getByRole('button', { name: '削除' }));
+    await act(async () => {
+      await fireEvent.press(screen.getByRole('button', { name: '削除する' }));
+    });
+    await waitFor(() => expect(screen.queryByLabelText('メモ 唯一のメモ')).toBeNull());
+    expect((await stored(repository))?.memos).toEqual([]);
+    expect(screen.getByLabelText(ADD)).toBeTruthy();
   });
 });

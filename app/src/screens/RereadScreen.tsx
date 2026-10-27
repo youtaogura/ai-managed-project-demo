@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'reac
 import { AppText } from '../components/AppText';
 import { Button } from '../components/Button';
 import { MemoRow } from '../components/MemoRow';
+import { NoteSheet } from '../components/NoteSheet';
 import { Quote } from '../components/Quote';
 import { RatingStars } from '../components/RatingStars';
 import { RuledText } from '../components/RuledText';
@@ -17,12 +18,20 @@ import { useRecordRepository } from '../hooks/useRecordRepository';
 import { useShelfPick } from '../hooks/useShelfPick';
 import { useTopInset } from '../hooks/useTopInset';
 import { triggerImpactHaptic } from '../lib/haptics';
-import { recordToInput, sortMemos } from '../lib/notes';
+import {
+  addNote,
+  noteItemToDraft,
+  recordToInput,
+  removeNote,
+  sortMemos,
+  updateNote,
+  type NoteItem,
+} from '../lib/notes';
 import { getRatingWord } from '../lib/ratingWord';
 import { buildRereadEntries, buildRereadPeriod, hasRereadContent } from '../lib/reread';
 import { formatRating, todayString } from '../lib/recordForm';
 import { shelfNames } from '../lib/shelfSelectors';
-import type { MediaRecord } from '../types/record';
+import type { MediaRecord, NewRecordInput } from '../types/record';
 
 const STARS_SIZE = 18;
 const ERROR_START = '保存できませんでした。もう一度お試しください';
@@ -37,6 +46,8 @@ const START_ACTIONS = {
     label: 'もう一度読む',
   },
 } as const;
+
+type SheetState = { mode: 'new' } | { mode: 'edit'; item: NoteItem } | null;
 
 type RereadScreenProps = {
   recordId: string;
@@ -56,6 +67,7 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
   const [shelfOpen, setShelfOpen] = useState(false);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sheet, setSheet] = useState<SheetState>(null);
 
   // 書く画面から戻ったときに最新の内容を表示するため、フォーカスのたび読み込む
   useFocusEffect(
@@ -77,6 +89,13 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
 
   const entries = useMemo(() => (record ? buildRereadEntries(record) : []), [record]);
   const memos = useMemo(() => (record ? sortMemos(record.memos.filter((m) => m.text.trim() !== '')) : []), [record]);
+
+  const save = async (input: NewRecordInput | null) => {
+    if (!input) throw new Error('invalid');
+    const updated = await repository.update(recordId, input);
+    if (!updated) throw new Error('not found');
+    setRecord(updated);
+  };
 
   const saveShelves = async (shelfIds: string[]) => {
     if (!record) return;
@@ -129,6 +148,8 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
   const oneLiner = record.oneLiner?.trim() ?? '';
   const word = getRatingWord(record.rating);
   const completed = record.status === 'completed';
+  const noteable = record.status !== 'planned';
+  const editing = sheet?.mode === 'edit' ? sheet.item : null;
   const empty = !hasRereadContent(record);
   const hasBody = entries.length > 0;
   const startAction = record.status === 'planned' || record.status === 'dropped' ? START_ACTIONS[record.status] : null;
@@ -196,7 +217,13 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
                   );
                 }
                 if (item.kind === 'quote') {
-                  return <Quote key={`quote-${item.entry.id}`} quote={item.entry} />;
+                  return (
+                    <Quote
+                      key={`quote-${item.entry.id}`}
+                      quote={item.entry}
+                      onPress={() => setSheet({ mode: 'edit', item: { kind: 'quote', entry: item.entry } })}
+                    />
+                  );
                 }
                 return (
                   <RuledText key={`free-${item.entry.id}`}>
@@ -208,15 +235,32 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
           </>
         ) : null}
 
-        {memos.length > 0 ? (
+        {noteable || memos.length > 0 ? (
           <>
             <View style={styles.divider} />
             <AppText variant="value" style={{ color: colors.textSecondary }}>
               メモ
             </AppText>
             {memos.map((memo) => (
-              <MemoRow key={memo.id} memo={memo} textColor={colors.textSecondary} />
+              <MemoRow
+                key={memo.id}
+                memo={memo}
+                textColor={colors.textSecondary}
+                onPress={noteable ? () => setSheet({ mode: 'edit', item: { kind: 'memo', entry: memo } }) : undefined}
+              />
             ))}
+            {noteable ? (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="メモ・引用を書く"
+                style={styles.add}
+                onPress={() => setSheet({ mode: 'new' })}
+              >
+                <AppText variant="button" style={{ color: colors.textSecondary }}>
+                  ＋ メモ・引用を書く
+                </AppText>
+              </Pressable>
+            ) : null}
           </>
         ) : null}
 
@@ -252,6 +296,23 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
         {completed && !empty ? <SettingsRow label="書き出しの続きを書く" onPress={() => onWrite?.(record.id)} /> : null}
       </ScrollView>
 
+      {noteable ? (
+        <NoteSheet
+          visible={sheet !== null}
+          bookTitle={record.title}
+          recordId={record.id}
+          editing={editing ? noteItemToDraft(editing) : undefined}
+          onSubmit={(draft) =>
+            save(
+              editing
+                ? updateNote(record, { kind: editing.kind, id: editing.entry.id }, draft)
+                : addNote(record, draft),
+            )
+          }
+          onDelete={editing ? () => save(removeNote(record, { kind: editing.kind, id: editing.entry.id })) : undefined}
+          onClose={() => setSheet(null)}
+        />
+      ) : null}
       <ShelfPickSheet
         visible={shelfOpen}
         shelves={shelves}
@@ -301,5 +362,15 @@ const styles = StyleSheet.create({
   },
   divider: { height: 1, backgroundColor: colors.line, marginVertical: space[3] },
   entries: { gap: space[4] },
+  add: {
+    minHeight: size.touchMin,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: colors.textTertiary,
+    borderRadius: radius.card,
+    marginTop: space[2],
+  },
   guide: { gap: space[4], paddingVertical: space[4] },
 });

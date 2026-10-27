@@ -5,6 +5,7 @@ import {
   formatPage,
   isDraftEmpty,
   isNoteSubmittable,
+  noteItemToDraft,
   normalizePage,
   removeNote,
   updateNote,
@@ -118,5 +119,19 @@ describe('addNote / updateNote / removeNote', () => {
     const input = addNote(record, { kind: 'memo', page: '', text: 'x', comment: '' });
     expect(input?.memos[1].id).toEqual(expect.any(String));
     expect(input?.memos[1].createdAt).toMatch(/^\d{4}-/);
+  });
+});
+
+describe('noteItemToDraft', () => {
+  it('メモ・引用を下書きに変換する', () => {
+    const base = { id: 'a', text: '本文', page: '3', createdAt: '2024-01-01T00:00:00.000Z' };
+    expect(noteItemToDraft({ kind: 'memo', entry: base })).toEqual({ kind: 'memo', page: '3', text: '本文', comment: '' });
+    expect(noteItemToDraft({ kind: 'quote', entry: { ...base, page: null, comment: 'c' } })).toEqual({
+      kind: 'quote',
+      page: '',
+      text: '本文',
+      comment: 'c',
+    });
+    expect(noteItemToDraft({ kind: 'quote', entry: { ...base, comment: null } }).comment).toBe('');
   });
 });
