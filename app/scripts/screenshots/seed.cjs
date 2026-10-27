@@ -181,6 +181,11 @@ function makeReviewRecords(year = new Date().getFullYear()) {
       starters: [{ id: 's2', starter: 'いちばん心に残ったのは、', text: '我思う。', createdAt: `${year}-01-16T00:00:00.000Z` }],
     }),
     done('r5', '夜と霧', '01', 2),
+    done('r6', '異邦人', '02', 4),
+    done('r7', '砂の女', '02', 4),
+    done('r8', '潮騒', '03', 3.5),
+    done('r9', '海辺のカフカ', '03', 4),
+    done('r10', '雪国', '04', 4),
   ];
 }
 

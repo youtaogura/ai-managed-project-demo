@@ -107,7 +107,9 @@ export function ReviewScreen({ onAdd, onOpenRecord }: ReviewScreenProps) {
               平均
             </AppText>
             <AppText variant="displayNumber">{formatAverage(ratings.average)}</AppText>
-            {ratings.word !== null ? <AppText variant="value">{ratings.word}</AppText> : null}
+            {ratings.word !== null ? <AppText variant="value" style={styles.word}>
+                {ratings.word}
+              </AppText> : null}
           </View>
           <RatingBreakdown buckets={ratings.buckets} />
         </View>
@@ -144,15 +146,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.surface1,
     borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: colors.line,
     padding: space[4],
     gap: space[2],
   },
   section: { gap: space[3] },
   average: { flexDirection: 'row', alignItems: 'baseline', gap: space[2] },
+  word: { color: colors.ribbon },
   starterCard: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'baseline',
+    columnGap: space[2],
     backgroundColor: colors.surface1,
     borderRadius: radius.card,
+    borderWidth: 1,
+    borderColor: colors.line,
     padding: space[4],
-    gap: space[2],
   },
 });
