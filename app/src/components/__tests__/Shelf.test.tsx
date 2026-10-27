@@ -34,3 +34,16 @@ describe('Shelf', () => {
     expect(screen.queryByTestId('shelf-board')).toBeNull();
   });
 });
+
+describe('Shelf の fillEmptyRows', () => {
+  it('1 冊でも棚板が 3 枚で、背表紙は 1 つだけ', async () => {
+    await render(<Shelf records={books.slice(0, 1)} width={300} onPressRecord={jest.fn()} fillEmptyRows />);
+    expect(screen.getAllByTestId('shelf-board')).toHaveLength(3);
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+  });
+
+  it('指定しなければ空の段を足さない', async () => {
+    await render(<Shelf records={books.slice(0, 1)} width={300} onPressRecord={jest.fn()} />);
+    expect(screen.getAllByTestId('shelf-board')).toHaveLength(1);
+  });
+});

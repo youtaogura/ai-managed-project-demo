@@ -168,6 +168,18 @@ describe('RecordsScreen', () => {
     expect(screen.queryByTestId('shelf-board')).toBeNull();
   });
 
+  it('本が 1 冊でも棚板が 3 枚並び、絞り込んで 1 冊になっても 3 枚', async () => {
+    await setup(
+      createFakeRepository([
+        makeRecord({ id: 'p', title: 'ベータ', status: 'planned' }),
+        makeRecord({ id: 'c', title: 'ガンマ', status: 'completed' }),
+      ]).repository,
+    );
+    await screen.findByText('本棚');
+    await fireEvent.press(await screen.findByRole('tab', { name: '読みたい 1' }));
+    expect(screen.getAllByTestId('shelf-board')).toHaveLength(3);
+  });
+
   it('凡例とチップの行を表示する', async () => {
     await setup(createFakeRepository(records).repository);
     await ready();

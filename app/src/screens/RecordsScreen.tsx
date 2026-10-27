@@ -163,7 +163,7 @@ export function RecordsScreen({
       </AppText>
     ) : (
       <View style={styles.shelf}>
-        <Shelf records={visible} width={width - space[4] * 2} onPressRecord={open} />
+        <Shelf records={visible} width={width - space[4] * 2} onPressRecord={open} fillEmptyRows />
       </View>
     );
 
