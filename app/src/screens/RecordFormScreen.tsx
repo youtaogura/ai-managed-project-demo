@@ -27,6 +27,7 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
   const { settings } = useSettings();
   const [state, setState] = useState<LoadState>({ status: 'loading' });
   const addedRecord = useRef<MediaRecord | null>(null);
+  const updatedRecord = useRef<MediaRecord | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -93,8 +94,11 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
       onSubmit={async (input) => {
         const updated = await repository.update(record.id, input);
         if (!updated) throw new Error('not found');
+        updatedRecord.current = updated;
       }}
-      onSaved={() => router.back()}
+      onSaved={() => {
+        if (updatedRecord.current !== null) router.replace(recordHref(updatedRecord.current));
+      }}
       onDelete={async () => {
         await repository.delete(record.id);
       }}
