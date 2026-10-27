@@ -9,7 +9,7 @@ export function countCompletions(records: readonly MediaRecord[], now: Date): Co
   let year = 0;
   let month = 0;
   for (const record of records) {
-    if (record.endDate === null) continue;
+    if (record.status !== 'completed' || record.endDate === null) continue;
     if (record.endDate.startsWith(`${yearPrefix}-`)) year += 1;
     if (record.endDate.startsWith(`${monthPrefix}-`)) month += 1;
   }

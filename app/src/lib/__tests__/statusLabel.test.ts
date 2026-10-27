@@ -22,6 +22,9 @@ describe('日付・作者欄の見出し', () => {
   });
 
   it('日付のヒント', () => {
-    expect(getDateHint()).toBe('「読み終わった」を選ぶと、終えた日に今日が入ります');
+    expect(getDateHint('completed')).toBe('「読み終わった」を選ぶと、終えた日に今日が入ります');
+    expect(getDateHint('dropped')).toBe('「読み終わった」を選ぶと、終えた日に今日が入ります');
+    expect(getDateHint('in_progress')).toBe('「読んでる」を選ぶと、読み始めた日に今日が入ります');
+    expect(getDateHint('planned')).toBeNull();
   });
 });

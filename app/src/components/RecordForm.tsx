@@ -58,6 +58,7 @@ export function RecordForm({
     createFormValues(initialValues, initialSpineColor),
   );
   const [errors, setErrors] = useState<RecordFormErrors>({});
+  const dateHint = getDateHint(values.status);
   const [submitting, setSubmitting] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [openDate, setOpenDate] = useState<'start' | 'end' | null>(null);
@@ -213,9 +214,11 @@ export function RecordForm({
               />
             </View>
           </View>
-          <AppText variant="micro" style={styles.note}>
-            {getDateHint()}
-          </AppText>
+          {dateHint !== null ? (
+            <AppText variant="micro" style={styles.note}>
+              {dateHint}
+            </AppText>
+          ) : null}
         </View>
 
         <View>

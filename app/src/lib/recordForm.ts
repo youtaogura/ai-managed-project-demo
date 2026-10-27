@@ -76,8 +76,13 @@ export function todayString(date: Date = new Date()): string {
 
 export function applyStatusChange(values: RecordFormValues, status: RecordStatus, today: string): RecordFormValues {
   const next = { ...values, status };
-  if (status === 'in_progress' && next.startDate.trim() === '') next.startDate = today;
-  if ((status === 'completed' || status === 'dropped') && next.endDate.trim() === '') {
+  if (status === 'planned') {
+    next.startDate = '';
+    next.endDate = '';
+  } else if (status === 'in_progress') {
+    if (next.startDate.trim() === '') next.startDate = today;
+    next.endDate = '';
+  } else if (next.endDate.trim() === '') {
     next.endDate = today;
   }
   return next;

@@ -195,10 +195,42 @@ describe('RecordForm', () => {
       expect(dateButton('読み始めた日')).toBeTruthy();
     });
 
-    it('見出しとヒントは読書の文言', async () => {
+    it('見出しは読書の文言で、ヒントは選択中のステータスに合わせて出る', async () => {
       await render(<RecordForm onSubmit={jest.fn()} />);
-      expect(screen.getByText('「読み終わった」を選ぶと、終えた日に今日が入ります')).toBeTruthy();
+      expect(screen.queryByText(/今日が入ります/)).toBeNull();
       expect(screen.getByLabelText('作者・著者')).toBeTruthy();
+      await fireEvent.press(screen.getByRole('radio', { name: '読んでる' }));
+      expect(screen.getByText('「読んでる」を選ぶと、読み始めた日に今日が入ります')).toBeTruthy();
+      await fireEvent.press(screen.getByRole('radio', { name: '読み終わった' }));
+      expect(screen.getByText('「読み終わった」を選ぶと、終えた日に今日が入ります')).toBeTruthy();
+    });
+
+    it('「読み終わった」から「読んでる」に変えると終えた日が空になり、「読みたい」で両方空になる', async () => {
+      await render(<RecordForm onSubmit={jest.fn()} initialValues={{ status: 'completed' }} />);
+      await fireEvent.press(screen.getByRole('radio', { name: '読んでる' }));
+      expect(dateButton('読み始めた日', '2024/05/10')).toBeTruthy();
+      expect(dateButton('読み終えた日')).toBeTruthy();
+      await fireEvent.press(screen.getByRole('radio', { name: '読みたい' }));
+      expect(dateButton('読み始めた日')).toBeTruthy();
+      expect(dateButton('読み終えた日')).toBeTruthy();
+    });
+
+    it('編集で「読み終わった」から「読んでる」に変えて保存すると endDate が null になる', async () => {
+      const onSubmit = jest.fn();
+      await render(
+        <RecordForm
+          onSubmit={onSubmit}
+          initialValues={{ title: 'a', status: 'completed', startDate: '2024-01-01', endDate: '2024-02-01' }}
+        />,
+      );
+      await fireEvent.press(screen.getByRole('radio', { name: '読んでる' }));
+      await press('棚に並べる');
+      await waitFor(() => expect(onSubmit).toHaveBeenCalled());
+      expect(onSubmit.mock.calls[0][0]).toMatchObject({
+        status: 'in_progress',
+        startDate: '2024-01-01',
+        endDate: null,
+      });
     });
 
     it('終えた日が開始日より前だとエラーを表示し保存しない', async () => {
