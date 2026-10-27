@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { colors, size } from '../design/tokens';
+import { colors, size, space } from '../design/tokens';
 import { SPINE_COLORS } from '../lib/constants';
 import type { SpineColor } from '../types/record';
 import { spineColorToken } from '../lib/spineColor';
@@ -39,7 +39,7 @@ export function SpineColorPicker({ value, onChange }: SpineColorPickerProps) {
 }
 
 const styles = StyleSheet.create({
-  group: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 4 },
+  group: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: space[1] },
   /** 選択中の輪は丸の外側。丸との間に隙間をあける */
   ring: {
     width: RING_SIZE,
