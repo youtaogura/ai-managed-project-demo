@@ -42,11 +42,6 @@ async function shoot(browser, baseUrl, scene) {
 
     const page = await context.newPage();
     await page.goto(`${baseUrl}${scene.url}`);
-    try {
-      await page.getByText(scene.waitFor, { exact: false }).first().waitFor({ timeout: WAIT_MS });
-    } catch {
-      throw new SceneError(scene.name, `「${scene.waitFor}」が表示されませんでした（${scene.url}）`);
-    }
     await page.evaluate(() => document.fonts.ready);
     for (const action of scene.actions ?? []) {
       const target =
@@ -57,6 +52,11 @@ async function shoot(browser, baseUrl, scene) {
         throw new SceneError(scene.name, `操作の対象が見つかりません: ${JSON.stringify(action)}`);
       }
       await page.waitForTimeout(SETTLE_MS);
+    }
+    try {
+      await page.getByText(scene.waitFor, { exact: false }).first().waitFor({ timeout: WAIT_MS });
+    } catch {
+      throw new SceneError(scene.name, `「${scene.waitFor}」が表示されませんでした（${scene.url}）`);
     }
     await page.waitForTimeout(SETTLE_MS);
     await page.screenshot({ path: join(outDir, `${scene.name}.png`), fullPage: true });

@@ -1,3 +1,4 @@
+import { StyleSheet } from 'react-native';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { StatusTabs } from '../StatusTabs';
@@ -17,5 +18,11 @@ describe('StatusTabs', () => {
     await render(<StatusTabs value="all" counts={counts} onChange={onChange} />);
     await fireEvent.press(screen.getByRole('tab', { name: '読みたい 1' }));
     expect(onChange).toHaveBeenCalledWith('planned');
+  });
+
+  it('タブは左から詰めて並ぶ（均等に引き伸ばさない）', async () => {
+    await render(<StatusTabs value="all" counts={counts} onChange={jest.fn()} />);
+    const style = StyleSheet.flatten(screen.getByRole('tab', { name: 'すべて 5' }).props.style);
+    expect(style.flex).toBeUndefined();
   });
 });
