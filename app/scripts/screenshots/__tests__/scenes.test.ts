@@ -5,6 +5,7 @@ import { parseRecords } from '../../../src/lib/recordGuard';
 import { migrateRecords } from '../../../src/lib/recordMigration';
 import { SHELVES_STORAGE_KEY } from '../../../src/lib/shelfRepository';
 import { parseShelves } from '../../../src/lib/shelfGuard';
+import { LAST_EXPORTED_AT_KEY } from '../../../src/lib/exportStore';
 import { STARTER_SETTINGS_STORAGE_KEY } from '../../../src/lib/starterSettingsStore';
 import { RECORDS_STORAGE_KEY } from '../../../src/lib/recordRepository';
 import { parseNdlResponse } from '../../../src/lib/bookSearch/ndl/parseNdlResponse';
@@ -62,6 +63,7 @@ describe('STORAGE_KEYS', () => {
     expect(STORAGE_KEYS.records).toBe(RECORDS_STORAGE_KEY);
     expect(STORAGE_KEYS.shelves).toBe(SHELVES_STORAGE_KEY);
     expect(STORAGE_KEYS.starterSettings).toBe(STARTER_SETTINGS_STORAGE_KEY);
+    expect(STORAGE_KEYS.lastExportedAt).toBe(LAST_EXPORTED_AT_KEY);
   });
 });
 
