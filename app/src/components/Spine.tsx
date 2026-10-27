@@ -7,6 +7,7 @@ import { getSpineAccessibilityLabel } from '../lib/spineLabel';
 import { getSpineSize } from '../lib/spineLayout';
 import type { MediaRecord } from '../types/record';
 import { AppText } from './AppText';
+import { RibbonMark } from './RibbonMark';
 
 const LINE_TOP = 22;
 const EDGE_WIDTH = 2;
@@ -74,7 +75,12 @@ export function Spine<R extends SpineRecord>({ record, onPress, dimensions }: Sp
         </View>
       </View>
       {record.favorite ? (
-        <View testID="spine-ribbon" style={[styles.ribbon, { left: (width - RIBBON_WIDTH) / 2 }]} />
+        <RibbonMark
+          testID="spine-ribbon"
+          width={RIBBON_WIDTH}
+          length={RIBBON_LENGTH}
+          style={[styles.ribbon, { left: (width - RIBBON_WIDTH) / 2 }]}
+        />
       ) : null}
     </Pressable>
   );
@@ -117,8 +123,5 @@ const styles = StyleSheet.create({
   ribbon: {
     position: 'absolute',
     top: -RIBBON_OVERHANG,
-    width: RIBBON_WIDTH,
-    height: RIBBON_LENGTH,
-    backgroundColor: colors.ribbon,
   },
 });

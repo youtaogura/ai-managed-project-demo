@@ -32,7 +32,9 @@ describe('RecordsScreen', () => {
       </ShelfRepositoryProvider>,
     );
     expect(await screen.findByText('最初の1冊を、棚に並べよう')).toBeTruthy();
-    expect(screen.getByText('読みたい本も、読んだ本も、ここに並んでいきます')).toBeTruthy();
+    expect(screen.getByText(/今読んでいる本でも、読み終えた本でも。/)).toBeTruthy();
+    expect(screen.getByText('まだ本がありません')).toBeTruthy();
+    expect(screen.queryByText(/冊 · 今年読んだ/)).toBeNull();
   });
 });
 

@@ -86,6 +86,6 @@ const styles = StyleSheet.create({
   },
   named: { maxWidth: CHIP_MAX_WIDTH },
   selected: { backgroundColor: colors.accent },
-  outline: { borderWidth: 1, borderColor: colors.lineStrong },
+  outline: { borderWidth: 1, borderColor: colors.line },
   dashed: { borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.lineStrong },
 });
