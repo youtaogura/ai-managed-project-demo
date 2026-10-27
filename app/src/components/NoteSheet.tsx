@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState, type RefObject } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import {
   Pressable,
   StyleSheet,
   TextInput,
+  type StyleProp,
+  type TextInputProps,
+  type TextStyle,
   View,
 } from 'react-native';
 
@@ -14,7 +17,6 @@ import { AppText } from './AppText';
 import { BottomSheet } from './BottomSheet';
 import { Button } from './Button';
 import { LINE_GAP, QUOTE_LINE_WIDTH } from './Quote';
-import { TextField } from './TextField';
 
 const ERROR_SAVE = '保存できませんでした。もう一度お試しください';
 const ERROR_DELETE = '削除できませんでした。もう一度お試しください';
@@ -144,6 +146,11 @@ function Form({ recordId, editing, onSubmit, onDelete, onClose, closeRef }: Form
 
   const quote = draft.kind === 'quote';
   const bodyType = quote ? typography.quote : typography.body;
+  const bodyFont = {
+    fontFamily: resolveFontFamily(bodyType.fontFamily, bodyType.fontWeight),
+    fontSize: bodyType.fontSize,
+    lineHeight: bodyType.lineHeight,
+  };
   return (
     <View style={styles.form}>
       {isEdit ? <AppText variant="sectionTitle">{`${KIND_LABEL[draft.kind]}を直す`}</AppText> : null}
@@ -157,59 +164,46 @@ function Form({ recordId, editing, onSubmit, onDelete, onClose, closeRef }: Form
               accessibilityLabel={KIND_LABEL[kind]}
               accessibilityState={{ selected }}
               onPress={() => patch({ kind })}
-              style={[
-                styles.tab,
-                selected
-                  ? { backgroundColor: colors.accent, borderColor: colors.accent }
-                  : { borderColor: colors.lineStrong },
-              ]}
+              style={[styles.tab, selected && styles.tabSelected]}
             >
-              <AppText variant="label" style={{ color: selected ? colors.accentInk : colors.textSecondary }}>
+              <AppText variant="button" style={{ color: selected ? colors.textPrimary : colors.textSecondary }}>
                 {KIND_LABEL[kind]}
               </AppText>
             </Pressable>
           );
         })}
       </View>
-      <TextField
-        label="ページ"
-        value={draft.page}
-        onChangeText={(page) => patch({ page })}
-        placeholder="なくても大丈夫"
-        keyboardType="number-pad"
-        maxLength={PAGE_MAX_LENGTH}
-      />
-      <View>
-        <AppText variant="label" style={[styles.heading, { color: colors.textSecondary }]}>
-          本文
+      <View style={styles.pageRow}>
+        <AppText variant="value">ページ</AppText>
+        <FocusInput
+          accessibilityLabel="ページ"
+          value={draft.page}
+          onChangeText={(page) => patch({ page })}
+          keyboardType="number-pad"
+          maxLength={PAGE_MAX_LENGTH}
+          style={[styles.pageInput, bodyFontOf(typography.body)]}
+        />
+        <AppText variant="label" style={{ color: colors.textTertiary }}>
+          なくても大丈夫
         </AppText>
-        <View style={styles.bodyRow}>
-          {quote ? <View testID="quote-line" style={styles.line} /> : null}
-          <TextInput
-            accessibilityLabel="本文"
-            multiline
-            textAlignVertical="top"
-            value={draft.text}
-            onChangeText={(text) => patch({ text })}
-            placeholderTextColor={colors.textTertiary}
-            style={[
-              styles.body,
-              quote && styles.bodyQuote,
-              {
-                fontFamily: resolveFontFamily(bodyType.fontFamily, bodyType.fontWeight),
-                fontSize: bodyType.fontSize,
-                lineHeight: bodyType.lineHeight,
-              },
-            ]}
-          />
-        </View>
       </View>
+      <FocusInput
+        accessibilityLabel="本文"
+        multiline
+        textAlignVertical="top"
+        value={draft.text}
+        onChangeText={(text) => patch({ text })}
+        placeholderTextColor={colors.textTertiary}
+        leading={quote ? <View testID="quote-line" style={styles.line} /> : null}
+        style={[styles.body, quote && styles.bodyQuote, bodyFont]}
+      />
       {quote ? (
-        <TextField
-          label="ひとこと"
-          optionalLabel
+        <FocusInput
+          accessibilityLabel="ひとこと"
+          placeholder="ひとこと（任意）"
           value={draft.comment}
           onChangeText={(comment) => patch({ comment })}
+          style={[styles.comment, bodyFontOf(typography.body)]}
         />
       ) : null}
       {error ? (
@@ -224,7 +218,7 @@ function Form({ recordId, editing, onSubmit, onDelete, onClose, closeRef }: Form
       />
       {isEdit && onDelete ? (
         <Button
-          variant="outline"
+          variant="text"
           tone="danger"
           label="削除"
           disabled={busy}
@@ -238,30 +232,63 @@ function Form({ recordId, editing, onSubmit, onDelete, onClose, closeRef }: Form
   );
 }
 
+function bodyFontOf(t: { fontFamily: string; fontWeight: string; fontSize: number }) {
+  return { fontFamily: resolveFontFamily(t.fontFamily, t.fontWeight), fontSize: t.fontSize };
+}
+
+type FocusInputProps = Omit<TextInputProps, 'style'> & { style: StyleProp<TextStyle>; leading?: ReactNode };
+
+/** フォーカス中は枠が墨色になる入力欄。leading は枠の内側の左に置く（引用の朱の線） */
+function FocusInput({ style, leading, onFocus, onBlur, ...props }: FocusInputProps) {
+  const [focused, setFocused] = useState(false);
+  const input = (
+    <TextInput
+      placeholderTextColor={colors.textTertiary}
+      {...props}
+      onFocus={(e) => {
+        setFocused(true);
+        onFocus?.(e);
+      }}
+      onBlur={(e) => {
+        setFocused(false);
+        onBlur?.(e);
+      }}
+      style={[styles.field, style, { borderColor: focused ? colors.textPrimary : colors.line }]}
+    />
+  );
+  if (!leading) return input;
+  return (
+    <View>
+      {input}
+      <View pointerEvents="none" style={styles.leading}>
+        {leading}
+      </View>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   form: { gap: space[3] },
-  tabs: { flexDirection: 'row', gap: space[2] },
+  tabs: { flexDirection: 'row', padding: space[1] / 2, backgroundColor: colors.surface2, borderRadius: radius.card },
   tab: {
     flex: 1,
     height: size.touchMin,
-    borderWidth: 1,
-    borderRadius: radius.button,
+    borderRadius: radius.card - 2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heading: { marginBottom: space[1] },
-  bodyRow: { flexDirection: 'row' },
-  line: { width: QUOTE_LINE_WIDTH, backgroundColor: colors.ribbon, marginRight: LINE_GAP },
-  body: {
-    flex: 1,
-    minHeight: BODY_MIN_HEIGHT,
+  tabSelected: { backgroundColor: colors.surface1 },
+  pageRow: { flexDirection: 'row', alignItems: 'center', gap: space[3] },
+  pageInput: { width: 88, height: size.touchMin, paddingHorizontal: space[3] },
+  field: {
     backgroundColor: colors.surface2,
     borderWidth: 1,
-    borderColor: colors.line,
     borderRadius: radius.card,
-    paddingHorizontal: space[3],
-    paddingTop: space[3],
     color: colors.textPrimary,
   },
-  bodyQuote: { borderWidth: 0, backgroundColor: 'transparent', paddingHorizontal: 0 },
+  body: { minHeight: BODY_MIN_HEIGHT, paddingHorizontal: space[3], paddingTop: space[3] },
+  bodyQuote: { paddingLeft: space[3] + QUOTE_LINE_WIDTH + LINE_GAP },
+  comment: { minHeight: size.buttonHeight, paddingHorizontal: space[3] },
+  leading: { position: 'absolute', left: space[3], top: space[3], bottom: space[3], width: QUOTE_LINE_WIDTH },
+  line: { flex: 1, width: QUOTE_LINE_WIDTH, backgroundColor: colors.ribbon },
 });

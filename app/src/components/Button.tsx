@@ -15,6 +15,7 @@ type CommonProps = {
 
 export type ButtonProps =
   | (CommonProps & { variant?: 'primary' | 'outline'; tone?: 'danger'; label: string; accessibilityLabel?: string })
+  | (CommonProps & { variant: 'text'; tone?: 'danger'; label: string; accessibilityLabel?: string })
   | (CommonProps & { variant: 'icon'; onImage?: boolean; accessibilityLabel: string; children: ReactNode })
   | (CommonProps & { variant: 'record'; accessibilityLabel?: string });
 
@@ -35,6 +36,17 @@ export function Button(props: ButtonProps) {
     base = [styles.circle, { backgroundColor: props.onImage ? colors.scrim : colors.surface2 }];
     accessibilityLabel = props.accessibilityLabel;
     content = props.children;
+  } else if (props.variant === 'text') {
+    base = styles.text;
+    accessibilityLabel = props.accessibilityLabel ?? props.label;
+    content = (
+      <AppText
+        variant="button"
+        style={{ color: props.tone === 'danger' ? colors.danger : colors.textSecondary, fontWeight: '400' }}
+      >
+        {props.label}
+      </AppText>
+    );
   } else if (props.variant === 'record') {
     base = [styles.circle, { backgroundColor: colors.accent }];
     accessibilityLabel = props.accessibilityLabel ?? '記録する';
@@ -97,6 +109,13 @@ const styles = StyleSheet.create({
     minWidth: size.touchMin,
     minHeight: size.touchMin,
     borderRadius: radius.full,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  text: {
+    minHeight: size.touchMin,
+    minWidth: size.touchMin,
+    paddingHorizontal: space[2],
     alignItems: 'center',
     justifyContent: 'center',
   },

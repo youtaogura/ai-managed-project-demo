@@ -107,7 +107,14 @@ export function BottomSheet({ visible, onClose, title, showCloseButton, children
             <View {...pan.panHandlers} testID="bottom-sheet-handle-area" style={styles.handleArea}>
               <View style={styles.handle} />
             </View>
-            {title ? (
+            {title && showCloseButton ? (
+              <View style={styles.titleRow}>
+                <AppText variant="label" numberOfLines={1} style={[styles.titleText, { color: colors.textSecondary }]}>
+                  {title}
+                </AppText>
+                <Button variant="text" label="閉じる" onPress={onClose} style={styles.closeText} />
+              </View>
+            ) : title ? (
               <AppText variant="sectionTitle" style={styles.title}>
                 {title}
               </AppText>
@@ -120,9 +127,9 @@ export function BottomSheet({ visible, onClose, title, showCloseButton, children
             >
               {children}
             </ScrollView>
-            {showCloseButton ? (
+            {showCloseButton && !title ? (
               <View style={styles.close}>
-                <Button variant="outline" label="閉じる" onPress={onClose} />
+                <Button variant="text" label="閉じる" onPress={onClose} />
               </View>
             ) : null}
           </Animated.View>
@@ -161,5 +168,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.lineStrong,
   },
   title: { marginBottom: space[3] },
-  close: { marginTop: space[3] },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space[2] },
+  titleText: { flex: 1 },
+  closeText: { marginRight: -space[2] },
+  close: { marginTop: space[3], alignSelf: 'flex-end' },
 });
