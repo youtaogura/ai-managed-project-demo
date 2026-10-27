@@ -68,11 +68,15 @@
 
 次のことをすると CI が失敗します。テストや検査を緩めて通そうとせず、コードを直すこと。
 
-- テストの `.skip` / `.only` / `xit` / `fit`、テストファイルの削除、変更したテストファイルのテストケース数の減少
+- テストの `.skip` / `.only` / `xit` / `fit`
 - `eslint-disable`、`@ts-ignore`、`@ts-expect-error`、`@ts-nocheck`、`istanbul ignore` などの抑制コメントの追加
 - `app/` と `docs/specs/` 以外の変更。`app/jest.config.js` `app/eslint.config.js` `app/tsconfig.json` `app/.npmrc` `app/eas.json` の変更
 - 仕様書に名前が書かれていない依存関係の追加（追加が必要なら、仕様書の設計に名前と理由を追記する）
 - PR 本文に `Closes #{{ISSUE_NUMBER}}` がない、「判断ログ」が空（判断事項がなければ「判断事項なし」と理由を書く）
+
+テストの削除・テストケース数の減少は CI では検査しないが、CI を通すためにテストを削ったり弱めたりしないこと。
+テストを消す・減らすのは、対象のコードや振る舞いを外したとき、整理して同じことを別のテストで確かめるようにしたときだけ。
+そのときは判断ログに、消したテストと理由（外した機能、置き換えたテスト）を書く。
 
 push 前に `cd {{APP_DIR}} && pnpm check && pnpm exec jest --coverage` で、少なくとも lint・型・テスト・カバレッジを確認すること。
 

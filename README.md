@@ -61,7 +61,7 @@ GitHub Project (Status)          オーケストレーター（Docker コンテ�
 | `build` | `expo export` で Android / iOS 向けにバンドルできるか |
 | `dependencies` | `expo install --check`、expo-doctor、base から**増えた** high / critical 脆弱性、ライセンス許可リスト |
 | `tooling` | オーケストレーター（ユニット + E2E リハーサル）と CI スクリプトのテスト |
-| `pr-policy` | 改ざん検知（skip/only、抑制コメント、テスト削除・減少）、PR 形式（`Closes #N`・判断ログ・仕様書）、変更範囲、依存追加の仕様書記載。**エージェントのブランチでのみ強制** |
+| `pr-policy` | 改ざん検知（skip/only、抑制コメント）、PR 形式（`Closes #N`・判断ログ・仕様書）、変更範囲、依存追加の仕様書記載。**エージェントのブランチでのみ強制** |
 
 既存の脆弱性（Expo 本体の依存など、エージェントでは直せないもの）は警告として表示し、失敗にはしません。
 オーケストレーターは Release 工程で `policy.json` の `requiredChecks` だけを見てマージを判断し、
