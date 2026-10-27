@@ -7,7 +7,9 @@ import { SHELVES_STORAGE_KEY } from '../../../src/lib/shelfRepository';
 import { parseShelves } from '../../../src/lib/shelfGuard';
 import { STARTER_SETTINGS_STORAGE_KEY } from '../../../src/lib/starterSettingsStore';
 import { RECORDS_STORAGE_KEY } from '../../../src/lib/recordRepository';
-import { SCENES, STORAGE_KEYS, parseSceneArgs } from '../scenes.cjs';
+import { parseNdlResponse } from '../../../src/lib/bookSearch/ndl/parseNdlResponse';
+import { NDL_SEARCH_URL, SCENES, STORAGE_KEYS, parseSceneArgs } from '../scenes.cjs';
+import { makeNdlSearchXml } from '../seed.cjs';
 
 const SCREENS_DIR = join(__dirname, '..', '..', '..', '..', 'docs', 'design-system', 'screens');
 
@@ -75,5 +77,32 @@ describe('parseSceneArgs', () => {
 
   it('未知の名前はエラー', () => {
     expect(() => parseSceneArgs(['shelf', 'nothing'])).toThrow('nothing');
+  });
+});
+
+describe('検索シーン', () => {
+  it('title-search は「灯台」で5件の結果を返す設定で、waitFor が件数の文言', () => {
+    const scene = SCENES.find((s) => s.name === 'title-search');
+    expect(scene?.search?.keyword).toBe('灯台');
+    expect(scene?.search?.results).toHaveLength(5);
+    expect(scene?.waitFor).toBe('「灯台」の検索結果');
+  });
+
+  it('生成した XML をアプリの解析が読める（ISBN なし）', () => {
+    const scene = SCENES.find((s) => s.name === 'title-search');
+    const results = scene?.search?.results ?? [];
+    const candidates = parseNdlResponse(makeNdlSearchXml(results));
+    expect(candidates).toHaveLength(5);
+    expect(candidates[0]).toMatchObject({ title: '灯台守のレシピ帳', author: '坂井 ほのか', publisher: '[出版社名]', publishedYear: '2025', isbn: null });
+  });
+
+  it('XML の特殊文字をエスケープする', () => {
+    const xml = makeNdlSearchXml([{ title: 'A & B <C>', author: 'x', publisher: 'y', year: '2020' }]);
+    expect(parseNdlResponse(xml)[0].title).toBe('A & B <C>');
+  });
+
+  it('検索のないシーンは search を持たない', () => {
+    expect(SCENES.find((s) => s.name === 'shelf')?.search).toBeUndefined();
+    expect(NDL_SEARCH_URL).toContain('ndlsearch.ndl.go.jp/api/opensearch');
   });
 });
