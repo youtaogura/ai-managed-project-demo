@@ -116,6 +116,7 @@ function makeFinishedRecord() {
       { id: 'm1', text: '第2部から一気に面白くなる。', page: '120', createdAt: entryTime },
       { id: 'm2', text: '科学者たちの描写が好き。', page: '210', createdAt: entryTime },
     ],
+    rating: 4.5,
     spineColor: 'spine-1',
   });
 }
