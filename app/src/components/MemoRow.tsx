@@ -32,7 +32,7 @@ export function MemoRow({ memo, onPress }: MemoRowProps) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'flex-start', minHeight: size.touchMin, paddingVertical: space[2] },
+  row: { flexDirection: 'row', alignItems: 'flex-start', minHeight: size.touchMin, paddingVertical: space[3] },
   page: { width: PAGE_WIDTH, paddingTop: space[1] },
   text: { flex: 1 },
 });
