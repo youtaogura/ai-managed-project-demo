@@ -21,9 +21,9 @@ type ChipGroupProps<T extends string> = {
 type ChipCellProps = {
   label: string;
   selected: boolean;
-  role: 'radio';
+  role: 'radio' | 'checkbox';
   compact: boolean;
-  basis: `${number}%`;
+  basis: `${number}%` | 'auto';
   onPress: () => void;
 };
 
@@ -41,6 +41,7 @@ function ChipCell({ label, selected, role, compact, basis, onPress }: ChipCellPr
         style={[
           styles.chip,
           { height },
+          basis === 'auto' && styles.autoChip,
           selected
             ? { backgroundColor: colors.accent, borderColor: colors.accent }
             : { borderColor: colors.lineStrong },
@@ -83,6 +84,39 @@ export function ChipGroup<T extends string>({
   );
 }
 
+type ChipMultiGroupProps<T extends string> = {
+  label: string;
+  options: readonly ChipOption<T>[];
+  value: readonly T[];
+  onToggle: (value: T) => void;
+  compact?: boolean;
+};
+
+/** 複数選択。選んだものは value に入り、押すたびに onToggle が呼ばれる。 */
+export function ChipMultiGroup<T extends string>({
+  label,
+  options,
+  value,
+  onToggle,
+  compact = false,
+}: ChipMultiGroupProps<T>) {
+  return (
+    <View accessibilityLabel={label} style={styles.group}>
+      {options.map((option) => (
+        <ChipCell
+          key={option.value}
+          label={option.label}
+          selected={value.includes(option.value)}
+          role="checkbox"
+          compact={compact}
+          basis="auto"
+          onPress={() => onToggle(option.value)}
+        />
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   group: {
     flexDirection: 'row',
@@ -90,6 +124,7 @@ const styles = StyleSheet.create({
     marginHorizontal: -CHIP_GAP / 2,
   },
   cell: { paddingHorizontal: CHIP_GAP / 2, paddingBottom: space[2] },
+  autoChip: { paddingHorizontal: space[4] },
   chip: {
     borderWidth: 1,
     borderRadius: CHIP_RADIUS,

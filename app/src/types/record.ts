@@ -65,4 +65,6 @@ export type MediaRecord = {
   shelfIds: string[];
 };
 
-export type NewRecordInput = Omit<MediaRecord, 'id' | 'createdAt' | 'updatedAt' | 'spineColor'>;
+export type NewRecordInput = Omit<MediaRecord, 'id' | 'createdAt' | 'updatedAt' | 'spineColor'> & {
+  spineColor?: SpineColor;
+};

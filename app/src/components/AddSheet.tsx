@@ -12,69 +12,64 @@ type AddSheetProps = {
   onSelect: (target: AddTarget) => void;
 };
 
-const TILE_HEIGHT = 112;
-const ROW_HEIGHT = 52;
+const ROW_HEIGHT = 64;
+
+const ENTRIES: readonly { target: AddTarget; title: string; description: string }[] = [
+  { target: 'scan', title: 'バーコードを読み取る', description: '本の裏のバーコードを映すだけ' },
+  { target: 'search', title: 'タイトルで探す', description: 'タイトルや作者の名前から' },
+  { target: 'isbn', title: 'ISBN を入力する', description: '10 桁または 13 桁の番号' },
+  { target: 'manual', title: '手で入力する', description: '見つからない本、同人誌など' },
+];
 
 export function AddSheet({ visible, onClose, onSelect }: AddSheetProps) {
   return (
-    <BottomSheet visible={visible} onClose={onClose} title="何を記録しますか" showCloseButton>
-      <View style={styles.tiles}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="バーコードを読み取る"
-          onPress={() => onSelect('scan')}
-          style={[styles.tile, { backgroundColor: colors.accent }]}
-        >
-          <AppText variant="button" style={{ color: colors.accentInk }}>
-            バーコードを読み取る
-          </AppText>
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="本をタイトルで探す"
-          onPress={() => onSelect('search')}
-          style={[styles.tile, { backgroundColor: colors.surface2 }]}
-        >
-          <AppText variant="button">タイトルで探す</AppText>
-        </Pressable>
+    <BottomSheet visible={visible} onClose={onClose} title="本を追加する" showCloseButton>
+      <View style={styles.list}>
+        {ENTRIES.map(({ target, title, description }) => {
+          const primary = target === 'scan';
+          return (
+            <Pressable
+              key={target}
+              accessibilityRole="button"
+              accessibilityLabel={title}
+              onPress={() => onSelect(target)}
+              style={[
+                styles.row,
+                primary
+                  ? { backgroundColor: colors.accent }
+                  : { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.lineStrong },
+              ]}
+            >
+              <View style={styles.texts}>
+                <AppText variant="button" style={primary ? { color: colors.accentInk } : undefined}>
+                  {title}
+                </AppText>
+                <AppText
+                  variant="label"
+                  style={{ color: primary ? colors.accentInk : colors.textSecondary }}
+                >
+                  {description}
+                </AppText>
+              </View>
+              <AppText variant="button" style={primary ? { color: colors.accentInk } : undefined}>
+                ›
+              </AppText>
+            </Pressable>
+          );
+        })}
       </View>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="ISBN を入力する"
-        onPress={() => onSelect('isbn')}
-        style={[styles.row, styles.gap, { backgroundColor: colors.surface2 }]}
-      >
-        <AppText variant="button">ISBN を入力する</AppText>
-        <AppText variant="button">›</AppText>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel="本を手で入力する"
-        onPress={() => onSelect('manual')}
-        style={[styles.row, styles.outlined]}
-      >
-        <AppText variant="button">手で入力する</AppText>
-        <AppText variant="button">›</AppText>
-      </Pressable>
     </BottomSheet>
   );
 }
 
 const styles = StyleSheet.create({
-  tiles: { flexDirection: 'row', gap: space[2], marginBottom: space[2] },
-  tile: {
-    flex: 1,
-    minHeight: TILE_HEIGHT,
-    borderRadius: radius.button,
-    padding: space[4],
-    justifyContent: 'flex-end',
-  },
-  outlined: { borderWidth: 1, borderColor: colors.lineStrong },
-  gap: { marginBottom: space[2] },
+  list: { gap: space[2] },
+  texts: { flex: 1, gap: 2 },
   row: {
     minHeight: ROW_HEIGHT,
     borderRadius: radius.button,
     paddingHorizontal: space[4],
+    paddingVertical: space[3],
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

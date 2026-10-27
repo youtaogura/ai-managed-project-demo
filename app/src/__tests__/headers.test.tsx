@@ -63,8 +63,8 @@ describe('タブの画面はネイティブのヘッダーを出さず、画面�
 
 describe('全画面でヘッダーが表示される', () => {
   it.each([
-    ['/record/new', '記録を追加'],
-    ['/record/r1', '記録を編集'],
+    ['/record/new', '本を登録'],
+    ['/record/r1', '本を編集'],
   ])('%s のヘッダータイトルは「%s」', async (path, title) => {
     await renderRouter(routes, { initialUrl: path });
     await waitFor(() => expect(hasHeaderTitle(title)).toBe(true));

@@ -16,7 +16,8 @@ import type { RecordRepository } from './lib/recordRepository';
 import type { SettingsStore } from './lib/settingsStore';
 import type { ShelfRepository } from './lib/shelfRepository';
 import type { StarterSettingsStore } from './lib/starterSettingsStore';
-import { createMockPhotoService } from './testUtils';
+import { createShelfRepository } from './lib/shelfRepository';
+import { createMemoryStorage, createMockPhotoService } from './testUtils';
 
 const noCover: CoverResolver = async () => null;
 
@@ -25,16 +26,16 @@ export function withRepository(
   children: ReactNode,
   photoService: PhotoService = createMockPhotoService(),
   resolver: CoverResolver = noCover,
-  shelfRepository?: ShelfRepository,
+  shelfRepository: ShelfRepository = createShelfRepository(createMemoryStorage().storage),
 ) {
   return (
-    <ShelfRepositoryProvider repository={shelfRepository}>
-      <RecordRepositoryProvider repository={repository}>
-        <CoverResolverContextProvider resolver={resolver}>
+    <RecordRepositoryProvider repository={repository}>
+      <CoverResolverContextProvider resolver={resolver}>
+        <ShelfRepositoryProvider repository={shelfRepository}>
           <PhotoServiceContextProvider service={photoService}>{children}</PhotoServiceContextProvider>
-        </CoverResolverContextProvider>
-      </RecordRepositoryProvider>
-    </ShelfRepositoryProvider>
+        </ShelfRepositoryProvider>
+      </CoverResolverContextProvider>
+    </RecordRepositoryProvider>
   );
 }
 

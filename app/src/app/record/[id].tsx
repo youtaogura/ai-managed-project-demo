@@ -6,7 +6,7 @@ export default function EditRecordRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
   return (
     <>
-      <Stack.Screen options={{ title: '記録を編集' }} />
+      <Stack.Screen options={{ title: '本を編集' }} />
       <RecordFormScreen recordId={typeof id === 'string' ? id : ''} />
     </>
   );

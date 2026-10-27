@@ -8,6 +8,7 @@ import { colors, space } from '../design/tokens';
 import { useCoverResolver } from '../hooks/useCoverResolver';
 import { useSettings } from '../hooks/useSettings';
 import { useRecordRepository } from '../hooks/useRecordRepository';
+import { spineColorForIndex } from '../lib/spineColor';
 import { applyDefaultStatus } from '../lib/statusDefault';
 import { todayString } from '../lib/recordForm';
 import { needsCover } from '../lib/coverLookup/needsCover';
@@ -18,7 +19,9 @@ type RecordFormScreenProps = {
   initialValues?: Partial<NewRecordInput>;
 };
 
-type LoadState = { status: 'loading' } | { status: 'ready'; record: MediaRecord | null };
+type LoadState =
+  | { status: 'loading' }
+  | { status: 'ready'; record: MediaRecord | null; recordCount: number };
 
 export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenProps) {
   const repository = useRecordRepository();
@@ -28,7 +31,6 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
   const addedId = useRef<string | null>(null);
 
   useEffect(() => {
-    if (recordId === undefined) return;
     let active = true;
     repository
       .getAll()
@@ -37,10 +39,11 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
           setState({
             status: 'ready',
             record: all.find((r) => r.id === recordId) ?? null,
+            recordCount: all.length,
           });
       })
       .catch(() => {
-        if (active) setState({ status: 'ready', record: null });
+        if (active) setState({ status: 'ready', record: null, recordCount: 0 });
       });
     return () => {
       active = false;
@@ -57,9 +60,18 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
     }
   };
 
+  if (state.status === 'loading') {
+    return (
+      <View style={styles.center}>
+        <ActivityIndicator color={colors.textSecondary} />
+      </View>
+    );
+  }
+
   if (recordId === undefined) {
     return (
       <RecordForm
+        initialSpineColor={spineColorForIndex(state.recordCount)}
         initialValues={applyDefaultStatus(
           initialValues ?? {},
           settings.defaultStatus,
@@ -76,14 +88,6 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
     );
   }
 
-  if (state.status === 'loading') {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator color={colors.textSecondary} />
-      </View>
-    );
-  }
-
   const { record } = state;
   if (!record) {
     return (
@@ -96,6 +100,7 @@ export function RecordFormScreen({ recordId, initialValues }: RecordFormScreenPr
   return (
     <RecordForm
       initialValues={record}
+      recordId={record.id}
       submitLabel="保存する"
       onSubmit={async (input) => {
         const updated = await repository.update(record.id, await fillCover(input));

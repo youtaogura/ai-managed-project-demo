@@ -375,6 +375,19 @@ describe('RecordRepository.importRecords', () => {
       expect(colors[10]).toBe('spine-1');
     });
 
+    it('add は指定した spineColor を保存し、update は指定がなければ元の色を保つ', async () => {
+      const repo = setup(createMemoryStorage().storage);
+      const added = await repo.add({ ...input, spineColor: 'spine-7' });
+      expect(added.spineColor).toBe('spine-7');
+      expect((await repo.update(added.id, input))?.spineColor).toBe('spine-7');
+      expect((await repo.update(added.id, { ...input, spineColor: 'spine-3' }))?.spineColor).toBe('spine-3');
+    });
+
+    it('不正な spineColor は ValidationError', async () => {
+      const repo = setup(createMemoryStorage().storage);
+      await expect(repo.add({ ...input, spineColor: 'x' as never })).rejects.toThrow();
+    });
+
     it('書き出し設定を変えても、保存済みの starter の文は変わらない', async () => {
       const { storage } = createMemoryStorage();
       const repo = setup(storage);

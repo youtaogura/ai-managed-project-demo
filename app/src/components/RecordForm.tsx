@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { colors, space } from '../design/tokens';
+import { colors, size, space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useShelfPick } from '../hooks/useShelfPick';
 import { usePhotoService } from '../hooks/usePhotoService';
@@ -17,24 +17,30 @@ import {
 } from '../lib/recordForm';
 import { shelfNames } from '../lib/shelfSelectors';
 import { getCreatorLabel, getDateHint, getDateLabels, getStatusLabel } from '../lib/statusLabel';
-import { RECORD_STATUSES, type NewRecordInput } from '../types/record';
+import { RECORD_STATUSES, type NewRecordInput, type SpineColor } from '../types/record';
 import { AppText } from './AppText';
 import { Button } from './Button';
 import { ChipGroup } from './Chip';
 import { DatePickerSheet } from './DatePickerSheet';
 import { DeleteConfirmSheet } from './DeleteConfirmSheet';
-import { PhotoField } from './PhotoField';
-import { RatingInput } from './RatingInput';
 import { SettingsRow } from './SettingsRow';
 import { ShelfPickSheet } from './ShelfPickSheet';
+import { Spine } from './Spine';
+import { SpineColorPicker } from './SpineColorPicker';
 import { DateFieldButton, TextField } from './TextField';
+
+const PREVIEW_ID = 'preview';
 
 type RecordFormProps = {
   initialValues?: Partial<NewRecordInput>;
+  /** 追加のときの背表紙の色の初期値（編集では initialValues.spineColor が先） */
+  initialSpineColor?: SpineColor;
+  /** 編集する記録の ID。プレビューの背表紙の大きさに使う */
+  recordId?: string;
   submitLabel?: string;
   onSubmit: (input: NewRecordInput) => Promise<void>;
   onDelete?: () => Promise<void>;
-  /** 保存が完了し、写真の後片付けまで済んだあとに呼ばれる（遷移用） */
+  /** 保存が完了したあとに呼ばれる（遷移用） */
   onSaved?: () => void;
   /** 削除が完了し、写真の後片付けまで済んだあとに呼ばれる（遷移用） */
   onDeleted?: () => void;
@@ -42,14 +48,18 @@ type RecordFormProps = {
 
 export function RecordForm({
   initialValues,
-  submitLabel = '記録する',
+  initialSpineColor,
+  recordId,
+  submitLabel = '棚に並べる',
   onSubmit,
   onDelete,
   onSaved,
   onDeleted,
 }: RecordFormProps) {
   const bottomInset = useBottomInset();
-  const [values, setValues] = useState<RecordFormValues>(() => createFormValues(initialValues));
+  const [values, setValues] = useState<RecordFormValues>(() =>
+    createFormValues(initialValues, initialSpineColor),
+  );
   const [errors, setErrors] = useState<RecordFormErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
@@ -58,34 +68,6 @@ export function RecordForm({
   const [shelfOpen, setShelfOpen] = useState(false);
   const { shelves, counts, create: createShelf } = useShelfPick();
   const photoService = usePhotoService();
-  // 保存済みの写真は保存成功後にだけ消す。未保存の新規コピーは破棄時に消す
-  const initialPhotoUri = useRef(values.photoUri);
-  const currentPhotoUri = useRef(values.photoUri);
-  const pendingNew = useRef(new Set<string>());
-  const persisted = useRef(false);
-
-  useEffect(() => {
-    const pending = pendingNew.current;
-    return () => {
-      if (persisted.current) return;
-      for (const uri of pending) void photoService.remove(uri);
-    };
-  }, [photoService]);
-
-  const changePhoto = (next: string | null) => {
-    const prev = currentPhotoUri.current;
-    if (prev && pendingNew.current.delete(prev)) void photoService.remove(prev);
-    if (next) pendingNew.current.add(next);
-    currentPhotoUri.current = next;
-    setField('photoUri', next);
-  };
-
-  const commitPhoto = () => {
-    const initial = initialPhotoUri.current;
-    if (initial && initial !== currentPhotoUri.current) void photoService.remove(initial);
-    initialPhotoUri.current = currentPhotoUri.current;
-    pendingNew.current.clear();
-  };
 
   const setField = <K extends keyof RecordFormValues>(key: K, value: RecordFormValues[K]) => {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -122,10 +104,11 @@ export function RecordForm({
     const found = validateForm(values);
     setErrors(found);
     if (Object.keys(found).length > 0) return;
+    // 削除済みの本棚の ID は保存しない
+    const existing = new Set(shelves.map((shelf) => shelf.id));
+    const shelfIds = values.shelfIds.filter((id) => existing.has(id));
     await run(async () => {
-      await onSubmit(toNewRecordInput(values, initialValues));
-      persisted.current = true;
-      commitPhoto();
+      await onSubmit(toNewRecordInput({ ...values, shelfIds }, initialValues));
       onSaved?.();
     }, '保存に失敗しました');
   };
@@ -133,11 +116,8 @@ export function RecordForm({
   const handleDelete = async (remove: () => Promise<void>) => {
     await run(async () => {
       await remove();
-      persisted.current = true;
-      const initial = initialPhotoUri.current;
-      if (initial) void photoService.remove(initial);
-      for (const uri of pendingNew.current) void photoService.remove(uri);
-      pendingNew.current.clear();
+      const photoUri = initialValues?.photoUri;
+      if (photoUri) void photoService.remove(photoUri);
       onDeleted?.();
     }, '削除に失敗しました');
   };
@@ -145,19 +125,39 @@ export function RecordForm({
   const labels = getDateLabels();
   const openLabel = openDate === 'start' ? labels.start : labels.end;
   const openValue = openDate === 'start' ? values.startDate : values.endDate;
-  const preview = {
-    ...values,
-    creator: values.creator.trim() === '' ? null : values.creator,
+  const previewRecord = {
+    id: recordId ?? PREVIEW_ID,
+    title: values.title.trim(),
+    creator: values.creator.trim() === '' ? null : values.creator.trim(),
+    status: values.status,
+    favorite: initialValues?.favorite ?? false,
+    spineColor: values.spineColor,
   };
 
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <PhotoField record={preview} onChange={changePhoto} />
+        <View>
+          <View style={styles.spineRow}>
+            <View style={styles.preview}>
+              <Spine record={previewRecord} />
+            </View>
+            <View style={styles.colors}>
+              <AppText variant="label" style={styles.heading}>
+                背表紙の色
+              </AppText>
+              <SpineColorPicker value={values.spineColor} onChange={(c) => setField('spineColor', c)} />
+            </View>
+          </View>
+          <AppText variant="label" style={styles.note}>
+            棚に並べたときの色。あとから変えられます
+          </AppText>
+        </View>
 
         <TextField
           label="タイトル"
           required
+          variant="reading"
           value={values.title}
           error={errors.title}
           onChangeText={(text) => setField('title', text)}
@@ -167,10 +167,14 @@ export function RecordForm({
           value={values.creator}
           onChangeText={(text) => setField('creator', text)}
         />
-        <>
-          <TextField label="出版社" value={values.publisher} onChangeText={(text) => setField('publisher', text)} />
-          <TextField label="ISBN" variant="isbn" value={values.isbn} onChangeText={(text) => setField('isbn', text)} />
-        </>
+        <View style={styles.pair}>
+          <View style={styles.half}>
+            <TextField label="出版社" value={values.publisher} onChangeText={(text) => setField('publisher', text)} />
+          </View>
+          <View style={styles.half}>
+            <TextField label="ISBN" variant="isbn" value={values.isbn} onChangeText={(text) => setField('isbn', text)} />
+          </View>
+        </View>
 
         <View>
           <AppText variant="label" style={styles.heading}>
@@ -186,8 +190,8 @@ export function RecordForm({
         </View>
 
         <View>
-          <View style={styles.dates}>
-            <View style={styles.date}>
+          <View style={styles.pair}>
+            <View style={styles.half}>
               <DateFieldButton
                 label={labels.start}
                 value={values.startDate ? formatDateDisplay(values.startDate) : ''}
@@ -195,7 +199,7 @@ export function RecordForm({
                 onPress={() => setOpenDate('start')}
               />
             </View>
-            <View style={styles.date}>
+            <View style={styles.half}>
               <DateFieldButton
                 label={labels.end}
                 value={values.endDate ? formatDateDisplay(values.endDate) : ''}
@@ -204,27 +208,30 @@ export function RecordForm({
               />
             </View>
           </View>
-          <AppText variant="micro" style={styles.hint}>
+          <AppText variant="micro" style={styles.note}>
             {getDateHint()}
           </AppText>
         </View>
 
         <SettingsRow
-          label="本棚"
+          label='本棚'
           value={shelfNames(values, shelves).join('、') || 'まだ入れていません'}
           onPress={() => setShelfOpen(true)}
         />
 
-        <RatingInput value={values.rating} error={errors.rating} onChange={(text) => setField('rating', text)} />
-
         {onDelete ? (
-          <Button
-            variant="outline"
-            tone="danger"
-            label="この記録を削除"
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="この本を削除"
+            accessibilityState={{ disabled: submitting }}
             disabled={submitting}
             onPress={() => setConfirmingDelete(true)}
-          />
+            style={styles.delete}
+          >
+            <AppText variant="button" style={{ color: colors.danger }}>
+              この本を削除
+            </AppText>
+          </Pressable>
         ) : null}
       </ScrollView>
 
@@ -279,10 +286,14 @@ export function RecordForm({
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   content: { padding: space[4], gap: space[5] },
+  spineRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space[4] },
+  preview: { justifyContent: 'flex-end' },
+  colors: { flex: 1 },
   heading: { color: colors.textSecondary, marginBottom: space[1] },
-  dates: { flexDirection: 'row', gap: space[3] },
-  date: { flex: 1 },
-  hint: { color: colors.textTertiary, marginTop: space[2] },
+  note: { color: colors.textTertiary, marginTop: space[2] },
+  pair: { flexDirection: 'row', gap: space[3] },
+  half: { flex: 1 },
+  delete: { minHeight: size.touchMin, alignItems: 'center', justifyContent: 'center' },
   footer: {
     borderTopWidth: 1,
     borderTopColor: colors.line,

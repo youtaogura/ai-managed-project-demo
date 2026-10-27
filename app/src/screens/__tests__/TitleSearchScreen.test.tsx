@@ -160,9 +160,8 @@ describe('TitleSearchScreen', () => {
     await setup(async () => ok(withIsbn, noIsbn));
     await enter('x');
     await press('検索');
-    expect(await screen.findByText('出版A · 2020')).toBeTruthy();
+    expect(await screen.findByText('著者A · 出版A · 2020')).toBeTruthy();
     expect(screen.getByRole('button', { name: '本B' })).toBeTruthy();
-    expect(screen.getByText('著者A')).toBeTruthy();
   });
 
   it('0 件のとき見つかりませんでしたと手入力を表示する', async () => {

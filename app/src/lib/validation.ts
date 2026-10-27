@@ -1,4 +1,5 @@
 import type { NewRecordInput } from '../types/record';
+import { SPINE_COLORS } from './constants';
 
 const DATE_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
 
@@ -28,9 +29,10 @@ export function isValidDateRange(start: unknown, end: unknown): boolean {
 }
 
 export function isValidRecordInput(
-  input: Pick<NewRecordInput, 'title' | 'rating' | 'startDate' | 'endDate'>,
+  input: Pick<NewRecordInput, 'title' | 'rating' | 'startDate' | 'endDate' | 'spineColor'>,
 ): boolean {
   return (
+    (input.spineColor === undefined || (SPINE_COLORS as readonly string[]).includes(input.spineColor)) &&
     input.title.trim().length > 0 &&
     isValidRating(input.rating) &&
     isValidDateRange(input.startDate, input.endDate)

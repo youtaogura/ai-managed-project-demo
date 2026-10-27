@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
 import { colors } from '../../design/tokens';
-import { ChipGroup } from '../Chip';
+import { ChipGroup, ChipMultiGroup } from '../Chip';
 
 const options = [
   { value: 'a', label: 'A' },
@@ -44,5 +44,22 @@ describe('ChipGroup', () => {
   it('通常は高さ 44', async () => {
     await render(<ChipGroup label="種別" options={options} value={null} onChange={jest.fn()} />);
     expect(StyleSheet.flatten(screen.getByRole('radio', { name: 'A' }).props.style).height).toBe(44);
+  });
+});
+
+describe('ChipMultiGroup', () => {
+  const options = [
+    { value: 'a', label: 'エー' },
+    { value: 'b', label: 'ビー' },
+  ];
+
+  it('checkbox として複数選択でき、押すと onToggle が呼ばれる', async () => {
+    const onToggle = jest.fn();
+    await render(<ChipMultiGroup label="本棚" options={options} value={['a']} onToggle={onToggle} compact />);
+    expect(screen.getAllByRole('checkbox')).toHaveLength(2);
+    expect(screen.getByRole('checkbox', { name: 'エー' })).toBeSelected();
+    expect(screen.getByRole('checkbox', { name: 'ビー' })).not.toBeSelected();
+    await fireEvent.press(screen.getByRole('checkbox', { name: 'ビー' }));
+    expect(onToggle).toHaveBeenCalledWith('b');
   });
 });

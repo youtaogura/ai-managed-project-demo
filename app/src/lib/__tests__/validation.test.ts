@@ -53,6 +53,11 @@ describe('isValidRecordInput', () => {
   it('レーティング不正なら無効', () => {
     expect(isValidRecordInput({ ...base, rating: 0 })).toBe(false);
   });
+  it('spineColor は未指定か 10 色のどれかなら有効、それ以外は無効', () => {
+    expect(isValidRecordInput({ ...base, spineColor: 'spine-10' })).toBe(true);
+    expect(isValidRecordInput({ ...base, spineColor: undefined })).toBe(true);
+    expect(isValidRecordInput({ ...base, spineColor: 'spine-11' as never })).toBe(false);
+  });
   it('日付逆転なら無効', () => {
     expect(isValidRecordInput({ ...base, startDate: '2024-01-02', endDate: '2024-01-01' })).toBe(false);
   });
