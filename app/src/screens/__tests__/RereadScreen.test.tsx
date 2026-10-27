@@ -8,11 +8,17 @@ import { createShelfRepository, SHELVES_STORAGE_KEY } from '../../lib/shelfRepos
 import { withRepository } from '../../testProviders';
 import { createMemoryStorage, makeRecord } from '../../testUtils';
 import type { MediaRecord } from '../../types/record';
+import { triggerImpactHaptic } from '../../lib/haptics';
 import { RereadScreen } from '../RereadScreen';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
+
+jest.mock('../../lib/haptics', () => ({
+  triggerImpactHaptic: jest.fn(),
+  triggerRatingHaptic: jest.fn(),
+}));
 
 jest.setTimeout(15000);
 
@@ -44,9 +50,14 @@ const full = makeRecord({
   ],
 });
 
-type Handlers = { onEdit?: jest.Mock; onWrite?: jest.Mock; onBack?: jest.Mock };
+type Handlers = { onEdit?: jest.Mock; onWrite?: jest.Mock; onStart?: jest.Mock; onBack?: jest.Mock };
 
-async function show(records: MediaRecord[] = [full], handlers: Handlers = {}, failGetAll = false) {
+async function show(
+  records: MediaRecord[] = [full],
+  handlers: Handlers = {},
+  failGetAll = false,
+  update?: RecordRepository['update'],
+) {
   const { storage } = createMemoryStorage({
     [RECORDS_STORAGE_KEY]: JSON.stringify(records),
     [SHELVES_STORAGE_KEY]: JSON.stringify(SHELVES),
@@ -54,7 +65,9 @@ async function show(records: MediaRecord[] = [full], handlers: Handlers = {}, fa
   const real = createRecordRepository(storage);
   const repository: RecordRepository = failGetAll
     ? { ...real, getAll: () => Promise.reject(new Error('fail')) }
-    : real;
+    : update
+      ? { ...real, update }
+      : real;
   await renderRouter({
     index: () =>
       withRepository(repository, <RereadScreen recordId="x" {...handlers} />, createShelfRepository(storage)),
@@ -210,6 +223,69 @@ describe('RereadScreen の入口', () => {
     expect(StyleSheet.flatten(pill?.props.style).borderColor).toBe(colors.ribbon);
     // 書き出しの続きと自由記述に 1 本ずつ。引用にはない
     expect(screen.getAllByTestId('rule')).toHaveLength(2);
+  });
+});
+
+describe('RereadScreen の読み始める', () => {
+  const today = /^\d{4}-\d{2}-\d{2}$/;
+  const planned = { ...full, status: 'planned' as const, startDate: null, endDate: null };
+
+  it('planned では案内と「読み始める」を出し、押すと in_progress・今日・終えた日なしで保存して onStart', async () => {
+    const onStart = jest.fn();
+    const repository = await show([planned], { onStart });
+    expect(await screen.findByText(/読み始めると、読んでる本の画面に移って/)).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: '読み始める' }));
+    await waitFor(() => expect(onStart).toHaveBeenCalledWith('x'));
+    expect(triggerImpactHaptic).toHaveBeenCalled();
+    const saved = (await repository.getAll()).find((r) => r.id === 'x');
+    expect(saved?.status).toBe('in_progress');
+    expect(saved?.startDate).toMatch(today);
+    expect(saved?.endDate).toBeNull();
+    expect(saved?.memos).toHaveLength(3);
+    expect(saved?.quotes).toHaveLength(1);
+    expect(saved?.starters).toHaveLength(1);
+    expect(saved?.oneLiner).toBe('猫の目で人間を笑う本');
+  });
+
+  it('dropped では「もう一度読む」を出し、同じく in_progress にして onStart', async () => {
+    const onStart = jest.fn();
+    const repository = await show(
+      [{ ...planned, status: 'dropped', startDate: '2020-01-01', endDate: '2020-02-02' }],
+      { onStart },
+    );
+    expect(await screen.findByText(/もう一度読み始めると/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '読み始める' })).toBeNull();
+    await fireEvent.press(screen.getByRole('button', { name: 'もう一度読む' }));
+    await waitFor(() => expect(onStart).toHaveBeenCalledWith('x'));
+    const saved = (await repository.getAll()).find((r) => r.id === 'x');
+    expect(saved?.status).toBe('in_progress');
+    expect(saved?.startDate).not.toBe('2020-01-01');
+    expect(saved?.endDate).toBeNull();
+  });
+
+  it('completed には出さない', async () => {
+    await show();
+    await screen.findByText('吾輩は猫である');
+    expect(screen.queryByRole('button', { name: '読み始める' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'もう一度読む' })).toBeNull();
+  });
+
+  it('保存に失敗するとエラーを出し、onStart は呼ばず、再度押せる', async () => {
+    const onStart = jest.fn();
+    await show([planned], { onStart }, false, () => Promise.reject(new Error('fail')));
+    await fireEvent.press(await screen.findByRole('button', { name: '読み始める' }));
+    const message = await screen.findByText('保存できませんでした。もう一度お試しください');
+    expect((StyleSheet.flatten(message.props.style) as { color?: string }).color).toBe(colors.danger);
+    expect(onStart).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: '読み始める' }).props.accessibilityState?.disabled).not.toBe(true);
+  });
+
+  it('保存中はボタンが押せない', async () => {
+    await show([planned], {}, false, () => new Promise(() => undefined));
+    await fireEvent.press(await screen.findByRole('button', { name: '読み始める' }));
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: '読み始める' }).props.accessibilityState?.disabled).toBe(true),
+    );
   });
 });
 

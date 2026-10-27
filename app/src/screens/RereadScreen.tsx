@@ -16,23 +16,37 @@ import { useBottomInset } from '../hooks/useBottomInset';
 import { useRecordRepository } from '../hooks/useRecordRepository';
 import { useShelfPick } from '../hooks/useShelfPick';
 import { useTopInset } from '../hooks/useTopInset';
+import { triggerImpactHaptic } from '../lib/haptics';
 import { recordToInput, sortMemos } from '../lib/notes';
 import { getRatingWord } from '../lib/ratingWord';
 import { buildRereadEntries, buildRereadPeriod, hasRereadContent } from '../lib/reread';
-import { formatRating } from '../lib/recordForm';
+import { formatRating, todayString } from '../lib/recordForm';
 import { shelfNames } from '../lib/shelfSelectors';
 import type { MediaRecord } from '../types/record';
 
 const STARS_SIZE = 18;
+const ERROR_START = '保存できませんでした。もう一度お試しください';
+
+const START_ACTIONS = {
+  planned: {
+    guide: '読み始めると、読んでる本の画面に移って、読みながらメモや引用を残せます',
+    label: '読み始める',
+  },
+  dropped: {
+    guide: 'もう一度読み始めると、読んでる本の画面に移ります',
+    label: 'もう一度読む',
+  },
+} as const;
 
 type RereadScreenProps = {
   recordId: string;
   onEdit?: (id: string) => void;
   onWrite?: (id: string) => void;
+  onStart?: (id: string) => void;
   onBack?: () => void;
 };
 
-export function RereadScreen({ recordId, onEdit, onWrite, onBack }: RereadScreenProps) {
+export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: RereadScreenProps) {
   const bottomInset = useBottomInset();
   const topInset = useTopInset();
   const repository = useRecordRepository();
@@ -40,6 +54,8 @@ export function RereadScreen({ recordId, onEdit, onWrite, onBack }: RereadScreen
   const [record, setRecord] = useState<MediaRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [shelfOpen, setShelfOpen] = useState(false);
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // 書く画面から戻ったときに最新の内容を表示するため、フォーカスのたび読み込む
   useFocusEffect(
@@ -72,6 +88,26 @@ export function RereadScreen({ recordId, onEdit, onWrite, onBack }: RereadScreen
     setRecord(updated);
   };
 
+  const start = async () => {
+    if (!record) return;
+    setError(null);
+    setStarting(true);
+    try {
+      const updated = await repository.update(recordId, {
+        ...recordToInput(record, record.memos, record.quotes),
+        status: 'in_progress',
+        startDate: todayString(),
+        endDate: null,
+      });
+      if (!updated) throw new Error('not found');
+      triggerImpactHaptic();
+      onStart?.(recordId);
+    } catch {
+      setError(ERROR_START);
+      setStarting(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.center} accessibilityLabel="読み込み中">
@@ -95,6 +131,7 @@ export function RereadScreen({ recordId, onEdit, onWrite, onBack }: RereadScreen
   const completed = record.status === 'completed';
   const empty = !hasRereadContent(record);
   const hasBody = entries.length > 0;
+  const startAction = record.status === 'planned' || record.status === 'dropped' ? START_ACTIONS[record.status] : null;
 
   return (
     <View style={styles.container}>
@@ -189,6 +226,20 @@ export function RereadScreen({ recordId, onEdit, onWrite, onBack }: RereadScreen
               まだ何も書いていません。読み終えた直後の言葉を残しておくと、あとで人に勧めるときに助けになります
             </AppText>
             <Button label="書き出しの続きを書く" onPress={() => onWrite?.(record.id)} />
+          </View>
+        ) : null}
+
+        {startAction ? (
+          <View style={styles.guide}>
+            <AppText variant="body" style={{ color: colors.textSecondary }}>
+              {startAction.guide}
+            </AppText>
+            {error ? (
+              <AppText variant="label" style={{ color: colors.danger }}>
+                {error}
+              </AppText>
+            ) : null}
+            <Button label={startAction.label} disabled={starting} onPress={() => void start()} />
           </View>
         ) : null}
 
