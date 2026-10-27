@@ -98,3 +98,11 @@ describe('OpenBdProvider', () => {
     expect(createDefaultBookLookupProvider()).toBeInstanceOf(OpenBdProvider);
   });
 });
+
+describe('OpenBdProvider の作者の整形', () => {
+  it('役割つきの作者を整形してつなぐ', async () => {
+    const fetchFn = respond([{ summary: { ...summary, author: '村上春樹／著 〇〇／訳' } }]);
+    const result = await new OpenBdProvider({ fetchFn }).lookupByIsbn(ISBN);
+    expect(result).toMatchObject({ status: 'found', book: { author: '村上春樹、〇〇' } });
+  });
+});

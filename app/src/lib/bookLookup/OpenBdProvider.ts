@@ -1,3 +1,4 @@
+import { normalizeAuthors } from '../authorName';
 import type { BookInfo, BookLookupResult } from '../../types/book';
 import type { BookLookupProvider } from './BookLookupProvider';
 
@@ -21,7 +22,8 @@ function toBookInfo(entry: unknown, isbn13: string): BookInfo | null {
   return {
     isbn: optionalText(summary.isbn) ?? isbn13,
     title: summary.title.trim(),
-    author: optionalText(summary.author),
+    author:
+      typeof summary.author === 'string' ? normalizeAuthors([summary.author]) : null,
     publisher: optionalText(summary.publisher),
     coverUrl: optionalText(summary.cover),
   };
