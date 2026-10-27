@@ -18,11 +18,11 @@ import { parseDateParts } from '../lib/date';
 import { triggerImpactHaptic } from '../lib/haptics';
 import {
   addNote,
+  noteItemToDraft,
   buildNoteItems,
   recordToInput,
   removeNote,
   updateNote,
-  type NoteDraft,
   type NoteItem,
 } from '../lib/notes';
 import { todayString } from '../lib/recordForm';
@@ -45,16 +45,6 @@ type ReadingScreenProps = {
 function startLabel(startDate: string | null): string {
   const parts = startDate ? parseDateParts(startDate) : null;
   return parts ? `読んでる · ${parts.m}/${parts.d} から` : '読んでる';
-}
-
-function draftOf(item: NoteItem): NoteDraft {
-  const { entry } = item;
-  return {
-    kind: item.kind,
-    page: entry.page ?? '',
-    text: entry.text,
-    comment: item.kind === 'quote' ? (item.entry.comment ?? '') : '',
-  };
 }
 
 export function ReadingScreen({ recordId, onEdit, onFinished, onBack }: ReadingScreenProps) {
@@ -208,7 +198,7 @@ export function ReadingScreen({ recordId, onEdit, onFinished, onBack }: ReadingS
         visible={sheet !== null}
         bookTitle={record.title}
         recordId={record.id}
-        editing={editing ? draftOf(editing) : undefined}
+        editing={editing ? noteItemToDraft(editing) : undefined}
         onSubmit={(draft) =>
           save(
             editing

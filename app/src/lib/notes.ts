@@ -48,6 +48,16 @@ export function buildNoteItems(record: Pick<MediaRecord, 'memos' | 'quotes'>): N
   return sortByPage(items, (item) => item.entry);
 }
 
+export function noteItemToDraft(item: NoteItem): NoteDraft {
+  const { entry } = item;
+  return {
+    kind: item.kind,
+    page: entry.page ?? '',
+    text: entry.text,
+    comment: item.kind === "quote" ? (item.entry.comment ?? '') : '',
+  };
+}
+
 export function normalizePage(input: string): string | null {
   const trimmed = input.trim().slice(0, PAGE_MAX_LENGTH).trim();
   return trimmed === '' ? null : trimmed;
