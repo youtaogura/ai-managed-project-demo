@@ -39,7 +39,7 @@ function Heading({ chrome }: { chrome: FieldChrome }) {
 function ErrorText({ error }: { error?: string }) {
   if (!error) return null;
   return (
-    <AppText variant="micro" style={[styles.error, { color: colors.danger }]}>
+    <AppText variant="label" style={[styles.error, { color: colors.danger }]}>
       {error}
     </AppText>
   );

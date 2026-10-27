@@ -31,10 +31,19 @@ function build(props: Partial<Props> = {}): Props {
 const checked = (name: string) => screen.getByRole('checkbox', { name }).props.accessibilityState.checked;
 
 describe('ShelfPickSheet', () => {
+  it('bookTitle があれば見出しの上に出し、渡さない・空なら出さない', async () => {
+    const { rerender } = await render(<ShelfPickSheet {...build({ bookTitle: '吾輩は猫である' })} />);
+    expect(screen.getByText('吾輩は猫である')).toBeTruthy();
+    await rerender(<ShelfPickSheet {...build({ bookTitle: '' })} />);
+    expect(screen.queryByText('吾輩は猫である')).toBeNull();
+    await rerender(<ShelfPickSheet {...build()} />);
+    expect(screen.getByText('どの本棚に入れる？')).toBeTruthy();
+  });
+
   it('見出し・説明・行ごとのチェックと冊数を出す。「すべての本」は行に出さない', async () => {
     await render(<ShelfPickSheet {...build()} />);
-    expect(screen.getByText('本棚を選ぶ')).toBeTruthy();
-    expect(screen.getByText('「すべての本」にはいつも入ります')).toBeTruthy();
+    expect(screen.getByText('どの本棚に入れる？')).toBeTruthy();
+    expect(screen.getByText('いくつでも選べます。「すべての本」にはいつも入ります。')).toBeTruthy();
     expect(screen.getAllByRole('checkbox')).toHaveLength(3);
     expect(checked('SF')).toBe(false);
     expect(checked('哲学')).toBe(true);
@@ -80,7 +89,7 @@ describe('ShelfPickSheet', () => {
     expect(screen.getByText('まだ本棚がありません')).toBeTruthy();
     expect(screen.getByRole('button', { name: '本棚を作る' })).toBeTruthy();
     expect(screen.queryByRole('checkbox')).toBeNull();
-    expect(screen.queryByText(/本棚に入れ/)).toBeNull();
+    expect(screen.queryByRole('button', { name: /本棚に入れ/ })).toBeNull();
   });
 
   it('シート内で作ると一覧に増え、チェックが入る', async () => {

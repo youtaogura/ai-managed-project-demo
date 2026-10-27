@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { colors, size, space } from '../design/tokens';
+import { colors, radius, size, space } from '../design/tokens';
 import { ValidationError } from '../lib/recordRepository';
 import { SHELF_NAME_EXAMPLES, validateShelfName } from '../lib/shelfName';
 import type { Shelf } from '../types/shelf';
@@ -12,7 +12,7 @@ import { TextField } from './TextField';
 
 export const ERROR_SHELF_SAVE = '保存できませんでした。もう一度お試しください';
 
-const EXAMPLE_RADIUS = 10;
+const EXAMPLE_PADDING = 14;
 const EXAMPLE_HEIGHT = 36;
 
 type ShelfCreateSheetProps = {
@@ -31,7 +31,7 @@ type ShelfCreateSheetProps = {
 export function ShelfCreateSheet({
   visible,
   shelves,
-  title = '本棚を作る',
+  title = '新しい本棚を作る',
   initialName = '',
   submitLabel = '作る',
   exceptId,
@@ -92,6 +92,7 @@ function Form({ shelves, initialName = '', submitLabel = '作る', exceptId, onS
         onChangeText={change}
         placeholder="例: SF"
         error={error}
+        variant="reading"
         autoFocus
       />
       {examples.length > 0 ? (
@@ -109,7 +110,7 @@ function Form({ shelves, initialName = '', submitLabel = '作る', exceptId, onS
                 onPress={() => change(example)}
                 style={styles.example}
               >
-                <AppText variant="label" style={{ color: colors.textSecondary }}>
+                <AppText variant="value">
                   {example}
                 </AppText>
               </Pressable>
@@ -123,15 +124,15 @@ function Form({ shelves, initialName = '', submitLabel = '作る', exceptId, onS
 }
 
 const styles = StyleSheet.create({
-  form: { gap: space[3] },
+  form: { gap: space[4] },
   examples: { gap: space[2] },
   exampleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space[2] },
   example: {
     height: EXAMPLE_HEIGHT,
-    paddingHorizontal: space[3],
-    borderRadius: EXAMPLE_RADIUS,
+    paddingHorizontal: EXAMPLE_PADDING,
+    borderRadius: radius.full,
     borderWidth: 1,
-    borderColor: colors.lineStrong,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
   },

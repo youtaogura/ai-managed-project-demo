@@ -424,7 +424,8 @@ describe('RecordForm の本棚', () => {
   it('シートで選ぶと行が変わり、保存で shelfIds が入る。存在しない ID はチェックに入れない', async () => {
     const { onSubmit } = await setupShelves({ initialValues: { title: '本', shelfIds: ['gone'] } });
     await fireEvent.press(await screen.findByRole('button', { name: /^本棚、/ }));
-    expect(await screen.findByText('本棚を選ぶ')).toBeTruthy();
+    expect(await screen.findByText('どの本棚に入れる？')).toBeTruthy();
+    expect(screen.getByText('本')).toBeTruthy();
     expect(screen.getByText('2 冊')).toBeTruthy();
     expect(screen.getByRole('button', { name: '本棚に入れない' })).toBeTruthy();
     await fireEvent.press(screen.getByRole('checkbox', { name: '哲学' }));

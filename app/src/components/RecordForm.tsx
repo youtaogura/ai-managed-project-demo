@@ -249,6 +249,7 @@ export function RecordForm({
         visible={shelfOpen}
         shelves={shelves}
         counts={counts}
+        bookTitle={values.title}
         selectedIds={values.shelfIds}
         onSubmit={(ids) => setField('shelfIds', ids)}
         onCreate={createShelf}
