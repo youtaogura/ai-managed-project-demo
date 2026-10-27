@@ -17,7 +17,7 @@ import { formatRating } from '../lib/recordForm';
 import type { MediaRecord } from '../types/record';
 
 const ERROR_SAVE = '保存できませんでした。もう一度お試しください';
-const SPINE_SHELF_WIDTH = 96;
+const SPINE_SHELF_WIDTH = space[6] * 5;
 const BAR_PADDING = space[4];
 const TOGGLE_ROW_HEIGHT = 52;
 
@@ -134,7 +134,7 @@ export function FinishedScreen({ recordId, onWrite, onLater, onBack }: FinishedS
         <AppText variant="label" style={[styles.centered, { color: colors.textSecondary }]}>
           {buildFinishedSummary(record)}
         </AppText>
-        <AppText variant="label" style={[styles.centered, styles.question]}>
+        <AppText variant="value" style={[styles.centered, styles.question]}>
           どうだった？
         </AppText>
         <View style={styles.stars}>
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
   body: { paddingHorizontal: space[5], gap: space[3], paddingTop: space[6] },
   spine: { alignItems: 'center', paddingBottom: space[2] },
   centered: { textAlign: 'center' },
-  question: { color: colors.textSecondary, fontWeight: '700' },
+  question: { color: colors.textSecondary },
   stars: { alignItems: 'center' },
   result: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: space[2] },
   toggleRow: {
