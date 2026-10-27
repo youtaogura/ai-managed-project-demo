@@ -1,5 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
+import { goBackOrHome } from '../../lib/navigation';
 import { RereadScreen } from '../../screens/RereadScreen';
 
 export default function RereadRoute() {
@@ -13,7 +14,7 @@ export default function RereadRoute() {
         onEdit={(recordId) => router.push({ pathname: '/record/[id]', params: { id: recordId } })}
         onWrite={(recordId) => router.push({ pathname: '/write/[id]', params: { id: recordId, from: 'reread' } })}
         onStart={(recordId) => router.replace(`/reading/${recordId}`)}
-        onBack={() => router.replace('/')}
+        onBack={() => goBackOrHome(router)}
       />
     </>
   );

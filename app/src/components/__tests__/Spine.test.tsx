@@ -53,28 +53,60 @@ describe('Spine', () => {
     expect(flat(a)).toEqual(flat(b));
   });
 
-  it('タイトルを 1 文字ずつ出し、読み上げからは隠す。空でも落ちない', async () => {
-    await render(<Spine record={makeRecord({ title: '本棚' })} onPress={jest.fn()} />);
-    expect(screen.getByText('本', { includeHiddenElements: true })).toBeTruthy();
-    expect(screen.getByText('棚', { includeHiddenElements: true })).toBeTruthy();
+  const hidden = { includeHiddenElements: true };
+
+  it('和文は 1 文字ずつ変形なし、ー だけ 90 度回し、読み上げからは隠す。空でも落ちない', async () => {
+    await render(<Spine record={makeRecord({ title: 'ゲーム' })} onPress={jest.fn()} />);
+    expect(flat(screen.getByText('ゲ', hidden)).transform).toBeUndefined();
+    expect(flat(screen.getByText('ー', hidden)).transform).toEqual([{ rotate: '90deg' }]);
+    expect(screen.queryByText('ゲ')).toBeNull();
     await render(<Spine record={makeRecord({ title: '' })} onPress={jest.fn()} />);
   });
 
-  it('幅 34px 未満の背表紙は文字を 12px にする', async () => {
-    const narrowId = Array.from({ length: 500 }, (_, i) => `n${i}`).find(
-      (id) => getSpineSize(id).width < 34,
-    );
-    const wideId = Array.from({ length: 500 }, (_, i) => `w${i}`).find(
-      (id) => getSpineSize(id).width >= 34,
-    );
+  it('英数字は 1 つの Text にまとめて 90 度回す', async () => {
+    await render(<Spine record={makeRecord({ title: 'ONE PIECE' })} onPress={jest.fn()} />);
+    expect(flat(screen.getByText('ONE PIECE', hidden)).transform).toEqual([{ rotate: '90deg' }]);
+  });
+
+  it('2 文字の数字は縦中横で回さない。幅が足りなければ回す', async () => {
     await render(
       <>
-        <Spine record={makeRecord({ id: narrowId, title: '細' })} onPress={jest.fn()} />
-        <Spine record={makeRecord({ id: wideId, title: '太' })} onPress={jest.fn()} />
+        <Spine record={makeRecord({ title: '12' })} dimensions={{ width: 40, height: 150 }} />
+        <Spine record={makeRecord({ title: '34' })} dimensions={{ width: 14, height: 150 }} />
       </>,
     );
-    expect(flat(screen.getByText('細', { includeHiddenElements: true })).fontSize).toBe(12);
-    expect(flat(screen.getByText('太', { includeHiddenElements: true })).fontSize).toBe(13);
+    expect(flat(screen.getByText('12', hidden)).transform).toBeUndefined();
+    expect(flat(screen.getByText('34', hidden)).transform).toEqual([{ rotate: '90deg' }]);
+  });
+
+  it('小さい仮名は右上にずらす', async () => {
+    await render(<Spine record={makeRecord({ title: 'きゃ' })} onPress={jest.fn()} />);
+    expect(flat(screen.getByText('ゃ', hidden)).transform).toHaveLength(2);
+    expect(flat(screen.getByText('き', hidden)).transform).toBeUndefined();
+  });
+
+  it('収まらないときだけ「︙」を出す', async () => {
+    await render(
+      <>
+        <Spine record={makeRecord({ title: '短い' })} dimensions={{ width: 40, height: 150 }} />
+        <Spine
+          record={makeRecord({ title: 'サピエンス全史文明の構造と人類の幸福' })}
+          dimensions={{ width: 40, height: 100 }}
+        />
+      </>,
+    );
+    expect(screen.getAllByText('︙', hidden)).toHaveLength(1);
+  });
+
+  it('幅 34px 未満の背表紙は文字を 12px にする', async () => {
+    await render(
+      <>
+        <Spine record={makeRecord({ title: '細' })} dimensions={{ width: 30, height: 150 }} />
+        <Spine record={makeRecord({ title: '太' })} dimensions={{ width: 34, height: 150 }} />
+      </>,
+    );
+    expect(flat(screen.getByText('細', hidden)).fontSize).toBe(12);
+    expect(flat(screen.getByText('太', hidden)).fontSize).toBe(13);
   });
 
   it('onPress がないときは押せない画像で、dimensions で大きさを指定できる', async () => {
