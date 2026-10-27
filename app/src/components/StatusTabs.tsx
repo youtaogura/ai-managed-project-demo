@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { colors, size, space } from '../design/tokens';
+import { colors, size, space, typography } from '../design/tokens';
+import { resolveFontFamily } from '../design/fonts';
 import type { StatusFilter } from '../lib/countByStatus';
 import { AppText } from './AppText';
 
@@ -35,7 +36,7 @@ export function StatusTabs({ value, counts, onChange }: StatusTabsProps) {
             onPress={() => onChange(tab.value)}
             style={[styles.tab, selected && styles.tabSelected]}
           >
-            <AppText variant="body" style={styles.text}>
+            <AppText variant="body" style={[styles.text, selected && styles.textSelected]}>
               {tab.label}
             </AppText>
             <AppText variant="label" style={styles.count}>
@@ -68,5 +69,6 @@ const styles = StyleSheet.create({
   },
   tabSelected: { borderBottomColor: colors.ribbon },
   text: { lineHeight: 20 },
+  textSelected: { fontFamily: resolveFontFamily(typography.value.fontFamily, typography.value.fontWeight) },
   count: { color: colors.textSecondary },
 });

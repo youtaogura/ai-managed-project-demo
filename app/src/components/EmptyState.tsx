@@ -6,9 +6,11 @@ import { AppText } from './AppText';
 import { Button } from './Button';
 
 // 点線の空の背表紙（高さをばらつかせて 5 冊）
-const GHOST_HEIGHTS = [118, 140, 104, 150, 126];
-const GHOST_WIDTH = 32;
+const GHOST_HEIGHTS = [130, 160, 118, 172, 142];
+const GHOST_WIDTH = 40;
 const GHOST_GAP = 3;
+// 主ボタンの最小幅（トークンにないため、この画面だけの定数。ボタンの高さは Button の size.buttonHeight=48）
+const ACTION_MIN_WIDTH = 220;
 
 type EmptyStateProps = {
   title: string;
@@ -44,7 +46,7 @@ export function EmptyState({
         </AppText>
       ) : null}
       {children ??
-        (onAction ? <Button variant="primary" label={actionLabel} onPress={onAction} /> : null)}
+        (onAction ? <Button variant="primary" label={actionLabel} onPress={onAction} style={styles.action} /> : null)}
     </View>
   );
 }
@@ -55,10 +57,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: space[6],
-    gap: space[3],
+    paddingVertical: space[6],
+    gap: space[4],
   },
-  shelf: { marginBottom: space[3] },
+  shelf: { marginBottom: space[3], alignSelf: 'stretch', alignItems: 'center' },
   ghosts: { flexDirection: 'row', alignItems: 'flex-end', gap: GHOST_GAP },
   ghost: {
     width: GHOST_WIDTH,
@@ -70,11 +72,14 @@ const styles = StyleSheet.create({
     borderColor: colors.lineStrong,
   },
   board: {
+    alignSelf: 'stretch',
+    marginHorizontal: space[4],
     height: size.shelfBoardHeight,
     backgroundColor: colors.shelfBoard,
     borderRadius: radius.thumb,
     boxShadow: shadows.cover,
   },
-  title: { textAlign: 'center', fontSize: 20, lineHeight: 30 },
-  description: { color: colors.textSecondary, textAlign: 'center' },
+  title: { textAlign: 'center', paddingHorizontal: space[6] },
+  description: { color: colors.textSecondary, textAlign: 'center', paddingHorizontal: space[6] },
+  action: { minWidth: ACTION_MIN_WIDTH },
 });

@@ -1,7 +1,8 @@
 import type { BottomTabBarProps } from 'expo-router/js-tabs';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { colors, size, space } from '../design/tokens';
+import { resolveFontFamily } from '../design/fonts';
+import { colors, size, space, typography } from '../design/tokens';
 import { AppText } from './AppText';
 
 const TAB_MIN_WIDTH = 64;
@@ -15,14 +16,27 @@ const ICONS: Record<string, IconName> = {
   settings: 'settings',
 };
 
-// View だけで描く小さなアイコン。本棚＝背表紙 3 冊、振り返り＝縦の棒、設定＝スライダー
+// View の枠線で描く小さなアイコン。本棚＝背表紙 2 冊＋斜めの 1 冊、振り返り＝縦の棒、設定＝線と輪郭の丸
 function TabIcon({ name, color }: { name: IconName; color: string }) {
   if (name === 'shelf') {
     return (
       <View style={styles.icon}>
-        {[14, 20, 17].map((h, i) => (
-          <View key={i} style={{ width: 5, height: h, backgroundColor: color, borderRadius: 1 }} />
+        {[18, 14].map((h, i) => (
+          <View
+            key={i}
+            style={{ width: 5, height: h, borderWidth: 1.5, borderColor: color, borderRadius: 1 }}
+          />
         ))}
+        <View
+          style={{
+            width: 5,
+            height: 18,
+            borderWidth: 1.5,
+            borderColor: color,
+            borderRadius: 1,
+            transform: [{ rotate: '-18deg' }],
+          }}
+        />
       </View>
     );
   }
@@ -30,7 +44,7 @@ function TabIcon({ name, color }: { name: IconName; color: string }) {
     return (
       <View style={styles.icon}>
         {[8, 16, 12, 20].map((h, i) => (
-          <View key={i} style={{ width: 3, height: h, backgroundColor: color, borderRadius: 1 }} />
+          <View key={i} style={{ width: 2, height: h, backgroundColor: color, borderRadius: 1 }} />
         ))}
       </View>
     );
@@ -39,8 +53,8 @@ function TabIcon({ name, color }: { name: IconName; color: string }) {
     <View style={[styles.icon, styles.sliders]}>
       {[6, 14].map((offset, i) => (
         <View key={i} style={styles.slider}>
-          <View style={{ height: 2, backgroundColor: color }} />
-          <View style={[styles.knob, { left: offset, backgroundColor: color }]} />
+          <View style={{ height: 1.5, backgroundColor: color }} />
+          <View style={[styles.knob, { left: offset, borderColor: color, backgroundColor: colors.surface1 }]} />
         </View>
       ))}
     </View>
@@ -81,7 +95,7 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: B
             style={styles.tab}
           >
             <TabIcon name={ICONS[route.name] ?? 'shelf'} color={color} />
-            <AppText variant="tab" style={{ color }}>
+            <AppText variant="tab" style={[{ color }, focused ? styles.labelSelected : styles.labelIdle]}>
               {label}
             </AppText>
           </Pressable>
@@ -91,18 +105,21 @@ export function TabBar({ state, descriptors, emitter, navigateToTab, insets }: B
   );
 }
 
+// 選択中は tab（700）、未選択は label と同じ通常の太さ
 const styles = StyleSheet.create({
+  labelSelected: { fontFamily: resolveFontFamily(typography.tab.fontFamily, typography.tab.fontWeight) },
+  labelIdle: { fontFamily: resolveFontFamily(typography.label.fontFamily, typography.label.fontWeight) },
   icon: {
     width: ICON_SIZE,
     height: ICON_SIZE,
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'center',
-    gap: 2,
+    gap: 3,
   },
   sliders: { flexDirection: 'column', alignItems: 'stretch', justifyContent: 'space-around' },
   slider: { justifyContent: 'center' },
-  knob: { position: 'absolute', width: 6, height: 6, borderRadius: 3 },
+  knob: { position: 'absolute', width: 8, height: 8, borderRadius: 4, borderWidth: 1.5 },
   bar: {
     flexDirection: 'row',
     backgroundColor: colors.surface1,
