@@ -62,3 +62,14 @@ describe('ScreenHeaderBar', () => {
     expect(screen.getByRole('button', { name: '閉じる' })).toBeTruthy();
   });
 });
+
+describe('ScreenHeaderBar（文字の閉じる）', () => {
+  it('closeLabel を渡すと、✕ の代わりにその文字のボタンを出し、押すと onClose', async () => {
+    const onClose = jest.fn();
+    await render(<ScreenHeaderBar title="本を登録" closeLabel="キャンセル" onClose={onClose} />);
+    expect(screen.queryByText('✕')).toBeNull();
+    expect(screen.getByText('本を登録')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('button', { name: 'キャンセル' }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+});

@@ -16,11 +16,9 @@ export const navigationTheme = {
   },
 };
 
+// ネイティブのヘッダーは使わない（見た目をそろえるため、各画面が ScreenHeaderBar などで自分で描く）
 export const stackScreenOptions = {
-  headerShown: true,
-  headerStyle: { backgroundColor: colors.bg },
-  headerTintColor: colors.textPrimary,
-  headerTitleStyle: { color: colors.textPrimary },
+  headerShown: false,
   contentStyle: { backgroundColor: colors.bg },
 };
 

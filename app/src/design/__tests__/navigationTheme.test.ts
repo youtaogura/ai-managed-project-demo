@@ -8,9 +8,8 @@ describe('navigationTheme', () => {
     expect(navigationTheme.colors.text).toBe(colors.textPrimary);
   });
 
-  it('Stack のオプション', () => {
-    expect(stackScreenOptions.headerStyle.backgroundColor).toBe(colors.bg);
-    expect(stackScreenOptions.headerTintColor).toBe(colors.textPrimary);
+  it('Stack のオプション: ネイティブのヘッダーは出さず、地は紙の色', () => {
+    expect(stackScreenOptions.headerShown).toBe(false);
     expect(stackScreenOptions.contentStyle.backgroundColor).toBe(colors.bg);
   });
 
