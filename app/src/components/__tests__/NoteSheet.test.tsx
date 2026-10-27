@@ -33,10 +33,10 @@ describe('NoteSheet（新規）', () => {
     expect(screen.getByRole('tab', { name: 'メモ', selected: true })).toBeTruthy();
     expect(screen.getByRole('tab', { name: '引用', selected: false })).toBeTruthy();
     const page = screen.getByLabelText('ページ');
-    expect(page.props.placeholder).toBe('なくても大丈夫');
+    expect(screen.getByText('なくても大丈夫')).toBeTruthy();
     expect(page.props.maxLength).toBe(10);
     expect(page.props.keyboardType).toBe('number-pad');
-    expect(screen.queryByLabelText('ひとこと（任意）')).toBeNull();
+    expect(screen.queryByLabelText('ひとこと')).toBeNull();
     expect(screen.queryByTestId('quote-line')).toBeNull();
   });
 
@@ -45,7 +45,7 @@ describe('NoteSheet（新規）', () => {
     await ready();
     await fireEvent.press(screen.getByRole('tab', { name: '引用' }));
     expect(screen.getByTestId('quote-line')).toBeTruthy();
-    expect(screen.getByLabelText('ひとこと（任意）')).toBeTruthy();
+    expect(screen.getByLabelText('ひとこと')).toBeTruthy();
   });
 
   it('本文が空白だけのあいだ「残す」は disabled', async () => {
@@ -77,7 +77,7 @@ describe('NoteSheet（新規）', () => {
     await ready();
     await fireEvent.press(screen.getByRole('tab', { name: '引用' }));
     await fireEvent.changeText(screen.getByLabelText('本文'), '一文');
-    await fireEvent.changeText(screen.getByLabelText('ひとこと（任意）'), 'いい');
+    await fireEvent.changeText(screen.getByLabelText('ひとこと'), 'いい');
     await act(async () => {
       await fireEvent.press(screen.getByRole('button', { name: '残す' }));
     });
@@ -153,7 +153,7 @@ describe('NoteSheet（編集）', () => {
     expect(screen.getByText('引用を直す')).toBeTruthy();
     expect(screen.getByLabelText('本文').props.value).toBe('元の文');
     expect(screen.getByLabelText('ページ').props.value).toBe('12');
-    expect(screen.getByLabelText('ひとこと（任意）').props.value).toBe('元のひとこと');
+    expect(screen.getByLabelText('ひとこと').props.value).toBe('元のひとこと');
     await fireEvent.changeText(screen.getByLabelText('本文'), '変えた');
     await fireEvent.press(screen.getByRole('button', { name: '閉じる' }));
     expect(onClose).toHaveBeenCalled();
@@ -187,5 +187,32 @@ describe('NoteSheet（編集）', () => {
     });
     expect(screen.getByText('削除できませんでした。もう一度お試しください')).toBeTruthy();
     expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
+describe('NoteSheet（入力欄のフォーカス）', () => {
+  it('ページ・本文・ひとことはフォーカスとブラーを繰り返しても入力できる', async () => {
+    await setup();
+    await ready();
+    await fireEvent.press(screen.getByRole('tab', { name: '引用' }));
+    for (const name of ['ページ', '本文', 'ひとこと']) {
+      const input = screen.getByLabelText(name);
+      await fireEvent(input, 'focus');
+      await fireEvent.changeText(input, '1');
+      await fireEvent(input, 'blur');
+      expect(screen.getByLabelText(name).props.value).toBe('1');
+    }
+  });
+});
+
+describe('NoteSheet（タイトル行）', () => {
+  it('本のタイトルと「閉じる」が同じ行に出る', async () => {
+    await setup();
+    await ready();
+    const title = screen.getByText('吾輩は猫である');
+    const row = title.parent;
+    let node = screen.getByRole('button', { name: '閉じる' }).parent;
+    while (node && node !== row) node = node.parent;
+    expect(node).toBe(row);
   });
 });

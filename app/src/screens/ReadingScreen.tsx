@@ -8,6 +8,7 @@ import { MemoRow } from '../components/MemoRow';
 import { NoteSheet } from '../components/NoteSheet';
 import { Quote } from '../components/Quote';
 import { Spine } from '../components/Spine';
+import { regularTextStyle } from '../design/fonts';
 import { colors, radius, size, space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useRecordRepository } from '../hooks/useRecordRepository';
@@ -140,7 +141,7 @@ export function ReadingScreen({ recordId, onEdit, onFinished, onBack }: ReadingS
           style={styles.edit}
           onPress={() => onEdit?.(record.id)}
         >
-          <AppText variant="button">編集</AppText>
+          <AppText variant="button" style={{ color: colors.textSecondary, ...regularTextStyle }}>編集</AppText>
         </Pressable>
       </View>
       <ScrollView
@@ -152,7 +153,7 @@ export function ReadingScreen({ recordId, onEdit, onFinished, onBack }: ReadingS
         <View style={styles.hero}>
           <Spine record={record} />
           <View style={styles.heroText}>
-            <AppText variant="label" style={{ color: colors.ribbon }}>
+            <AppText variant="value" style={{ color: colors.ribbon }}>
               {startLabel(record.startDate)}
             </AppText>
             <AppText variant="bookTitle">{record.title}</AppText>
@@ -246,10 +247,10 @@ const styles = StyleSheet.create({
     minHeight: size.touchMin,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderStyle: 'dashed',
-    borderColor: colors.lineStrong,
-    borderRadius: radius.button,
+    borderColor: colors.textTertiary,
+    borderRadius: radius.card,
     marginTop: space[2],
   },
   bar: {
@@ -259,6 +260,8 @@ const styles = StyleSheet.create({
     bottom: 0,
     gap: space[2],
     paddingTop: BAR_PADDING,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
     paddingHorizontal: space[5],
     backgroundColor: colors.bg,
   },

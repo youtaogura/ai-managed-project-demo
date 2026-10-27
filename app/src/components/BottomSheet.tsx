@@ -33,10 +33,24 @@ type BottomSheetProps = {
   /** 見出しの上に小さく出す文字（本のタイトルなど） */
   eyebrow?: string;
   showCloseButton?: boolean;
+  /**
+   * 見出しを小さなラベルにして、同じ行の右に「閉じる」（文字ボタン）を出す（メモ・引用を書くシート用）。
+   * showCloseButton と title があるときだけ効く。ほかのシートの見た目は変えない
+   */
+  closeInTitleRow?: boolean;
   children?: ReactNode;
 };
 
-export function BottomSheet({ visible, onClose, title, eyebrow, showCloseButton, children }: BottomSheetProps) {
+export function BottomSheet({
+  visible,
+  onClose,
+  title,
+  eyebrow,
+  showCloseButton,
+  closeInTitleRow,
+  children,
+}: BottomSheetProps) {
+  const titleRow = Boolean(closeInTitleRow && showCloseButton && title);
   const bottomInset = useBottomInset();
   const [translateY] = useState(() => new Animated.Value(SLIDE_DISTANCE));
   const [opacity] = useState(() => new Animated.Value(0));
@@ -115,7 +129,14 @@ export function BottomSheet({ visible, onClose, title, eyebrow, showCloseButton,
                 {eyebrow}
               </AppText>
             ) : null}
-            {title ? (
+            {titleRow ? (
+              <View testID="bottom-sheet-title-row" style={styles.titleRow}>
+                <AppText variant="label" numberOfLines={1} style={styles.titleRowText}>
+                  {title}
+                </AppText>
+                <Button variant="text" label="閉じる" onPress={onClose} style={styles.titleRowClose} />
+              </View>
+            ) : title ? (
               <AppText variant="bookTitle" style={styles.title}>
                 {title}
               </AppText>
@@ -128,7 +149,7 @@ export function BottomSheet({ visible, onClose, title, eyebrow, showCloseButton,
             >
               {children}
             </ScrollView>
-            {showCloseButton ? (
+            {showCloseButton && !titleRow ? (
               <View style={styles.close}>
                 <Button variant="outline" label="閉じる" onPress={onClose} />
               </View>
@@ -171,4 +192,7 @@ const styles = StyleSheet.create({
   eyebrow: { color: colors.textSecondary, marginBottom: space[1] },
   title: { marginBottom: space[3], fontSize: TITLE_SIZE, lineHeight: TITLE_LINE_HEIGHT },
   close: { marginTop: space[3] },
+  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: space[2] },
+  titleRowText: { flex: 1, color: colors.textSecondary },
+  titleRowClose: { marginRight: -space[2] },
 });
