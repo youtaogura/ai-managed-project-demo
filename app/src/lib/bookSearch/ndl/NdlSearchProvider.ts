@@ -4,8 +4,8 @@ import { parseNdlResponse } from './parseNdlResponse';
 
 const ENDPOINT = 'https://ndlsearch.ndl.go.jp/api/opensearch';
 const DEFAULT_TIMEOUT_MS = 10000;
-const MAX_COUNT = 20;
-const MEDIATYPE_BOOK = 1;
+const MAX_COUNT = 50;
+const DPID_NDL_OPAC = 'iss-ndl-opac';
 
 type FetchFn = (url: string, init?: { signal?: AbortSignal }) => Promise<Response>;
 
@@ -20,7 +20,7 @@ export class NdlSearchProvider implements BookSearchProvider {
   }
 
   async search(keyword: string): Promise<BookSearchResult> {
-    const url = `${ENDPOINT}?title=${encodeURIComponent(keyword.trim())}&cnt=${MAX_COUNT}&mediatype=${MEDIATYPE_BOOK}`;
+    const url = `${ENDPOINT}?title=${encodeURIComponent(keyword.trim())}&cnt=${MAX_COUNT}&dpid=${DPID_NDL_OPAC}`;
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     let body: string;

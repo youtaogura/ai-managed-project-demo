@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { BookLookupContextProvider } from '../../hooks/useBookLookup';
 import { BookSearchContextProvider } from '../../hooks/useBookSearch';
 import { CoverResolverContextProvider } from '../../hooks/useCoverResolver';
+import { NdlSearchProvider } from '../../lib/bookSearch/ndl/NdlSearchProvider';
 import type { BookLookupProvider } from '../../lib/bookLookup/BookLookupProvider';
 import type { BookSearchProvider } from '../../lib/bookSearch/BookSearchProvider';
 import type { BookLookupResult } from '../../types/book';
@@ -343,5 +344,19 @@ describe('TitleSearchScreen', () => {
     await setup(async () => ok());
     expect(screen.getByRole('button', { name: '見つからないので手で入力する' })).toBeTruthy();
     expect(screen.getByText('テスト利用表記')).toBeTruthy();
+  });
+
+  it('実応答の形の XML を通した NdlSearchProvider の候補を表示する', async () => {
+    const xml = `<?xml version="1.0"?><rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcndl="http://ndl.go.jp/dcndl/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><channel><title>t</title>
+<item><title>記事</title><category>記事</category></item>
+<item><title>ノルウェイの森</title><author>村上, 春樹,村上春樹 著</author><category>図書</category><dc:creator>村上, 春樹</dc:creator><dc:publisher>講談社</dc:publisher><dc:identifier xsi:type="dcndl:ISBN">978-4-06-274868-1</dc:identifier></item>
+</channel></rss>`;
+    const fetchFn = jest.fn(async () => ({ ok: true, text: async () => xml }) as Response);
+    const provider = new NdlSearchProvider({ fetchFn });
+    await setup((keyword) => provider.search(keyword));
+    await enter('ノルウェイの森');
+    await press('検索');
+    expect(await screen.findByRole('button', { name: 'ノルウェイの森' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '記事' })).toBeNull();
   });
 });

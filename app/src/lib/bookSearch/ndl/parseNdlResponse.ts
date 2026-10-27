@@ -15,7 +15,12 @@ const parser = new XMLParser({
   attributeNamePrefix: '@_',
   textNodeName: '#text',
   parseTagValue: false,
-  isArray: (name) => name === 'item' || name === 'dc:identifier' || name === 'dc:publisher',
+  isArray: (name) =>
+    name === 'item' ||
+    name === 'dc:identifier' ||
+    name === 'dc:publisher' ||
+    name === 'dc:creator' ||
+    name === 'category',
 });
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -73,13 +78,25 @@ function extractYear(item: Record<string, unknown>): string | null {
   return null;
 }
 
+function isBook(item: Record<string, unknown>): boolean {
+  const categories = toArray(item.category).flatMap((entry) => {
+    const text = textOf(entry);
+    return text === null ? [] : [text];
+  });
+  return categories.length === 0 || categories.includes('図書');
+}
+
+function extractAuthor(item: Record<string, unknown>): string | null {
+  return firstText(item['dc:creator']) ?? firstText(item.author);
+}
+
 function toCandidate(item: unknown): BookCandidate | null {
-  if (!isRecord(item)) return null;
+  if (!isRecord(item) || !isBook(item)) return null;
   const title = firstText(item.title);
   if (title === null) return null;
   return {
     title,
-    author: firstText(item.author),
+    author: extractAuthor(item),
     publisher: firstText(item['dc:publisher']),
     publishedYear: extractYear(item),
     isbn: extractIsbn(item['dc:identifier']),
