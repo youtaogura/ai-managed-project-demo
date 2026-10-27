@@ -15,16 +15,14 @@ import {
   type RecordFormErrors,
   type RecordFormValues,
 } from '../lib/recordForm';
-import { shelfNames } from '../lib/shelfSelectors';
 import { getCreatorLabel, getDateHint, getDateLabels, getStatusLabel } from '../lib/statusLabel';
 import { RECORD_STATUSES, type NewRecordInput, type SpineColor } from '../types/record';
 import { AppText } from './AppText';
 import { Button } from './Button';
-import { ChipGroup } from './Chip';
+import { ChipGroup, ChipMultiGroup, DashedChip } from './Chip';
 import { DatePickerSheet } from './DatePickerSheet';
 import { DeleteConfirmSheet } from './DeleteConfirmSheet';
-import { SettingsRow } from './SettingsRow';
-import { ShelfPickSheet } from './ShelfPickSheet';
+import { ShelfCreateSheet } from './ShelfCreateSheet';
 import { Spine } from './Spine';
 import { SpineColorPicker } from './SpineColorPicker';
 import { DateFieldButton, TextField } from './TextField';
@@ -65,8 +63,8 @@ export function RecordForm({
   const [failure, setFailure] = useState<string | null>(null);
   const [openDate, setOpenDate] = useState<'start' | 'end' | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  const [shelfOpen, setShelfOpen] = useState(false);
-  const { shelves, counts, create: createShelf } = useShelfPick();
+  const [shelfCreating, setShelfCreating] = useState(false);
+  const { shelves, create: createShelf } = useShelfPick();
   const photoService = usePhotoService();
 
   const setField = <K extends keyof RecordFormValues>(key: K, value: RecordFormValues[K]) => {
@@ -113,6 +111,18 @@ export function RecordForm({
     }, '保存に失敗しました');
   };
 
+  const toggleShelf = (id: string) => {
+    setValues((prev) => ({
+      ...prev,
+      shelfIds: prev.shelfIds.includes(id) ? prev.shelfIds.filter((x) => x !== id) : [...prev.shelfIds, id],
+    }));
+  };
+
+  const handleCreateShelf = async (name: string) => {
+    const shelf = await createShelf(name);
+    setValues((prev) => ({ ...prev, shelfIds: [...prev.shelfIds, shelf.id] }));
+  };
+
   const handleDelete = async (remove: () => Promise<void>) => {
     await run(async () => {
       await remove();
@@ -137,21 +147,19 @@ export function RecordForm({
   return (
     <View style={styles.root}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View>
-          <View style={styles.spineRow}>
-            <View style={styles.preview}>
-              <Spine record={previewRecord} />
-            </View>
-            <View style={styles.colors}>
-              <AppText variant="label" style={styles.heading}>
-                背表紙の色
-              </AppText>
-              <SpineColorPicker value={values.spineColor} onChange={(c) => setField('spineColor', c)} />
-            </View>
+        <View style={styles.spineRow}>
+          <View style={styles.preview}>
+            <Spine record={previewRecord} />
           </View>
-          <AppText variant="label" style={styles.note}>
-            棚に並べたときの色。あとから変えられます
-          </AppText>
+          <View style={styles.colors}>
+            <AppText variant="label" style={styles.heading}>
+              背表紙の色
+            </AppText>
+            <SpineColorPicker value={values.spineColor} onChange={(c) => setField('spineColor', c)} />
+            <AppText variant="label" style={styles.note}>
+              棚に並べたときの色。あとから変えられます
+            </AppText>
+          </View>
         </View>
 
         <TextField
@@ -172,7 +180,7 @@ export function RecordForm({
             <TextField label="出版社" value={values.publisher} onChangeText={(text) => setField('publisher', text)} />
           </View>
           <View style={styles.half}>
-            <TextField label="ISBN" variant="isbn" value={values.isbn} onChangeText={(text) => setField('isbn', text)} />
+            <TextField label="ISBN" keyboardType="number-pad" value={values.isbn} onChangeText={(text) => setField('isbn', text)} />
           </View>
         </View>
 
@@ -184,7 +192,6 @@ export function RecordForm({
             label="ステータス"
             options={statusOptions}
             value={values.status}
-            columns={2}
             onChange={changeStatus}
           />
         </View>
@@ -195,6 +202,7 @@ export function RecordForm({
               <DateFieldButton
                 label={labels.start}
                 value={values.startDate ? formatDateDisplay(values.startDate) : ''}
+                placeholder="—"
                 error={errors.startDate}
                 onPress={() => setOpenDate('start')}
               />
@@ -203,6 +211,7 @@ export function RecordForm({
               <DateFieldButton
                 label={labels.end}
                 value={values.endDate ? formatDateDisplay(values.endDate) : ''}
+                placeholder="—"
                 error={errors.endDate}
                 onPress={() => setOpenDate('end')}
               />
@@ -213,11 +222,27 @@ export function RecordForm({
           </AppText>
         </View>
 
-        <SettingsRow
-          label='本棚'
-          value={shelfNames(values, shelves).join('、') || 'まだ入れていません'}
-          onPress={() => setShelfOpen(true)}
-        />
+        <View>
+          <AppText variant="label" style={styles.heading}>
+            本棚
+          </AppText>
+          <ChipMultiGroup
+            label="本棚"
+            options={shelves.map((shelf) => ({ value: shelf.id, label: shelf.name }))}
+            value={values.shelfIds}
+            onToggle={toggleShelf}
+            trailing={
+              <DashedChip
+                label="＋ 本棚を作る"
+                accessibilityLabel="本棚を作る"
+                onPress={() => setShelfCreating(true)}
+              />
+            }
+          />
+          <AppText variant="label" style={styles.note}>
+            「すべての本」にはいつも入ります
+          </AppText>
+        </View>
 
         {onDelete ? (
           <Pressable
@@ -245,14 +270,11 @@ export function RecordForm({
         <Button label={submitLabel} disabled={submitting} onPress={() => void handleSubmit()} />
       </View>
 
-      <ShelfPickSheet
-        visible={shelfOpen}
+      <ShelfCreateSheet
+        visible={shelfCreating}
         shelves={shelves}
-        counts={counts}
-        selectedIds={values.shelfIds}
-        onSubmit={(ids) => setField('shelfIds', ids)}
-        onCreate={createShelf}
-        onClose={() => setShelfOpen(false)}
+        onSubmit={handleCreateShelf}
+        onClose={() => setShelfCreating(false)}
       />
 
       {openDate ? (
@@ -289,7 +311,7 @@ const styles = StyleSheet.create({
   spineRow: { flexDirection: 'row', alignItems: 'flex-end', gap: space[4] },
   preview: { justifyContent: 'flex-end' },
   colors: { flex: 1 },
-  heading: { color: colors.textSecondary, marginBottom: space[1] },
+  heading: { color: colors.textSecondary, marginBottom: space[2] },
   note: { color: colors.textTertiary, marginTop: space[2] },
   pair: { flexDirection: 'row', gap: space[3] },
   half: { flex: 1 },
