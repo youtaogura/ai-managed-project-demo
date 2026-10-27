@@ -1,4 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { AccessibilityInfo } from 'react-native';
 
 import { ShelfChips } from '../ShelfChips';
 
@@ -45,5 +46,32 @@ describe('ShelfChips', () => {
     expect(onCreateShelf).toHaveBeenCalledTimes(1);
     await rerender(<ShelfChips />);
     await fireEvent.press(screen.getByRole('button', { name: '本棚を作る' }));
+  });
+
+  describe('選択の切り替え', () => {
+    afterEach(() => {
+      jest.useRealTimers();
+      jest.restoreAllMocks();
+    });
+
+    it('selected は即時に切り替わり、塗りは短く動く', async () => {
+      jest.useFakeTimers();
+      const view = await render(<ShelfChips shelves={shelves} selectedId="s1" />);
+      await view.rerender(<ShelfChips shelves={shelves} selectedId="s2" />);
+      expect(screen.getByRole('button', { name: '哲学' }).props.accessibilityState.selected).toBe(true);
+      expect(screen.getByRole('button', { name: 'SF' }).props.accessibilityState.selected).toBe(false);
+      await act(async () => {
+        jest.advanceTimersByTime(400);
+      });
+      expect(screen.getByRole('button', { name: '哲学' }).props.accessibilityState.selected).toBe(true);
+    });
+
+    it('動きを減らすときも切り替わる', async () => {
+      jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(true);
+      const view = await render(<ShelfChips shelves={shelves} selectedId={null} />);
+      await act(async () => undefined);
+      await view.rerender(<ShelfChips shelves={shelves} selectedId="s1" />);
+      expect(screen.getByRole('button', { name: 'SF' }).props.accessibilityState.selected).toBe(true);
+    });
   });
 });

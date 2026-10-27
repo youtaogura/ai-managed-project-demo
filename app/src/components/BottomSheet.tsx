@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
-  AccessibilityInfo,
   Animated,
   Easing,
   KeyboardAvoidingView,
@@ -13,6 +12,7 @@ import {
 } from 'react-native';
 
 import { useBottomInset } from '../hooks/useBottomInset';
+import { useReduceMotion } from '../hooks/useReduceMotion';
 import { colors, radius, size, space, typography } from '../design/tokens';
 import { AppText } from './AppText';
 import { Button } from './Button';
@@ -54,17 +54,7 @@ export function BottomSheet({
   const bottomInset = useBottomInset();
   const [translateY] = useState(() => new Animated.Value(SLIDE_DISTANCE));
   const [opacity] = useState(() => new Animated.Value(0));
-  const [reduceMotion, setReduceMotion] = useState(false);
-
-  useEffect(() => {
-    let active = true;
-    AccessibilityInfo.isReduceMotionEnabled().then((v) => {
-      if (active) setReduceMotion(v);
-    });
-    return () => {
-      active = false;
-    };
-  }, []);
+  const reduceMotion = useReduceMotion();
 
   useEffect(() => {
     if (!visible) return;

@@ -3,6 +3,7 @@ import { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  LayoutAnimation,
   StyleSheet,
   useWindowDimensions,
   View,
@@ -21,11 +22,13 @@ import { StatusTabs } from '../components/StatusTabs';
 import { colors, space } from '../design/tokens';
 import { useAddSheet } from '../hooks/useAddSheet';
 import { useBottomInset } from '../hooks/useBottomInset';
+import { useReduceMotion } from '../hooks/useReduceMotion';
 import { useRecords } from '../hooks/useRecords';
 import { useShelfRepository } from '../hooks/useShelfRepository';
 import { useShelves } from '../hooks/useShelves';
 import { useSortOrder } from '../hooks/useSortOrder';
 import { countByStatus, filterByStatus, type StatusFilter } from '../lib/countByStatus';
+import { shelfLayoutAnimation } from '../lib/bookMotion';
 import { recordsInShelf } from '../lib/shelfSelectors';
 import { createSortOrderStore, type SortOrderStore } from '../lib/sortOrderStore';
 import { sortRecords } from '../lib/sortRecords';
@@ -60,6 +63,7 @@ export function RecordsScreen({
   const [filter, setFilter] = useState<StatusFilter>('all');
   const { width } = useWindowDimensions();
   const bottomInset = useBottomInset();
+  const reduceMotion = useReduceMotion();
   const listRef = useRef<FlatList<null>>(null);
   useScrollToTop(listRef);
 
@@ -83,10 +87,21 @@ export function RecordsScreen({
     );
   }
 
+  // 本棚・ステータスを切り替えて並びが変わるとき、抜ける・差し込まれる・動く本に動きを付ける
+  const animateShelf = () => LayoutAnimation.configureNext(shelfLayoutAnimation(reduceMotion));
+  const selectShelf = (id: string | null) => {
+    animateShelf();
+    setSelectedShelfId(id);
+  };
+  const changeFilter = (value: StatusFilter) => {
+    animateShelf();
+    setFilter(value);
+  };
+
   const createShelf = async (name: string) => {
     const shelf = await shelfRepository.create(name);
     await reloadShelves();
-    setSelectedShelfId(shelf.id);
+    selectShelf(shelf.id);
   };
 
   const open = (record: MediaRecord) => onOpen?.(record);
@@ -141,11 +156,11 @@ export function RecordsScreen({
       <ShelfChips
         shelves={shelves}
         selectedId={shelfId}
-        onSelect={setSelectedShelfId}
+        onSelect={selectShelf}
         onCreateShelf={() => setCreateOpen(true)}
       />
       <View style={styles.tabs}>
-        <StatusTabs value={filter} counts={counts} onChange={setFilter} />
+        <StatusTabs value={filter} counts={counts} onChange={changeFilter} />
       </View>
       <View style={styles.legend}>
         <RibbonMark />

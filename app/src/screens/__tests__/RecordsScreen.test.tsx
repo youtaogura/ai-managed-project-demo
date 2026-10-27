@@ -1,4 +1,4 @@
-import { StyleSheet, Text } from 'react-native';
+import { AccessibilityInfo, LayoutAnimation, StyleSheet, Text } from 'react-native';
 import { act } from '@testing-library/react-native';
 import { router } from 'expo-router';
 import { fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
@@ -130,6 +130,30 @@ describe('RecordsScreen', () => {
     expect(screen.getByRole('tab', { name: '読んだ 2' })).toBeTruthy();
     expect(screen.getByRole('tab', { name: '読みたい 1' })).toBeTruthy();
     expect(titles()).toHaveLength(5);
+  });
+
+  describe('棚の入れ替わりの動き', () => {
+    afterEach(() => jest.restoreAllMocks());
+
+    it('初回表示では呼ばず、タブ・本棚の切り替えで update 付きの動きを予約する', async () => {
+      const configureNext = jest.spyOn(LayoutAnimation, 'configureNext').mockImplementation(() => undefined);
+      await setup(createFakeRepository(records).repository);
+      await ready();
+      expect(configureNext).not.toHaveBeenCalled();
+      await fireEvent.press(screen.getByRole('tab', { name: '読んだ 2' }));
+      expect(configureNext).toHaveBeenCalledTimes(1);
+      expect(configureNext.mock.calls[0][0]).toMatchObject({ update: { type: 'spring' } });
+    });
+
+    it('動きを減らすときは update を指定しない', async () => {
+      jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(true);
+      const configureNext = jest.spyOn(LayoutAnimation, 'configureNext').mockImplementation(() => undefined);
+      await setup(createFakeRepository(records).repository);
+      await ready();
+      await act(async () => undefined);
+      await fireEvent.press(screen.getByRole('tab', { name: '読んだ 2' }));
+      expect(configureNext.mock.calls[0][0].update).toBeUndefined();
+    });
   });
 
   it('タブを押すとその状態の本だけが並び、件数は変わらない', async () => {
