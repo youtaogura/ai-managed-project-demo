@@ -11,7 +11,7 @@ export default function RereadRoute() {
       <RereadScreen
         recordId={id}
         onEdit={(recordId) => router.push({ pathname: '/record/[id]', params: { id: recordId } })}
-        onWrite={(recordId) => router.push(`/write/${recordId}`)}
+        onWrite={(recordId) => router.push({ pathname: '/write/[id]', params: { id: recordId, from: 'reread' } })}
         onBack={() => router.replace('/')}
       />
     </>
