@@ -43,3 +43,6 @@ yarn-error.*
 
 # test coverage
 coverage/
+
+# 実画面の撮影（pnpm shots）の出力
+.screenshots/

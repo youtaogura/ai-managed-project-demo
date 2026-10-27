@@ -178,3 +178,12 @@ describe('ボタンと見つからないとき', () => {
     await waitFor(() => expect(screen.getByText('本が見つかりません')).toBeTruthy());
   });
 });
+
+describe('見た目の配置', () => {
+  it('見出しと題名は中央に寄せて表示する', async () => {
+    await show();
+    for (const text of ['読み終えた', '吾輩は猫である', 'どうだった？']) {
+      expect(screen.getByText(text)).toHaveStyle({ textAlign: 'center' });
+    }
+  });
+});

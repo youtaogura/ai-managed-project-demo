@@ -53,9 +53,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
+    paddingHorizontal: space[5],
+    gap: space[5],
   },
   tab: {
-    flex: 1,
     minHeight: size.touchMin,
     flexDirection: 'row',
     alignItems: 'center',

@@ -84,6 +84,15 @@ describe('ReadingScreen の表示', () => {
     expect(screen.getByRole('button', { name: '読み終えた' })).toBeTruthy();
   });
 
+  it('背表紙は1冊だけ、題名・開始日・作者を並べて出し、棚板は出さない', async () => {
+    await show();
+    await waitFor(() => expect(screen.getByText('夏目漱石 · SF、哲学')).toBeTruthy());
+    expect(screen.getAllByLabelText(/^吾輩は猫である、/)).toHaveLength(1);
+    expect(screen.getByText('読んでる · 10/18 から')).toBeTruthy();
+    expect(screen.getByText('吾輩は猫である', { exact: true })).toBeTruthy();
+    expect(screen.queryByTestId('shelf-board')).toBeNull();
+  });
+
   it('メモは MemoRow、引用は線付きで、ページ順に並ぶ', async () => {
     await show();
     await waitFor(() => expect(screen.getByText('猫の視点')).toBeTruthy());
