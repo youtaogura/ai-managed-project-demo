@@ -75,4 +75,29 @@ describe('parseNdlResponse', () => {
     expect(() => parseNdlResponse('')).toThrow(NdlParseError);
     expect(() => parseNdlResponse('<html><body>x</body></html>')).toThrow(NdlParseError);
   });
+
+  it('実応答の形で、図書以外を除き dc:creator を作者にする', () => {
+    const article = `<item><title>記事タイトル</title><author>誰か</author><category>記事</category></item>`;
+    const audio = `<item><title>録音</title><category>録音資料</category><category>記録メディア</category></item>`;
+    const book = `<item><title>ノルウェイの森</title><author>村上, 春樹, 1949-,村上春樹 著</author>
+<category>図書</category><category>紙</category><dc:publisher>講談社</dc:publisher>
+<dc:creator>村上, 春樹</dc:creator><dc:creator>村上春樹 著</dc:creator>
+<dc:date xsi:type='dcterms:W3CDTF'>2004</dc:date>
+<dc:identifier xsi:type='dcndl:ISBN'>978-4-06-274868-1</dc:identifier>
+<dc:identifier xsi:type='dcndl:NDLBibID'>000007413113</dc:identifier></item>`;
+    expect(parseNdlResponse(wrap(article + audio + book))).toEqual([
+      {
+        title: 'ノルウェイの森',
+        author: '村上, 春樹',
+        publisher: '講談社',
+        publishedYear: '2004',
+        isbn: '9784062748681',
+        ndlId: '000007413113',
+      },
+    ]);
+  });
+
+  it('図書が 1 件もなければ候補は 0 件', () => {
+    expect(parseNdlResponse(wrap('<item><title>記事</title><category>記事</category></item>'))).toEqual([]);
+  });
 });

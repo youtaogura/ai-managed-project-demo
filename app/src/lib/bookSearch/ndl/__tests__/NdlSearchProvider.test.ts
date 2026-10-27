@@ -12,7 +12,7 @@ describe('NdlSearchProvider', () => {
     const result = await new NdlSearchProvider({ fetchFn }).search('  ワン ピース ');
     expect(fetchFn).toHaveBeenCalledTimes(1);
     expect(fetchFn.mock.calls[0][0]).toBe(
-      'https://ndlsearch.ndl.go.jp/api/opensearch?title=%E3%83%AF%E3%83%B3%20%E3%83%94%E3%83%BC%E3%82%B9&cnt=20&mediatype=1',
+      'https://ndlsearch.ndl.go.jp/api/opensearch?title=%E3%83%AF%E3%83%B3%20%E3%83%94%E3%83%BC%E3%82%B9&cnt=50&dpid=iss-ndl-opac',
     );
     expect(result).toEqual({
       status: 'ok',
