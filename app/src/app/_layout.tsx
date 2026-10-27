@@ -6,7 +6,6 @@ import { Dimensions } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { navigationTheme, stackScreenOptions } from '../design/navigationTheme';
-import { BookFlightProvider } from '../hooks/useBookFlight';
 import { BookLookupContextProvider } from '../hooks/useBookLookup';
 import { BookSearchContextProvider } from '../hooks/useBookSearch';
 import { FileServiceContextProvider } from '../hooks/useFileService';
@@ -34,11 +33,9 @@ function Providers() {
                     <FileServiceContextProvider>
                       <NoteDraftStoreProvider>
                         <ThemeProvider value={navigationTheme}>
-                          <BookFlightProvider>
-                            <Stack screenOptions={stackScreenOptions}>
-                              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                            </Stack>
-                          </BookFlightProvider>
+                          <Stack screenOptions={stackScreenOptions}>
+                            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                          </Stack>
                         </ThemeProvider>
                         <StatusBar style="dark" />
                       </NoteDraftStoreProvider>
