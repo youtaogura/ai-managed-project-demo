@@ -1,5 +1,6 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 
+import { goBackOrHome } from '../../lib/navigation';
 import { FinishedScreen } from '../../screens/FinishedScreen';
 
 export default function FinishedRoute() {
@@ -11,7 +12,7 @@ export default function FinishedRoute() {
       <FinishedScreen
         recordId={id}
         onWrite={(recordId) => router.replace(`/write/${recordId}`)}
-        onLater={() => router.replace('/')}
+        onLater={() => goBackOrHome(router)}
       />
     </>
   );
