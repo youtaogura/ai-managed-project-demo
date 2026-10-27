@@ -60,7 +60,18 @@ describe('TextField', () => {
     expect(s.height).toBe(56);
     expect(s.fontSize).toBe(22);
     expect(s.fontWeight).toBe('700');
-    expect(input.props.keyboardType).toBe('number-pad');
+    expect(input.props.keyboardType).toBe('numbers-and-punctuation');
+  });
+
+  it('確定キーの onSubmitEditing と returnKeyType をそのまま渡す', async () => {
+    const onSubmitEditing = jest.fn();
+    await render(
+      <TextField label="ISBN" variant="isbn" returnKeyType="search" onSubmitEditing={onSubmitEditing} />,
+    );
+    const input = screen.getByLabelText('ISBN');
+    expect(input.props.returnKeyType).toBe('search');
+    await fireEvent(input, 'submitEditing');
+    expect(onSubmitEditing).toHaveBeenCalledTimes(1);
   });
 });
 

@@ -111,7 +111,7 @@ describe('検索シーン', () => {
     const results = scene?.search?.results ?? [];
     const candidates = parseNdlResponse(makeNdlSearchXml(results));
     expect(candidates).toHaveLength(5);
-    expect(candidates[0]).toMatchObject({ title: '灯台守のレシピ帳', author: '坂井 ほのか', publisher: '[出版社名]', publishedYear: '2025', isbn: null });
+    expect(candidates[0]).toMatchObject({ title: '灯台守のレシピ帳', author: '坂井ほのか', publisher: '[出版社名]', publishedYear: '2025', isbn: null });
   });
 
   it('XML の特殊文字をエスケープする', () => {

@@ -207,7 +207,7 @@ describe('タイトルで探して追加', () => {
     await fireEvent.press(screen.getByRole('button', { name: '検索' }));
     await fireEvent.press(await screen.findByRole('button', { name: /候補の本/ }));
     expect(await screen.findByDisplayValue('候補の本')).toBeTruthy();
-    expect(screen.getByDisplayValue('著者C 著')).toBeTruthy();
+    expect(screen.getByDisplayValue('著者C')).toBeTruthy();
     expect(screen.getByDisplayValue('出版社D')).toBeTruthy();
     expect(screen.getByDisplayValue('9784065199817')).toBeTruthy();
   });
