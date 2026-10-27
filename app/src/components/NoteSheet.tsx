@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type ComponentRef, type Ref, type RefObject } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -14,9 +14,11 @@ import { colors, radius, size, space, typography } from '../design/tokens';
 import { useNoteDraftStore } from '../hooks/useNoteDraftStore';
 import { isDraftEmpty, isNoteSubmittable, PAGE_MAX_LENGTH, type NoteDraft, type NoteKind } from '../lib/notes';
 import { AppText } from './AppText';
-import { BottomSheet } from './BottomSheet';
+import { BottomSheet, SLIDE_DURATION } from './BottomSheet';
 import { Button } from './Button';
 import { LINE_GAP, QUOTE_LINE_WIDTH } from './Quote';
+
+type TextInputHandle = ComponentRef<typeof TextInput>;
 
 const ERROR_SAVE = '保存できませんでした。もう一度お試しください';
 const ERROR_DELETE = '削除できませんでした。もう一度お試しください';
@@ -66,6 +68,26 @@ function Form({ recordId, editing, onSubmit, onDelete, onClose, closeRef }: Form
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const bodyRef = useRef<TextInputHandle>(null);
+  // 編集で開いたときだけ、最初にカーソルを本文の末尾へ置く（以降はユーザーが動かせる）
+  const [initialSelection, setInitialSelection] = useState<{ start: number; end: number } | undefined>(
+    editing ? { start: editing.text.length, end: editing.text.length } : undefined,
+  );
+
+  // シートが出る動きのあとに本文の欄へフォーカスする（autoFocus だと動きの途中で当たる）
+  useEffect(() => {
+    if (!ready || confirming) return;
+    const timer = setTimeout(() => bodyRef.current?.focus(), SLIDE_DURATION);
+    return () => clearTimeout(timer);
+  }, [ready, confirming]);
+
+  const kind = draft.kind;
+  const prevKind = useRef(kind);
+  useEffect(() => {
+    if (prevKind.current === kind) return;
+    prevKind.current = kind;
+    bodyRef.current?.focus();
+  }, [kind]);
 
   useEffect(() => {
     if (isEdit) return;
@@ -189,7 +211,11 @@ function Form({ recordId, editing, onSubmit, onDelete, onClose, closeRef }: Form
         </AppText>
       </View>
       <FocusInput
+        ref={bodyRef}
         accessibilityLabel="本文"
+        selection={initialSelection}
+        onSelectionChange={() => setInitialSelection(undefined)}
+        wrap
         multiline
         textAlignVertical="top"
         value={draft.text}
@@ -237,15 +263,20 @@ function bodyFontOf(t: { fontFamily: string; fontWeight: string; fontSize: numbe
   return { fontFamily: resolveFontFamily(t.fontFamily, t.fontWeight), fontSize: t.fontSize };
 }
 
-type FocusInputProps = Omit<TextInputProps, 'style'> & { style: StyleProp<TextStyle>; leading?: ReactNode };
+type FocusInputProps = Omit<TextInputProps, 'style'> & { style: StyleProp<TextStyle>; leading?: ReactNode;
+  /** true なら leading が無くても View で包み、入力欄を作り直さない */
+  wrap?: boolean;
+  ref?: Ref<TextInputHandle>;
+};
 
 /** フォーカス中は枠が墨色になる入力欄。leading は枠の内側の左に置く（引用の朱の線） */
-function FocusInput({ style, leading, onFocus, onBlur, ...props }: FocusInputProps) {
+function FocusInput({ style, leading, wrap, ref, onFocus, onBlur, ...props }: FocusInputProps) {
   const [focused, setFocused] = useState(false);
   const input = (
     <TextInput
       placeholderTextColor={colors.textTertiary}
       {...props}
+      ref={ref}
       onFocus={(e) => {
         setFocused(true);
         onFocus?.(e);
@@ -257,13 +288,15 @@ function FocusInput({ style, leading, onFocus, onBlur, ...props }: FocusInputPro
       style={[styles.field, style, { borderColor: focused ? colors.textPrimary : colors.line }]}
     />
   );
-  if (!leading) return input;
+  if (!leading && !wrap) return input;
   return (
     <View>
       {input}
-      <View pointerEvents="none" style={styles.leading}>
-        {leading}
-      </View>
+      {leading ? (
+        <View pointerEvents="none" style={styles.leading}>
+          {leading}
+        </View>
+      ) : null}
     </View>
   );
 }
