@@ -131,6 +131,14 @@ describe('評価の保存', () => {
 });
 
 describe('お気に入り', () => {
+  it('文字を押しても切り替わり、switch は 1 つにまとまっている', async () => {
+    const repository = await show([{ ...base, favorite: true }]);
+    expect(screen.getAllByRole('switch', { name: 'お気に入りにする' })).toHaveLength(1);
+    await fireEvent.press(screen.getByText('お気に入りにする'));
+    await waitFor(async () => expect((await stored(repository))?.favorite).toBe(false));
+    expect(screen.getByRole('switch', { name: 'お気に入りにする' }).props.accessibilityState.checked).toBe(false);
+  });
+
   it('初期値は record.favorite。切り替えると favorite を保存する', async () => {
     const repository = await show([{ ...base, favorite: true }]);
     const toggle = screen.getByRole('switch', { name: 'お気に入りにする' });

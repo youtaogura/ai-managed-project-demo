@@ -40,7 +40,9 @@ describe('Starter', () => {
     await fireEvent.changeText(screen.getByLabelText(`${STARTER}の続き`), '続き');
     expect(props.onChangeText).toHaveBeenCalledWith('続き');
     expect(screen.queryByLabelText(/ページ/)).toBeNull();
-    expect(screen.getByText('引用として残す')).toBeTruthy();
+    expect(screen.getAllByRole('switch', { name: '引用として残す' })).toHaveLength(1);
+    await fireEvent.press(screen.getByText('引用として残す'));
+    expect(props.onChangeAsQuote).toHaveBeenCalledWith(true);
     await fireEvent.press(screen.getByRole('switch', { name: '引用として残す' }));
     expect(props.onChangeAsQuote).toHaveBeenCalledWith(true);
   });

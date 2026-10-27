@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { colors, size, space } from '../design/tokens';
 import { AppText } from './AppText';
@@ -60,10 +60,10 @@ export function Toggle({ value, onValueChange, label, disabled = false, small }:
   );
 }
 
-type ToggleRowProps = Omit<ToggleProps, 'small'> & { description?: string };
+type ToggleRowProps = ToggleProps & { description?: string; style?: StyleProp<ViewStyle> };
 
 /** ラベル（と説明）＋スイッチ。行全体がタップ領域。 */
-export function ToggleRow({ value, onValueChange, label, description, disabled = false }: ToggleRowProps) {
+export function ToggleRow({ value, onValueChange, label, description, disabled = false, small, style }: ToggleRowProps) {
   return (
     <Pressable
       accessibilityRole="switch"
@@ -71,7 +71,7 @@ export function ToggleRow({ value, onValueChange, label, description, disabled =
       accessibilityState={{ checked: value, disabled }}
       disabled={disabled}
       onPress={() => onValueChange(!value)}
-      style={styles.row}
+      style={[styles.row, style]}
     >
       <View style={styles.texts}>
         <AppText variant="body" style={styles.label}>
@@ -83,7 +83,7 @@ export function ToggleRow({ value, onValueChange, label, description, disabled =
           </AppText>
         ) : null}
       </View>
-      <Switch value={value} />
+      <Switch value={value} small={small} />
     </Pressable>
   );
 }
