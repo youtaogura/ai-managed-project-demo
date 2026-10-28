@@ -16,6 +16,8 @@ type ChipGroupProps<T extends string> = {
   options: readonly ChipOption<T>[];
   value: T | null;
   onChange: (value: T) => void;
+  /** チップの最小幅。行をまたいでチップの列を揃えたいときに使う */
+  minChipWidth?: number;
 };
 
 type ChipCellProps = {
@@ -23,9 +25,10 @@ type ChipCellProps = {
   selected: boolean;
   role: 'radio' | 'checkbox';
   onPress: () => void;
+  minWidth?: number;
 };
 
-function ChipCell({ label, selected, role, onPress }: ChipCellProps) {
+function ChipCell({ label, selected, role, onPress, minWidth }: ChipCellProps) {
   return (
     <Pressable
       accessibilityRole={role}
@@ -35,6 +38,7 @@ function ChipCell({ label, selected, role, onPress }: ChipCellProps) {
       onPress={onPress}
       style={[
         styles.chip,
+        minWidth !== undefined && { minWidth },
         selected
           ? { backgroundColor: colors.accent, borderColor: colors.accent }
           : { borderColor: colors.line },
@@ -70,7 +74,7 @@ export function DashedChip({ label, accessibilityLabel, onPress }: DashedChipPro
   );
 }
 
-export function ChipGroup<T extends string>({ label, options, value, onChange }: ChipGroupProps<T>) {
+export function ChipGroup<T extends string>({ label, options, value, onChange, minChipWidth }: ChipGroupProps<T>) {
   return (
     <View accessibilityRole="radiogroup" accessibilityLabel={label} style={styles.group}>
       {options.map((option) => (
@@ -79,6 +83,7 @@ export function ChipGroup<T extends string>({ label, options, value, onChange }:
           label={option.label}
           selected={option.value === value}
           role="radio"
+          minWidth={minChipWidth}
           onPress={() => onChange(option.value)}
         />
       ))}

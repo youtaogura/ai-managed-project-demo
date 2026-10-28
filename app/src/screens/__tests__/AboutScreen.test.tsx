@@ -1,6 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { render, screen } from '@testing-library/react-native';
 import { getAppInfo } from '../../lib/appInfo';
-import { router } from 'expo-router';
 
 import { AboutScreen } from '../AboutScreen';
 
@@ -54,10 +53,8 @@ describe('AboutScreen', () => {
     ).toBeTruthy();
   });
 
-  it('「オープンソースライセンス」で /licenses へ遷移する', async () => {
-    const push = jest.spyOn(router, 'push').mockImplementation(() => undefined);
+  it('オープンソースライセンスの項目を出さない', async () => {
     await render(<AboutScreen />);
-    await fireEvent.press(screen.getByRole('button', { name: /^オープンソースライセンス/ }));
-    expect(push).toHaveBeenCalledWith('/licenses');
+    expect(screen.queryByText('オープンソースライセンス')).toBeNull();
   });
 });
