@@ -105,4 +105,9 @@ describe('OpenBdProvider の作者の整形', () => {
     const result = await new OpenBdProvider({ fetchFn }).lookupByIsbn(ISBN);
     expect(result).toMatchObject({ status: 'found', book: { author: '村上春樹、〇〇' } });
   });
+  it('外国の著者と訳者を中黒を残してつなぐ', async () => {
+    const fetchFn = respond([{ summary: { ...summary, author: 'ポール・グレアム／著 川合史朗／訳' } }]);
+    const result = await new OpenBdProvider({ fetchFn }).lookupByIsbn(ISBN);
+    expect(result).toMatchObject({ status: 'found', book: { author: 'ポール・グレアム、川合史朗' } });
+  });
 });

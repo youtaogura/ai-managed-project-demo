@@ -97,6 +97,14 @@ describe('parseNdlResponse', () => {
     ]);
   });
 
+  it.each([
+    ['1 つの文字列に 2 人', '<dc:creator>Graham, Paul, 1964- 川合, 史朗</dc:creator>'],
+    ['2 要素', '<dc:creator>Graham, Paul, 1964-</dc:creator><dc:creator>川合, 史朗</dc:creator>'],
+  ])('外国の著者と訳者が崩れない（%s）', (_label, creators) => {
+    const book = `<item><title>ハッカーと画家</title><category>図書</category>${creators}</item>`;
+    expect(parseNdlResponse(wrap(book))[0]?.author).toBe('Paul Graham、川合史朗');
+  });
+
   it('図書が 1 件もなければ候補は 0 件', () => {
     expect(parseNdlResponse(wrap('<item><title>記事</title><category>記事</category></item>'))).toEqual([]);
   });

@@ -1,12 +1,11 @@
 const ROLE = '(?:編著|共著|監訳|監修|原作|イラスト|写真|著|編|訳|絵|画)';
 const ROLE_MARK = new RegExp(`(?:\\s*[／/]\\s*|\\s+)${ROLE}(?=\\s|$|[、／/,，])`, 'g');
-const LIFE_YEARS = /[,，]?\s*\d{4}-(?:\d{4})?\s*$/;
+const LIFE_YEARS = /[,，]?\s*\d{4}-(?:\d{4})?/g;
 const JAPANESE = /[\u3040-\u30ff\u3400-\u9fff]/;
 const SEPARATOR = '、';
 
 function normalizePerson(person: string): string | null {
   const parts = person
-    .replace(LIFE_YEARS, '')
     .split(/[,，]/)
     .map((part) => part.trim())
     .filter((part) => part !== '');
@@ -22,7 +21,7 @@ function normalizePerson(person: string): string | null {
 
 function splitPersons(raw: string): string[] {
   return raw
-    .trim()
+    .replace(LIFE_YEARS, '\u0000')
     .replace(ROLE_MARK, '\u0000')
     .split('\u0000')
     .map((person) => person.trim())
