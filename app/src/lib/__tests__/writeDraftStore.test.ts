@@ -6,11 +6,8 @@ import type { WriteDraft } from '../writeSession';
 const card = {
   key: 'k1',
   kind: 'starter' as const,
-  starterId: 's1',
-  starter: '書き出し',
+  starter: 'いちばん心に残ったのは、',
   text: '続き',
-  page: '12',
-  asQuote: true,
 };
 const draft: WriteDraft = { oneLiner: 'ひとこと', cards: [card], selectedKey: 'k1' };
 
@@ -42,13 +39,21 @@ describe('writeDraftStore', () => {
     const { storage } = createMemoryStorage({
       'writeDraft.v1.a': JSON.stringify({
         oneLiner: '',
-        cards: [card, null, { ...card, key: 'k2', kind: 'starter', starterId: null }, { ...card, key: 5 }],
+        cards: [card, null, { ...card, key: 'k2', kind: 'quote' }, { ...card, key: 5 }],
         selectedKey: 'k2',
       }),
     });
     const loaded = await createWriteDraftStore(storage).load('a');
     expect(loaded?.cards).toEqual([card]);
     expect(loaded?.selectedKey).toBeNull();
+  });
+
+  it('前の版の下書き（starterId・page・asQuote 付き）も、余分な項目を捨てて読む', async () => {
+    const old = { ...card, starterId: 's1', page: '12', asQuote: true };
+    const { storage } = createMemoryStorage({
+      'writeDraft.v1.a': JSON.stringify({ oneLiner: '', cards: [old], selectedKey: 'k1' }),
+    });
+    expect(await createWriteDraftStore(storage).load('a')).toEqual({ oneLiner: '', cards: [card], selectedKey: 'k1' });
   });
 
   it('ストレージが例外を投げても load は null', async () => {

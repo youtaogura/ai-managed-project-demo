@@ -1,4 +1,5 @@
 import type { MediaRecord } from '../types/record';
+import { listPostReadMemos } from './reread';
 import { getStatusLabel } from './statusLabel';
 
 const BOM = '﻿';
@@ -13,6 +14,7 @@ const HEADERS = [
   '終えた日',
   'どうだった？',
   'ひとこと',
+  '読後メモ',
   '登録日時',
   '更新日時',
 ];
@@ -30,6 +32,12 @@ function textCell(value: string | null): string {
   return value === null ? '' : escapeCell(neutralize(value));
 }
 
+/** 読後メモを書いた順に、空行で区切って 1 つのセルにまとめる。なければ null。 */
+function postReadMemosCell(record: MediaRecord): string | null {
+  const memos = listPostReadMemos(record);
+  return memos.length === 0 ? null : memos.map((memo) => memo.text.trim()).join('\n\n');
+}
+
 function row(record: MediaRecord): string {
   return [
     textCell(record.title),
@@ -41,6 +49,7 @@ function row(record: MediaRecord): string {
     textCell(record.endDate),
     record.rating === null ? '' : String(record.rating),
     textCell(record.oneLiner),
+    textCell(postReadMemosCell(record)),
     textCell(record.createdAt),
     textCell(record.updatedAt),
   ].join(',');

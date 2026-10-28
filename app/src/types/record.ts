@@ -11,20 +11,11 @@ export type RecordSource =
 
 export type SpineColor = (typeof SPINE_COLORS)[number];
 
-export type StarterEntry = {
-  id: string;
-  starter: string;
-  text: string;
-  createdAt: string;
-};
-
 export type QuoteEntry = {
   id: string;
   text: string;
   page: string | null;
   comment: string | null;
-  /** 書き出しカードから引用にしたときの書き出しの文。なければ未設定か null。 */
-  starter?: string | null;
   createdAt: string;
 };
 
@@ -35,7 +26,8 @@ export type MemoEntry = {
   createdAt: string;
 };
 
-export type FreeTextEntry = {
+/** 読後メモ。読み終えたあとに書く文章の 1 件。表示は createdAt の順。 */
+export type PostReadMemo = {
   id: string;
   text: string;
   createdAt: string;
@@ -56,12 +48,12 @@ export type MediaRecord = {
   createdAt: string;
   updatedAt: string;
   source: RecordSource;
-  /** 「ひとことで言うと、」の続き */
+  /** この本をひとことで（読後メモとは別の項目） */
   oneLiner: string | null;
-  starters: StarterEntry[];
+  /** 読後メモ（書いた順に表示する） */
+  postReadMemos: PostReadMemo[];
   quotes: QuoteEntry[];
   memos: MemoEntry[];
-  freeTexts: FreeTextEntry[];
   favorite: boolean;
   spineColor: SpineColor;
   shelfIds: string[];

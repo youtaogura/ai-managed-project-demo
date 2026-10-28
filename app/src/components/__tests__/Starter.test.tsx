@@ -11,10 +11,6 @@ async function setup(patch: Partial<Parameters<typeof Starter>[0]> = {}) {
     text: '',
     onChangeText: jest.fn(),
     onSelect: jest.fn(),
-    asQuote: false,
-    onChangeAsQuote: jest.fn(),
-    page: '',
-    onChangePage: jest.fn(),
     ...patch,
   };
   await render(<Starter {...props} />);
@@ -22,7 +18,7 @@ async function setup(patch: Partial<Parameters<typeof Starter>[0]> = {}) {
 }
 
 describe('Starter', () => {
-  it('選んでいないカードは書き出しと「書く」、タップで選ぶ', async () => {
+  it('選んでいないカードはヒントと「書く」、タップで選ぶ', async () => {
     const props = await setup();
     expect(screen.getByText('書く')).toBeTruthy();
     expect(screen.queryByLabelText(`${STARTER}の続き`)).toBeNull();
@@ -35,25 +31,12 @@ describe('Starter', () => {
     expect(screen.getByText('嵐の夜').props.numberOfLines).toBe(1);
   });
 
-  it('選んでいるカードは入力欄と「引用として残す」。ページはオンのときだけ', async () => {
+  it('選んでいるカードは続きの入力欄だけ。引用やページの欄はない', async () => {
     const props = await setup({ selected: true });
     await fireEvent.changeText(screen.getByLabelText(`${STARTER}の続き`), '続き');
     expect(props.onChangeText).toHaveBeenCalledWith('続き');
     expect(screen.queryByLabelText(/ページ/)).toBeNull();
-    expect(screen.getAllByRole('switch', { name: '引用として残す' })).toHaveLength(1);
-    await fireEvent.press(screen.getByText('引用として残す'));
-    expect(props.onChangeAsQuote).toHaveBeenCalledWith(true);
-    await fireEvent.press(screen.getByRole('switch', { name: '引用として残す' }));
-    expect(props.onChangeAsQuote).toHaveBeenCalledWith(true);
-  });
-
-  it('引用がオンならページ欄（数字キーボード・10 文字）', async () => {
-    const props = await setup({ selected: true, asQuote: true });
-    const page = screen.getByLabelText('ページ（任意）');
-    expect(page.props.keyboardType).toBe('number-pad');
-    expect(page.props.maxLength).toBe(10);
-    await fireEvent.changeText(page, '12');
-    expect(props.onChangePage).toHaveBeenCalledWith('12');
+    expect(screen.queryByText('引用として残す')).toBeNull();
   });
 });
 

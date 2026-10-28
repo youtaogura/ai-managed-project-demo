@@ -66,10 +66,9 @@ describe('RecordForm', () => {
       spineColor: 'spine-4',
       source: { provider: 'manual' },
       oneLiner: null,
-      starters: [],
+      postReadMemos: [],
       quotes: [],
       memos: [],
-      freeTexts: [],
       favorite: false,
       shelfIds: [],
     });
@@ -92,9 +91,9 @@ describe('RecordForm', () => {
     expect(flat(publisherCell?.parent ?? { props: {} }).flexDirection).toBe('row');
   });
 
-  it('編集のとき、フォームにない項目（評価・写真・書影・ひとこと・書き出しなど）をそのまま引き継ぐ', async () => {
+  it('編集のとき、フォームにない項目（評価・写真・書影・ひとこと・読後メモなど）をそのまま引き継ぐ', async () => {
     const onSubmit = jest.fn().mockResolvedValue(undefined);
-    const starters = [{ id: 's', starter: 'は、', text: '続き', createdAt: '2024-01-01T00:00:00.000Z' }];
+    const postReadMemos = [{ id: 'p', text: 'は、続き', createdAt: '2024-01-01T00:00:00.000Z' }];
     await render(
       <RecordForm
         initialValues={{
@@ -103,7 +102,7 @@ describe('RecordForm', () => {
           photoUri: 'file:///p.jpg',
           coverUrl: 'http://c',
           oneLiner: 'よかった',
-          starters,
+          postReadMemos,
           favorite: true,
         }}
         onSubmit={onSubmit}
@@ -116,7 +115,7 @@ describe('RecordForm', () => {
         photoUri: 'file:///p.jpg',
         coverUrl: 'http://c',
         oneLiner: 'よかった',
-        starters,
+        postReadMemos,
         favorite: true,
       }),
     );
@@ -387,7 +386,7 @@ describe('RecordForm', () => {
       const onDelete = jest.fn().mockResolvedValue(undefined);
       const onDeleted = jest.fn();
       await open(onDelete, onDeleted);
-      expect(screen.getByText('「吾輩」の記録（メモ・引用・書き出しを含む）が削除されます。元に戻せません。')).toBeTruthy();
+      expect(screen.getByText('「吾輩」の記録（メモ・引用・読後メモを含む）が削除されます。元に戻せません。')).toBeTruthy();
       await act(async () => press('削除する'));
       expect(onDelete).toHaveBeenCalledTimes(1);
       expect(onDeleted).toHaveBeenCalledTimes(1);

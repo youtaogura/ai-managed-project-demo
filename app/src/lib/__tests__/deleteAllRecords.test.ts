@@ -3,8 +3,6 @@ import { DEFAULT_SETTINGS } from '../../types/settings';
 import { deleteAllRecords } from '../deleteAllRecords';
 import { createRecordRepository, RECORDS_STORAGE_KEY } from '../recordRepository';
 import { createShelfRepository } from '../shelfRepository';
-import { defaultStarterSettings } from '../starterDefaults';
-import { createStarterSettingsStore } from '../starterSettingsStore';
 import { createSettingsStore } from '../settingsStore';
 
 const records = [
@@ -51,14 +49,11 @@ describe('deleteAllRecords', () => {
     expect(await settingsStore.load()).toEqual(before);
   });
 
-  it('本棚と書き出し設定は残る', async () => {
+  it('本棚は残る', async () => {
     const { memory, repository } = setup();
     const shelfRepository = createShelfRepository(memory.storage);
     await shelfRepository.create('積ん読');
-    const starterStore = createStarterSettingsStore(memory.storage);
-    await starterStore.save({ ...defaultStarterSettings(), count: 5 });
     await deleteAllRecords({ repository });
     expect((await shelfRepository.getAll()).map((s) => s.name)).toEqual(['積ん読']);
-    expect((await starterStore.load()).count).toBe(5);
   });
 });

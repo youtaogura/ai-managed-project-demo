@@ -54,7 +54,7 @@ export function noteItemToDraft(item: NoteItem): NoteDraft {
     kind: item.kind,
     page: entry.page ?? '',
     text: entry.text,
-    comment: item.kind === "quote" ? (item.entry.comment ?? '') : '',
+    comment: item.kind === 'quote' ? (item.entry.comment ?? '') : '',
   };
 }
 
@@ -76,14 +76,13 @@ export function recordToInput(record: MediaRecord, memos: MemoEntry[], quotes: Q
   return { ...input, memos, quotes };
 }
 
-function buildEntry(input: NoteInput, id: string, createdAt: string, starter?: string | null): NoteItem | null {
+function buildEntry(input: NoteInput, id: string, createdAt: string): NoteItem | null {
   const text = input.text.trim();
   if (text === '') return null;
   const page = normalizePage(input.page);
   if (input.kind === 'memo') return { kind: 'memo', entry: { id, text, page, createdAt } };
   const comment = input.comment.trim();
   const entry: QuoteEntry = { id, text, page, comment: comment === '' ? null : comment, createdAt };
-  if (starter !== undefined) entry.starter = starter;
   return { kind: 'quote', entry };
 }
 
@@ -107,8 +106,7 @@ export function updateNote(
 ): NewRecordInput | null {
   const original = (target.kind === 'memo' ? record.memos : record.quotes).find((e) => e.id === target.id);
   if (!original) return null;
-  const starter = target.kind === 'quote' ? record.quotes.find((e) => e.id === original.id)?.starter : undefined;
-  const item = buildEntry(input, original.id, original.createdAt, starter);
+  const item = buildEntry(input, original.id, original.createdAt);
   if (!item) return null;
   if (item.kind === target.kind) {
     return item.kind === 'memo'

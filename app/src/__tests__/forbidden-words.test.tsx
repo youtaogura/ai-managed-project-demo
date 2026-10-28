@@ -8,8 +8,10 @@ import { AboutScreen } from '../screens/AboutScreen';
 import { DataScreen } from '../screens/DataScreen';
 import { ReadingScreen } from '../screens/ReadingScreen';
 import { RecordsScreen } from '../screens/RecordsScreen';
+import { RereadScreen } from '../screens/RereadScreen';
 import { ReviewScreen } from '../screens/ReviewScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
+import { WriteScreen } from '../screens/WriteScreen';
 import { DeleteAllSheet } from '../components/DeleteAllSheet';
 import { DeleteConfirmSheet } from '../components/DeleteConfirmSheet';
 import { ExportSheet } from '../components/ExportSheet';
@@ -22,16 +24,17 @@ import { createRecordRepository, RECORDS_STORAGE_KEY } from '../lib/recordReposi
 import { createSettingsStore } from '../lib/settingsStore';
 import { createSortOrderStore } from '../lib/sortOrderStore';
 import { createExportStore } from '../lib/exportStore';
-import { createStarterSettingsStore } from '../lib/starterSettingsStore';
+import { createWriteDraftStore } from '../lib/writeDraftStore';
 import { createShelfRepository } from '../lib/shelfRepository';
-import { withRepository, withSettings, withShelfRepository, withStarterSettings } from '../testProviders';
+import { withRepository, withSettings, withShelfRepository, withWriteDraftStore } from '../testProviders';
 import { createMemoryStorage, makeRecord } from '../testUtils';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   jest.requireActual('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
 
-const FORBIDDEN = /評価|レーティング|未評価|写真|書影/;
+// 「書き出し」は読後メモ・ヒントに置き換えた。データの「書き出し・読み込み」「書き出した」「書き出して」は別の意味なので除く
+const FORBIDDEN = /評価|レーティング|未評価|写真|書影|書き出し(?![・たて])/;
 
 type Node = { type?: string; props?: { accessibilityLabel?: unknown }; children?: unknown };
 
@@ -57,7 +60,14 @@ const expectNoForbidden = (label: string) => {
 
 const rated = [
   makeRecord({ id: 'a', title: 'アルファ', status: 'completed', endDate: '2024-02-10', rating: 4.5 }),
-  makeRecord({ id: 'b', title: 'ベータ', status: 'completed', endDate: '2024-03-10', rating: null }),
+  makeRecord({
+    id: 'b',
+    title: 'ベータ',
+    status: 'completed',
+    endDate: '2024-03-10',
+    rating: null,
+    postReadMemos: [{ id: 'p', text: 'いちばん心に残ったのは、海', createdAt: '2024-03-10T00:00:00.000Z' }],
+  }),
   makeRecord({ id: 'c', title: 'ガンマ', status: 'in_progress', photoUri: 'file:///p.jpg', coverUrl: 'http://c' }),
 ];
 
@@ -108,27 +118,50 @@ describe('使わなくなった言葉が画面に出ない', () => {
     ],
     ['このアプリについて', () => <AboutScreen />],
     [
+      '本棚（本がない）',
+      () => {
+        const memory = createMemoryStorage();
+        return withRepository(
+          createRecordRepository(memory.storage),
+          <RecordsScreen sortOrderStore={createSortOrderStore(memory.storage)} />,
+        );
+      },
+    ],
+    [
+      '読後メモを書く',
+      () => {
+        const { storage, repository } = seeded();
+        return withWriteDraftStore(createWriteDraftStore(storage), withRepository(repository, <WriteScreen recordId="b" />));
+      },
+    ],
+    [
+      '読み返す',
+      () => {
+        const { storage, repository } = seeded();
+        return withRepository(repository, <RereadScreen recordId="b" />, createShelfRepository(storage));
+      },
+    ],
+    [
+      '読み返す（何も書いていない）',
+      () => {
+        const { storage, repository } = seeded();
+        return withRepository(repository, <RereadScreen recordId="a" />, createShelfRepository(storage));
+      },
+    ],
+    [
       'データ管理',
       () => {
         const { storage, repository } = seeded();
-        const starter = createStarterSettingsStore(storage);
         const settings = createSettingsStore(storage);
-        return withStarterSettings(
-          starter,
-          withShelfRepository(
-            createShelfRepository(storage),
-            withSettings(
-              settings,
-              withRepository(
-                repository,
-                <FileServiceContextProvider service={fileService}>
-                  <DataScreen
-                    exportStore={createExportStore(storage)}
-                    settingsStore={settings}
-                    starterSettingsStore={starter}
-                  />
-                </FileServiceContextProvider>,
-              ),
+        return withShelfRepository(
+          createShelfRepository(storage),
+          withSettings(
+            settings,
+            withRepository(
+              repository,
+              <FileServiceContextProvider service={fileService}>
+                <DataScreen exportStore={createExportStore(storage)} settingsStore={settings} />
+              </FileServiceContextProvider>,
             ),
           ),
         );

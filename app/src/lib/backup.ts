@@ -1,19 +1,17 @@
 import type { BackupFile, ParseBackupResult } from '../types/backup';
-import { BACKUP_FORMAT, BACKUP_VERSION } from './constants';
+import { BACKUP_FORMAT, BACKUP_VERSION, OLDEST_BACKUP_VERSION } from './constants';
 import type { MediaRecord } from '../types/record';
 import type { AppSettings } from '../types/settings';
 import type { Shelf } from '../types/shelf';
-import type { StarterSettings } from '../types/starter';
 import { isMediaRecord, parseRecords } from './recordGuard';
+import { toPostReadMemos } from './recordMigration';
 import { parseSettings } from './settingsStore';
 import { isShelf, normalizeShelves } from './shelfGuard';
-import { parseStarterSettings } from './starterSettingsStore';
 
 /** 書き出し用のバックアップを作る。写真は端末固有のパスなので含めない。入力は書き換えない。 */
 export function buildBackup(
   records: readonly MediaRecord[],
   shelves: readonly Shelf[],
-  starterSettings: StarterSettings,
   settings: AppSettings,
   exportedAt: string,
 ): BackupFile {
@@ -23,7 +21,6 @@ export function buildBackup(
     exportedAt,
     records: records.map((record) => ({ ...record, photoUri: null })),
     shelves: shelves.map((shelf) => ({ ...shelf })),
-    starterSettings: parseStarterSettings(starterSettings),
     settings: { ...settings },
   };
 }
@@ -36,7 +33,10 @@ function hasUniqueIds(records: readonly { id: string }[]): boolean {
   return new Set(records.map((r) => r.id)).size === records.length;
 }
 
-/** バックアップのテキストを検証して読む。例外は投げない。 */
+/**
+ * バックアップのテキストを検証して読む。例外は投げない。
+ * 版 2（書き出し・自由記述・書き出しの設定があった版）も読み、記録は読後メモの形に直す。書き出しの設定は無視する。
+ */
 export function parseBackup(text: string): ParseBackupResult {
   let parsed: unknown;
   try {
@@ -50,8 +50,11 @@ export function parseBackup(text: string): ParseBackupResult {
   if (typeof parsed.version === 'number' && parsed.version > BACKUP_VERSION) {
     return { ok: false, reason: 'too_new' };
   }
-  if (parsed.version !== BACKUP_VERSION) return { ok: false, reason: 'invalid' };
-  const { exportedAt, records: rawRecords } = parsed;
+  if (typeof parsed.version !== 'number' || parsed.version < OLDEST_BACKUP_VERSION) {
+    return { ok: false, reason: 'invalid' };
+  }
+  const { exportedAt } = parsed;
+  const rawRecords = Array.isArray(parsed.records) ? parsed.records.map(toPostReadMemos) : parsed.records;
   if (typeof exportedAt !== 'string' || Number.isNaN(new Date(exportedAt).getTime())) {
     return { ok: false, reason: 'invalid' };
   }
@@ -71,7 +74,6 @@ export function parseBackup(text: string): ParseBackupResult {
   if (records.some((r) => r.shelfIds.some((id) => !shelfIds.has(id)))) {
     return { ok: false, reason: 'invalid' };
   }
-  const starterSettings = isObject(parsed.starterSettings) ? parseStarterSettings(parsed.starterSettings) : null;
   const settings = isObject(parsed.settings) ? parseSettings(JSON.stringify(parsed.settings)) : null;
   return {
     ok: true,
@@ -81,7 +83,6 @@ export function parseBackup(text: string): ParseBackupResult {
       exportedAt,
       records,
       shelves,
-      starterSettings,
       settings,
     },
   };

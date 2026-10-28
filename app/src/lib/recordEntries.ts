@@ -1,4 +1,4 @@
-import type { FreeTextEntry, MemoEntry, QuoteEntry, SpineColor, StarterEntry } from '../types/record';
+import type { MemoEntry, PostReadMemo, QuoteEntry, SpineColor } from '../types/record';
 import { SPINE_COLORS } from './constants';
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -13,16 +13,6 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value !== '';
 }
 
-export function isStarterEntry(value: unknown): value is StarterEntry {
-  return (
-    isObject(value) &&
-    isNonEmptyString(value.id) &&
-    typeof value.starter === 'string' &&
-    typeof value.text === 'string' &&
-    typeof value.createdAt === 'string'
-  );
-}
-
 export function isQuoteEntry(value: unknown): value is QuoteEntry {
   return (
     isObject(value) &&
@@ -30,7 +20,6 @@ export function isQuoteEntry(value: unknown): value is QuoteEntry {
     typeof value.text === 'string' &&
     isNullableString(value.page) &&
     isNullableString(value.comment) &&
-    (value.starter === undefined || isNullableString(value.starter)) &&
     typeof value.createdAt === 'string'
   );
 }
@@ -45,7 +34,7 @@ export function isMemoEntry(value: unknown): value is MemoEntry {
   );
 }
 
-export function isFreeTextEntry(value: unknown): value is FreeTextEntry {
+export function isPostReadMemo(value: unknown): value is PostReadMemo {
   return (
     isObject(value) &&
     isNonEmptyString(value.id) &&

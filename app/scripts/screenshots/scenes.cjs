@@ -14,46 +14,18 @@ const {
 const STORAGE_KEYS = {
   records: 'records.v1',
   shelves: 'shelves.v1',
-  starterSettings: 'starterSettings.v1',
   lastExportedAt: 'lastExportedAt.v1',
 };
 
 /**
  * シーンの形:
- *  - data: { records, shelves, starterSettings, lastExportedAt } を返す関数（撮影時に評価する）
+ *  - data: { records, shelves, lastExportedAt } を返す関数（撮影時に評価する）
  *  - url: 開くパス
  *  - actions: 撮影前の操作。{ label } は accessibilityLabel、{ text } は表示文言で選んでクリックする
  *  - search: { keyword, results }。検索画面で NDL の API をこの結果に差し替え、キーワードを入れて検索する
  *  - waitFor: 撮影前に表示を待つ文言
  */
 const withShelf = () => ({ records: makeShelfRecords(), shelves: SHELVES });
-
-// 書き出しは毎回ランダムに選ばれるので、操作する撮影では 3 つに絞って固定する
-const PINNED_STARTERS = {
-  enabled: true,
-  count: 3,
-  items: ['いちばん心に残ったのは、', '読み終えて、見方が変わったのは、', '少し引っかかったのは、'].map((text, i) => ({
-    id: `starter-default-${i + 1}`,
-    text,
-    enabled: true,
-    custom: false,
-  })),
-};
-// 画像と同じ状態: オン、一度に 3 つ、自分で追加が 1 件、オフが混在
-const STARTER_SETTINGS = {
-  enabled: true,
-  count: 3,
-  items: [
-    ['s1', 'いちばん心に残ったのは、', true, false],
-    ['s2', '読み終えて、見方が変わったのは、', true, false],
-    ['s3', 'この本を渡したいのは、', true, false],
-    ['s4', '似ていると思ったのは、', true, false],
-    ['s5', '作者がいちばん伝えたかったのは、たぶん', false, false],
-    ['s6', '自分のことのように感じたのは、', true, false],
-    ['s7', '少し引っかかったのは、', false, false],
-    ['s8', 'もう一度読むなら、', true, true],
-  ].map(([id, text, enabled, custom]) => ({ id, text, enabled, custom })),
-};
 
 const NDL_SEARCH_URL = 'https://ndlsearch.ndl.go.jp/api/opensearch*';
 
@@ -110,25 +82,13 @@ const SCENES = [
     actions: [{ label: 'お気に入りにする' }],
     waitFor: '記録を書く',
   },
-  {
-    name: 'write-selected',
-    data: () => ({ records: [makeWriteRecord()], starterSettings: PINNED_STARTERS }),
-    url: '/write/write-1',
-    actions: [
-      { label: '読み終えて、見方が変わったのは、' },
-      { label: '読み終えて、見方が変わったのは、の続き', fill: '登場人物の見え方が変わったこと。' },
-      { label: '引用として残す' },
-      { label: 'ページ（任意）', fill: '120' },
-    ],
-    waitFor: 'ここまでを残す',
-  },
   { name: 'reread', data: () => ({ records: [makeRereadRecord()], shelves: SHELVES }), url: '/records/reread-1', waitFor: '宇宙はとても静かで、とても怖い。' },
   // 読後メモの改善（docs/design-system/screens の reread-empty / memo-edit / oneline-edit）。
   // 読後メモを直すシート・ひとことを直すシートは、実装する Issue で actions を足す
   {
     name: 'reread-empty',
     data: () => ({
-      records: [{ ...makeRereadRecord(), oneLiner: null, starters: [], freeTexts: [], rating: 3.5, favorite: false }],
+      records: [{ ...makeRereadRecord(), oneLiner: null, postReadMemos: [], rating: 3.5, favorite: false }],
       shelves: SHELVES,
     }),
     url: '/records/reread-1',
@@ -137,8 +97,7 @@ const SCENES = [
   { name: 'memo-edit', data: () => ({ records: [makeRereadRecord()], shelves: SHELVES }), url: '/records/reread-1', waitFor: '宇宙はとても静かで、とても怖い。' },
   { name: 'oneline-edit', data: () => ({ records: [makeRereadRecord()], shelves: SHELVES }), url: '/records/reread-1', waitFor: '宇宙はとても静かで、とても怖い。' },
   { name: 'review', data: () => ({ records: makeReviewRecords() }), url: '/analytics', waitFor: '振り返り' },
-  { name: 'settings', data: () => ({ ...withShelf(), starterSettings: STARTER_SETTINGS, lastExportedAt: '2026-10-01T09:00:00.000Z' }), url: '/settings', waitFor: '設定' },
-  { name: 'starters', data: () => ({ starterSettings: STARTER_SETTINGS }), url: '/starters', waitFor: '一度に出す数' },
+  { name: 'settings', data: () => ({ ...withShelf(), lastExportedAt: '2026-10-01T09:00:00.000Z' }), url: '/settings', waitFor: '設定' },
 ];
 
 /** 画面名の絞り込み。指定なしは全シーン、未知の名前はエラー。 */

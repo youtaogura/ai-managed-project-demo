@@ -6,7 +6,6 @@ import { migrateRecords } from '../../../src/lib/recordMigration';
 import { SHELVES_STORAGE_KEY } from '../../../src/lib/shelfRepository';
 import { parseShelves } from '../../../src/lib/shelfGuard';
 import { LAST_EXPORTED_AT_KEY, createExportStore } from '../../../src/lib/exportStore';
-import { STARTER_SETTINGS_STORAGE_KEY, parseStarterSettings } from '../../../src/lib/starterSettingsStore';
 import { RECORDS_STORAGE_KEY } from '../../../src/lib/recordRepository';
 import { parseNdlResponse } from '../../../src/lib/bookSearch/ndl/parseNdlResponse';
 import { NDL_SEARCH_URL, SCENES, STORAGE_KEYS, parseSceneArgs } from '../scenes.cjs';
@@ -50,11 +49,8 @@ describe('SCENES', () => {
     expect(parseRecords(JSON.parse(data.get(RECORDS_STORAGE_KEY) ?? '[]'))).toEqual(records);
   });
 
-  it.each(SCENES.map((s) => [s.name, s] as const))('%s の starterSettings と lastExportedAt がアプリの読み込みを通る', async (_name, scene) => {
-    const { starterSettings, lastExportedAt } = scene.data();
-    if (starterSettings !== undefined) {
-      expect(parseStarterSettings(JSON.parse(JSON.stringify(starterSettings)))).toEqual(starterSettings);
-    }
+  it.each(SCENES.map((s) => [s.name, s] as const))('%s の lastExportedAt がアプリの読み込みを通る', async (_name, scene) => {
+    const { lastExportedAt } = scene.data();
     if (lastExportedAt !== undefined) {
       const data = new Map<string, string>([[LAST_EXPORTED_AT_KEY, lastExportedAt]]);
       const store = createExportStore({
@@ -78,7 +74,6 @@ describe('STORAGE_KEYS', () => {
   it('アプリ側の定数と一致する', () => {
     expect(STORAGE_KEYS.records).toBe(RECORDS_STORAGE_KEY);
     expect(STORAGE_KEYS.shelves).toBe(SHELVES_STORAGE_KEY);
-    expect(STORAGE_KEYS.starterSettings).toBe(STARTER_SETTINGS_STORAGE_KEY);
     expect(STORAGE_KEYS.lastExportedAt).toBe(LAST_EXPORTED_AT_KEY);
   });
 });

@@ -11,9 +11,7 @@ import { formatDate } from '../../lib/format';
 import { createRecordRepository, RECORDS_STORAGE_KEY } from '../../lib/recordRepository';
 import { createSettingsStore, SETTINGS_STORAGE_KEY, type SettingsStore } from '../../lib/settingsStore';
 import { createShelfRepository } from '../../lib/shelfRepository';
-import { createStarterSettingsStore } from '../../lib/starterSettingsStore';
-import { defaultStarterSettings } from '../../lib/starterDefaults';
-import { withRepository, withSettings, withShelfRepository, withStarterSettings } from '../../testProviders';
+import { withRepository, withSettings, withShelfRepository } from '../../testProviders';
 import { createMemoryStorage, makeRecord } from '../../testUtils';
 import { triggerImpactHaptic } from '../../lib/haptics';
 import { router } from 'expo-router';
@@ -67,26 +65,18 @@ async function setup(
   const settingsStore = options.settingsStore ?? createSettingsStore(memory.storage);
   const exportStore = createExportStore(memory.storage);
   const shelfRepository = createShelfRepository(memory.storage);
-  const starterSettingsStore = createStarterSettingsStore(memory.storage);
   await renderRouter({
     index: () =>
-      withStarterSettings(
-        starterSettingsStore,
-        withShelfRepository(
-          shelfRepository,
-          withSettings(
-            settingsStore,
-            withRepository(
-              repository,
-              <FileServiceContextProvider service={fileService}>
-                <DataScreen
-                  exportStore={exportStore}
-                  settingsStore={settingsStore}
-                  starterSettingsStore={starterSettingsStore}
-                />
-              </FileServiceContextProvider>,
-              shelfRepository,
-            ),
+      withShelfRepository(
+        shelfRepository,
+        withSettings(
+          settingsStore,
+          withRepository(
+            repository,
+            <FileServiceContextProvider service={fileService}>
+              <DataScreen exportStore={exportStore} settingsStore={settingsStore} />
+            </FileServiceContextProvider>,
+            shelfRepository,
           ),
         ),
       ),
@@ -97,7 +87,6 @@ async function setup(
     repository,
     settingsStore,
     shelfRepository,
-    starterSettingsStore,
   };
 }
 
@@ -211,7 +200,6 @@ function backupText(overrides: Record<string, unknown> = {}) {
     ...buildBackup(
       [makeRecord({ id: 'a', title: 'ファイルのアルファ' }), makeRecord({ id: 'c', title: 'ガンマ' })],
       [],
-      defaultStarterSettings(),
       { defaultStatus: 'planned' },
       '2026-10-26T03:00:00.000Z',
     ),
@@ -237,7 +225,7 @@ describe('DataScreen（読み込み）', () => {
     ['{', 'このアプリのバックアップファイルではありません'],
     ['{"a":1}', 'このアプリのバックアップファイルではありません'],
     [backupText({ records: [{ id: 'x' }] }), 'ファイルが壊れているため読み込めません'],
-    [backupText({ version: 3 }), '新しいバージョンのアプリで書き出されたファイルです。アプリを更新してください'],
+    [backupText({ version: 4 }), '新しいバージョンのアプリで書き出されたファイルです。アプリを更新してください'],
   ])('不正なファイルは何も変えずにエラーを出す: %#', async (text, expected) => {
     const { repository } = await setup(pick(text));
     await screen.findByText('2');
@@ -330,9 +318,12 @@ describe('DataScreen（読み込み）', () => {
     expect((await repository.getAll()).map((r) => r.id)).toEqual(['a', 'b']);
   });
 
-  it('書き出し → 全削除 → 読み込みで記録が戻る', async () => {
+  it('書き出し → 全削除 → 読み込みで記録（読後メモを含む）が戻る', async () => {
     const service = fakeFileService();
-    const { repository } = await setup(service);
+    const postReadMemos = [{ id: 'p1', text: 'いちばん心に残ったのは、海', createdAt: '2026-01-01T00:00:00.000Z' }];
+    const { repository } = await setup(service, {
+      initial: [makeRecord({ id: 'a', title: 'アルファ', postReadMemos }), makeRecord({ id: 'b', title: 'ベータ' })],
+    });
     await screen.findByText('2');
     await press(/^記録を書き出す/);
     await press('バックアップ（JSON）');
@@ -344,7 +335,30 @@ describe('DataScreen（読み込み）', () => {
     await press(/^記録を読み込む/);
     await press('読み込む');
     expect(await screen.findByText('2 件の記録を読み込みました')).toBeTruthy();
-    expect((await repository.getAll()).map((r) => r.title)).toEqual(['アルファ', 'ベータ']);
+    const all = await repository.getAll();
+    expect(all.map((r) => r.title)).toEqual(['アルファ', 'ベータ']);
+    expect(all[0]?.postReadMemos).toEqual(postReadMemos);
+  });
+
+  it('前の版（書き出しがあった版）のファイルも読み込め、書き出しは読後メモになる', async () => {
+    const legacy = {
+      ...makeRecord({ id: 'old', title: '昔の本' }),
+      postReadMemos: undefined,
+      starters: [{ id: 's1', starter: '意外だったのは、', text: '結末', createdAt: '2025-01-01T00:00:00.000Z' }],
+      freeTexts: [],
+    };
+    const text = backupText({ version: 2, records: [legacy], starterSettings: { enabled: false, count: 3, items: [] } });
+    const { repository, memory } = await setup(pick(text));
+    await screen.findByText('2');
+    await press(/^記録を読み込む/);
+    await fireEvent.press(await screen.findByRole('radio', { name: '今の記録と置き換える' }));
+    await press('読み込む');
+    expect(await screen.findByText('1 件の記録を読み込みました')).toBeTruthy();
+    const [record] = await repository.getAll();
+    expect(record?.postReadMemos).toEqual([
+      { id: 's1', text: '意外だったのは、結末', createdAt: '2025-01-01T00:00:00.000Z' },
+    ]);
+    expect(memory.data.has('starterSettings.v1')).toBe(false);
   });
 });
 
@@ -382,7 +396,7 @@ describe('DataScreen（すべての記録を削除）', () => {
     await openSheet();
     expect(screen.getByText('すべての記録を削除しますか？')).toBeTruthy();
     expect(
-      screen.getByText('2 件の記録（メモ・引用・書き出しを含む）がすべて削除されます。元に戻せません。設定はそのまま残ります。'),
+      screen.getByText('2 件の記録（メモ・引用・読後メモを含む）がすべて削除されます。元に戻せません。設定はそのまま残ります。'),
     ).toBeTruthy();
   });
 

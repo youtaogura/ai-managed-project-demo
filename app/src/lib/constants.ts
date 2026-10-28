@@ -11,9 +11,10 @@ export const SPINE_COLORS = [
   'spine-10',
 ] as const;
 
-/** いつも出す固定の書き出し。オフにできず、答えは oneLiner に保存する。 */
-export const STARTER_FIXED = 'ひとことで言うと、';
-export const STARTER_COUNT_OPTIONS = [2, 3, 5] as const;
+/** 書く画面で「この本をひとことで」（oneLiner）の欄に添える文。 */
+export const ONE_LINER_PROMPT = 'ひとことで言うと、';
 
 export const BACKUP_FORMAT = 'ai-managed-records-backup';
-export const BACKUP_VERSION = 2;
+/** 3: 読後メモ（postReadMemos）に置き換え、書き出しの設定をなくした。2 も読み込める。 */
+export const BACKUP_VERSION = 3;
+export const OLDEST_BACKUP_VERSION = 2;

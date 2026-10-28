@@ -108,7 +108,7 @@ function emptyToNull(text: string): string | null {
   return trimmed === '' ? null : trimmed;
 }
 
-/** carried: フォームが編集しないフィールド（ひとこと・書き出しなど）の引き継ぎ元。編集のときに渡す。 */
+/** carried: フォームが編集しないフィールド（ひとこと・読後メモなど）の引き継ぎ元。編集のときに渡す。 */
 export function toNewRecordInput(values: RecordFormValues, carried: Partial<NewRecordInput> = {}): NewRecordInput {
   const isbn = emptyToNull(values.isbn);
   const source: RecordSource =
@@ -127,10 +127,9 @@ export function toNewRecordInput(values: RecordFormValues, carried: Partial<NewR
     spineColor: values.spineColor,
     source,
     oneLiner: carried.oneLiner ?? null,
-    starters: carried.starters ?? [],
+    postReadMemos: carried.postReadMemos ?? [],
     quotes: carried.quotes ?? [],
     memos: carried.memos ?? [],
-    freeTexts: carried.freeTexts ?? [],
     favorite: carried.favorite ?? false,
     shelfIds: values.shelfIds,
   };

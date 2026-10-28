@@ -1,6 +1,6 @@
 import { RECORD_SOURCE_PROVIDERS, RECORD_STATUSES } from '../record';
 import * as shelfModule from '../shelf';
-import { BACKUP_FORMAT, BACKUP_VERSION, SPINE_COLORS, STARTER_COUNT_OPTIONS, STARTER_FIXED } from '../../lib/constants';
+import { BACKUP_FORMAT, BACKUP_VERSION, ONE_LINER_PROMPT, OLDEST_BACKUP_VERSION, SPINE_COLORS } from '../../lib/constants';
 
 describe('定数', () => {
   it('背表紙の色は spine-1〜spine-10 の 10 色', () => {
@@ -13,14 +13,14 @@ describe('定数', () => {
     expect(RECORD_SOURCE_PROVIDERS).toEqual(['manual', 'openbd', 'ndl']);
   });
 
-  it('書き出しの固定文と選べる数', () => {
-    expect(STARTER_FIXED).toBe('ひとことで言うと、');
-    expect(STARTER_COUNT_OPTIONS).toEqual([2, 3, 5]);
+  it('ひとことの欄に添える文', () => {
+    expect(ONE_LINER_PROMPT).toBe('ひとことで言うと、');
   });
 
   it('バックアップの形式とバージョン', () => {
     expect(BACKUP_FORMAT).toBe('ai-managed-records-backup');
-    expect(BACKUP_VERSION).toBe(2);
+    expect(BACKUP_VERSION).toBe(3);
+    expect(OLDEST_BACKUP_VERSION).toBe(2);
   });
 
   it('型だけのファイルも読み込める', () => {

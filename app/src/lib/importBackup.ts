@@ -2,13 +2,11 @@ import type { BackupFile, ImportMode } from '../types/backup';
 import type { RecordRepository } from './recordRepository';
 import type { SettingsStore } from './settingsStore';
 import type { ShelfRepository } from './shelfRepository';
-import type { StarterSettingsStore } from './starterSettingsStore';
 
 type ApplyImportParams = {
   repository: RecordRepository;
   shelfRepository: ShelfRepository;
   settingsStore: SettingsStore;
-  starterSettingsStore: StarterSettingsStore;
   backup: BackupFile;
   mode: ImportMode;
   includeSettings: boolean;
@@ -19,7 +17,6 @@ export async function applyImport({
   repository,
   shelfRepository,
   settingsStore,
-  starterSettingsStore,
   backup,
   mode,
   includeSettings,
@@ -27,20 +24,15 @@ export async function applyImport({
   const beforeRecords = await repository.getAll();
   const beforeShelves = await shelfRepository.getAll();
   const beforeSettings = await settingsStore.load();
-  const beforeStarterSettings = await starterSettingsStore.load();
   try {
     const count = await repository.importRecords(backup.records, mode);
     await shelfRepository.importShelves(backup.shelves, mode);
-    if (includeSettings) {
-      if (backup.starterSettings) await starterSettingsStore.save(backup.starterSettings);
-      if (backup.settings) await settingsStore.save(backup.settings);
-    }
+    if (includeSettings && backup.settings) await settingsStore.save(backup.settings);
     return count;
   } catch (error) {
     await Promise.allSettled([
       repository.importRecords(beforeRecords, 'replace'),
       shelfRepository.importShelves(beforeShelves, 'replace'),
-      starterSettingsStore.save(beforeStarterSettings),
       settingsStore.save(beforeSettings),
     ]);
     throw error;

@@ -17,9 +17,8 @@ import { FreeField, OneLinerField, Starter } from '../components/Starter';
 import { colors, radius, size, space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useRecordRepository } from '../hooks/useRecordRepository';
-import { useStarterSettings } from '../hooks/useStarterSettings';
 import { useTopInset } from '../hooks/useTopInset';
-import { STARTER_FIXED } from '../lib/constants';
+import { ONE_LINER_PROMPT } from '../lib/constants';
 import {
   buildWriteInput,
   createCards,
@@ -50,7 +49,6 @@ export function WriteScreen({ recordId, onSaved, onLater, onBack }: WriteScreenP
   const topInset = useTopInset();
   const repository = useRecordRepository();
   const draftStore = useWriteDraftStore();
-  const { starterSettings } = useStarterSettings();
   const [record, setRecord] = useState<MediaRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [ready, setReady] = useState(false);
@@ -76,12 +74,11 @@ export function WriteScreen({ recordId, onSaved, onLater, onBack }: WriteScreenP
         if (found) {
           if (draft) {
             setOneLiner(draft.oneLiner);
-            setCards(restoreCards(draft.cards, starterSettings));
+            setCards(restoreCards(draft.cards, found.rating));
             setSelectedKey(draft.selectedKey);
           } else {
             setOneLiner(found.oneLiner ?? '');
-            const initial = createCards(starterSettings);
-            setCards(starterSettings.enabled ? initial : [createFreeCard()]);
+            setCards(createCards(found.rating));
           }
         }
         setLoading(false);
@@ -91,7 +88,7 @@ export function WriteScreen({ recordId, onSaved, onLater, onBack }: WriteScreenP
       return () => {
         active = false;
       };
-    }, [repository, draftStore, recordId, starterSettings]),
+    }, [repository, draftStore, recordId]),
   );
 
   const patchCard = (key: string, patch: Partial<WriteCard>) => {
@@ -148,7 +145,6 @@ export function WriteScreen({ recordId, onSaved, onLater, onBack }: WriteScreenP
     );
   }
 
-  const starterEnabled = starterSettings.enabled;
   const starterCards = cards.filter((card) => card.kind === 'starter');
   const freeCards = cards.filter((card) => card.kind === 'free');
   const writtenCount = starterCards.filter(isWritten).length;
@@ -179,30 +175,22 @@ export function WriteScreen({ recordId, onSaved, onLater, onBack }: WriteScreenP
           </AppText>
         ) : null}
         <View style={styles.guide}>
-          <AppText variant="sectionTitle">書き出しを選んで、続きを書こう</AppText>
-          {starterEnabled ? (
-            <AppText variant="label" style={{ color: colors.textSecondary }}>
-              {`${writtenCount} / ${starterCards.length}`}
-            </AppText>
-          ) : null}
+          <AppText variant="sectionTitle">ヒントを選んで、続きを書こう</AppText>
+          <AppText variant="label" style={{ color: colors.textSecondary }}>
+            {`${writtenCount} / ${starterCards.length}`}
+          </AppText>
         </View>
-        <OneLinerField label={STARTER_FIXED} value={oneLiner} onChangeText={setOneLiner} />
-        {starterEnabled
-          ? starterCards.map((card) => (
-              <Starter
-                key={card.key}
-                starter={card.starter}
-                selected={selectedKey === card.key}
-                text={card.text}
-                onChangeText={(text) => patchCard(card.key, { text })}
-                onSelect={() => setSelectedKey(card.key)}
-                asQuote={card.asQuote}
-                onChangeAsQuote={(asQuote) => patchCard(card.key, { asQuote })}
-                page={card.page}
-                onChangePage={(page) => patchCard(card.key, { page })}
-              />
-            ))
-          : null}
+        <OneLinerField label={ONE_LINER_PROMPT} value={oneLiner} onChangeText={setOneLiner} />
+        {starterCards.map((card) => (
+          <Starter
+            key={card.key}
+            starter={card.starter}
+            selected={selectedKey === card.key}
+            text={card.text}
+            onChangeText={(text) => patchCard(card.key, { text })}
+            onSelect={() => setSelectedKey(card.key)}
+          />
+        ))}
         {freeCards.map((card) => (
           <FreeField
             key={card.key}
@@ -210,30 +198,26 @@ export function WriteScreen({ recordId, onSaved, onLater, onBack }: WriteScreenP
             onChangeText={(text) => patchCard(card.key, { text })}
           />
         ))}
-        {starterEnabled ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="ほかの書き出しを見る"
-            style={styles.action}
-            onPress={() => setCards((current) => replaceUnwrittenCards(current, starterSettings))}
-          >
-            <AppText variant="body" style={{ color: colors.textSecondary }}>
-              ↻ ほかの書き出しを見る
-            </AppText>
-          </Pressable>
-        ) : null}
-        {starterEnabled ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="自由に書く"
-            style={styles.action}
-            onPress={() => setCards((current) => [...current, createFreeCard()])}
-          >
-            <AppText variant="body" style={{ color: colors.textSecondary }}>
-              自由に書く
-            </AppText>
-          </Pressable>
-        ) : null}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="ほかのヒント"
+          style={styles.action}
+          onPress={() => setCards((current) => replaceUnwrittenCards(current, record.rating))}
+        >
+          <AppText variant="body" style={{ color: colors.textSecondary }}>
+            ↻ ほかのヒント
+          </AppText>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="自由に書く"
+          style={styles.action}
+          onPress={() => setCards((current) => [...current, createFreeCard()])}
+        >
+          <AppText variant="body" style={{ color: colors.textSecondary }}>
+            自由に書く
+          </AppText>
+        </Pressable>
         {error ? (
           <AppText variant="body" style={{ color: colors.danger }}>
             {error}

@@ -30,9 +30,9 @@ describe('ToggleRow', () => {
 
   it('説明を出し、行全体を押して切り替える', async () => {
     const onValueChange = jest.fn();
-    await render(<ToggleRow value onValueChange={onValueChange} label="書き出し" description="説明です" />);
+    await render(<ToggleRow value onValueChange={onValueChange} label="お気に入りにする" description="説明です" />);
     expect(screen.getByText('説明です')).toBeTruthy();
-    await fireEvent.press(screen.getByRole('switch', { name: '書き出し' }));
+    await fireEvent.press(screen.getByRole('switch', { name: 'お気に入りにする' }));
     expect(onValueChange).toHaveBeenCalledWith(false);
   });
 

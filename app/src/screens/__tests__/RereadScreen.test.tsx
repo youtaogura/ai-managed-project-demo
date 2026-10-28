@@ -40,9 +40,11 @@ const full = makeRecord({
   favorite: true,
   oneLiner: '猫の目で人間を笑う本',
   shelfIds: ['s1', 's2'],
-  starters: [{ id: 'st1', starter: '読み終えて、', text: '笑ってしまった', createdAt: at(3) }],
+  postReadMemos: [
+    { id: 'p1', text: '読み終えて、笑ってしまった', createdAt: at(3) },
+    { id: 'p2', text: '自由な感想', createdAt: at(2) },
+  ],
   quotes: [{ id: 'q1', text: '名前はまだ無い', page: '12', comment: 'ここが好き', createdAt: at(1) }],
-  freeTexts: [{ id: 'f1', text: '自由な感想', createdAt: at(2) }],
   memos: [
     { id: 'm1', text: 'あとのメモ', page: '88', createdAt: at(1) },
     { id: 'm2', text: 'さきのメモ', page: '5', createdAt: at(2) },
@@ -125,19 +127,20 @@ describe('RereadScreen の表示', () => {
     expect(await screen.findByText('夏目漱石 · SF')).toBeTruthy();
   });
 
-  it('書き出しは同じ Text の中で続きと一続きになり、自由記述と書いた順に並ぶ。引用は出ない', async () => {
+  it('読後メモを書いた順に、ひと続きの文章として並べる（朱の書き出しの部分はない）', async () => {
     await show();
-    await screen.findByLabelText('読み終えて、笑ってしまった');
-    expect(screen.getByText('読み終えて、')).toBeTruthy();
-    const order = ['自由な感想', '笑ってしまった'].map((t) => JSON.stringify(screen.toJSON()).indexOf(t));
+    const memo = await screen.findByText('読み終えて、笑ってしまった');
+    expect(StyleSheet.flatten(memo.props.style).color).not.toBe(colors.ribbon);
+    expect(screen.queryByText('読み終えて、')).toBeNull();
+    const order = ['自由な感想', '読み終えて、笑ってしまった'].map((t) => JSON.stringify(screen.toJSON()).indexOf(t));
     expect(order.every((i) => i >= 0)).toBe(true);
     expect(order).toEqual([...order].sort((x, y) => x - y));
   });
 
-  it('続きが空白だけの書き出しは出さない', async () => {
-    await show([{ ...full, starters: [{ id: 'st1', starter: '空の書き出し', text: '  ', createdAt: at(3) }] }]);
+  it('空白だけの読後メモは出さない', async () => {
+    await show([{ ...full, postReadMemos: [{ id: 'p1', text: '  ', createdAt: at(3) }] }]);
     await screen.findByText('吾輩は猫である');
-    expect(screen.queryByText('空の書き出し')).toBeNull();
+    expect(screen.queryAllByTestId('rule')).toHaveLength(0);
   });
 
   it('「メモと引用」は件数つきで、引用とメモがページ順（ページなしは後ろ）に並ぶ', async () => {
@@ -173,7 +176,7 @@ describe('RereadScreen の表示', () => {
   });
 
   it('感想が空なら感想の段を出さない（線は上と下の 1 本ずつ）', async () => {
-    await show([{ ...full, starters: [], freeTexts: [] }]);
+    await show([{ ...full, postReadMemos: [] }]);
     await screen.findByText('メモと引用');
     expect(screen.queryByTestId('rule')).toBeNull();
   });
@@ -198,7 +201,7 @@ describe('RereadScreen の表示', () => {
   });
 
   it('引用・メモだけの読了本では「何も書いていません」の案内を出さない', async () => {
-    await show([{ ...full, oneLiner: null, starters: [], freeTexts: [] }]);
+    await show([{ ...full, oneLiner: null, postReadMemos: [] }]);
     await screen.findByText('メモと引用');
     expect(screen.queryByText('まだ何も書いていません', { exact: false })).toBeNull();
   });
@@ -213,10 +216,10 @@ describe('RereadScreen の表示', () => {
 });
 
 describe('RereadScreen の入口', () => {
-  it('completed では書いてある本でも「書き出しの続きを書く」の行を出し、押すと onWrite', async () => {
+  it('completed では書いてある本でも「読後メモを書く」の行を出し、押すと onWrite', async () => {
     const onWrite = jest.fn();
     await show([full], { onWrite });
-    const row = await screen.findByRole('button', { name: '書き出しの続きを書く' });
+    const row = await screen.findByRole('button', { name: '読後メモを書く' });
     const height = (StyleSheet.flatten(row.props.style) as { minHeight?: number }).minHeight ?? 0;
     expect(height).toBeGreaterThanOrEqual(44);
     expect(screen.queryByText(/まだ何も書いていません/)).toBeNull();
@@ -227,23 +230,23 @@ describe('RereadScreen の入口', () => {
   it('completed 以外では行も案内も出さない', async () => {
     await show([{ ...full, status: 'planned' }]);
     await screen.findByText('吾輩は猫である');
-    expect(screen.queryByRole('button', { name: '書き出しの続きを書く' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '読後メモを書く' })).toBeNull();
   });
 
   it('何も書いていない completed の本では案内とボタンを出し、押すと onWrite', async () => {
     const onWrite = jest.fn();
     await show(
-      [{ ...full, oneLiner: null, starters: [], quotes: [], freeTexts: [], memos: [], rating: null, favorite: false }],
+      [{ ...full, oneLiner: null, postReadMemos: [], quotes: [], memos: [], rating: null, favorite: false }],
       { onWrite },
     );
     expect(await screen.findByText(/まだ何も書いていません。読み終えた直後の言葉/)).toBeTruthy();
-    await fireEvent.press(screen.getByRole('button', { name: '書き出しの続きを書く' }));
+    await fireEvent.press(screen.getByRole('button', { name: '読後メモを書く' }));
     expect(onWrite).toHaveBeenCalledWith('x');
   });
 
   it('何も書いていなくても completed 以外では案内を出さない', async () => {
     await show([
-      { ...full, status: 'planned', oneLiner: null, starters: [], quotes: [], freeTexts: [], memos: [] },
+      { ...full, status: 'planned', oneLiner: null, postReadMemos: [], quotes: [], memos: [] },
     ]);
     await screen.findByText('吾輩は猫である');
     expect(screen.queryByText(/まだ何も書いていません/)).toBeNull();
@@ -271,7 +274,7 @@ describe('RereadScreen の入口', () => {
     );
     const pill = screen.getByText('お気に入り').parent;
     expect(StyleSheet.flatten(pill?.props.style).borderColor).toBe(colors.ribbon);
-    // 書き出しの続きと自由記述に 1 本ずつ
+    // 読後メモ 2 件に 1 本ずつ
     expect(screen.getAllByTestId('rule')).toHaveLength(2);
   });
 });
@@ -293,7 +296,7 @@ describe('RereadScreen の読み始める', () => {
     expect(saved?.endDate).toBeNull();
     expect(saved?.memos).toHaveLength(3);
     expect(saved?.quotes).toHaveLength(1);
-    expect(saved?.starters).toHaveLength(1);
+    expect(saved?.postReadMemos).toHaveLength(2);
     expect(saved?.oneLiner).toBe('猫の目で人間を笑う本');
   });
 
@@ -441,7 +444,7 @@ describe('RereadScreen のメモ・引用', () => {
     expect(saved?.oneLiner).toBe('猫の目で人間を笑う本');
     expect(saved?.rating).toBe(4.2);
     expect(saved?.shelfIds).toEqual(['s1', 's2']);
-    expect(saved?.starters).toHaveLength(1);
+    expect(saved?.postReadMemos).toHaveLength(2);
   });
 
   it('引用を追加できる', async () => {

@@ -137,7 +137,7 @@ describe('戻る動きの履歴', () => {
   it('読み返す画面から書いて保存すると、同じ本の画面が重ならない', async () => {
     await renderRouter(routes);
     await fireEvent.press(await screen.findByLabelText(shelfLabel));
-    await press('書き出しの続きを書く');
+    await press('読後メモを書く');
     await waitFor(() => expect(screen.getByLabelText('ひとことで言うと、')).toBeTruthy());
     await fireEvent.changeText(screen.getByLabelText('ひとことで言うと、'), 'よかった');
     await press('ここまでを残す');

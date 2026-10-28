@@ -18,7 +18,6 @@ import { useRecordRepository } from '../hooks/useRecordRepository';
 import { useRecords } from '../hooks/useRecords';
 import { useSettings } from '../hooks/useSettings';
 import { useShelfRepository } from '../hooks/useShelfRepository';
-import { useStarterSettings } from '../hooks/useStarterSettings';
 import { deleteAllRecords } from '../lib/deleteAllRecords';
 import { triggerImpactHaptic } from '../lib/haptics';
 import { buildBackup, parseBackup } from '../lib/backup';
@@ -27,13 +26,11 @@ import { createExportStore, type ExportStore } from '../lib/exportStore';
 import { formatCompactDate, formatDate } from '../lib/format';
 import { applyImport } from '../lib/importBackup';
 import { createSettingsStore, type SettingsStore } from '../lib/settingsStore';
-import { createStarterSettingsStore, type StarterSettingsStore } from '../lib/starterSettingsStore';
 import { asyncKeyValueStorage } from '../lib/storage';
 import type { BackupFailureReason, BackupFile, ImportMode } from '../types/backup';
 
 const defaultExportStore = createExportStore(asyncKeyValueStorage);
 const defaultSettingsStore = createSettingsStore(asyncKeyValueStorage);
-const defaultStarterSettingsStore = createStarterSettingsStore(asyncKeyValueStorage);
 
 const FAILURE_MESSAGES: Record<BackupFailureReason, string> = {
   not_json: 'このアプリのバックアップファイルではありません',
@@ -48,20 +45,17 @@ type Candidate = { name: string; backup: BackupFile };
 type DataScreenProps = {
   exportStore?: ExportStore;
   settingsStore?: SettingsStore;
-  starterSettingsStore?: StarterSettingsStore;
 };
 
 export function DataScreen({
   exportStore = defaultExportStore,
   settingsStore = defaultSettingsStore,
-  starterSettingsStore = defaultStarterSettingsStore,
 }: DataScreenProps) {
   const bottomInset = useBottomInset();
   const repository = useRecordRepository();
   const shelfRepository = useShelfRepository();
   const fileService = useFileService();
   const { settings, replace } = useSettings();
-  const { starterSettings, replace: replaceStarterSettings } = useStarterSettings();
   const { records, reload } = useRecords();
   const { lastExportedAt, markExported } = useLastExportedAt(exportStore);
 
@@ -90,7 +84,7 @@ export function DataScreen({
           ? {
               filename: `records-backup-${stamp}.json`,
               mimeType: 'application/json',
-              content: JSON.stringify(buildBackup(all, shelves, starterSettings, settings, now.toISOString()), null, 2),
+              content: JSON.stringify(buildBackup(all, shelves, settings, now.toISOString()), null, 2),
             }
           : {
               filename: `records-${stamp}.csv`,
@@ -142,13 +136,11 @@ export function DataScreen({
         repository,
         shelfRepository,
         settingsStore,
-        starterSettingsStore,
         backup,
         mode,
         includeSettings,
       });
       if (includeSettings && backup.settings) replace(backup.settings);
-      if (includeSettings && backup.starterSettings) replaceStarterSettings(backup.starterSettings);
       setCandidate(null);
       await reload();
       setMessage({ tone: 'info', text: `${count} 件の記録を読み込みました` });

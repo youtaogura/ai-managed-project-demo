@@ -2,10 +2,7 @@ import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import { resolveFontFamily } from '../design/fonts';
 import { colors, radius, size, space, typography } from '../design/tokens';
-import { PAGE_MAX_LENGTH } from '../lib/notes';
 import { AppText } from './AppText';
-import { TextField } from './TextField';
-import { ToggleRow } from './Toggle';
 
 const SELECTED_BORDER = 1.5;
 const BODY_MIN_HEIGHT = typography.reading.lineHeight * 4;
@@ -21,24 +18,10 @@ type StarterProps = {
   text: string;
   onChangeText: (text: string) => void;
   onSelect: () => void;
-  asQuote: boolean;
-  onChangeAsQuote: (value: boolean) => void;
-  page: string;
-  onChangePage: (page: string) => void;
 };
 
-/** 書き出しのカード。選んでいるときだけ続きの入力欄を開く。 */
-export function Starter({
-  starter,
-  selected,
-  text,
-  onChangeText,
-  onSelect,
-  asQuote,
-  onChangeAsQuote,
-  page,
-  onChangePage,
-}: StarterProps) {
+/** ヒントのカード。選んでいるときだけ続きの入力欄を開く（読後メモを書く画面の作り直しまでの仮の形）。 */
+export function Starter({ starter, selected, text, onChangeText, onSelect }: StarterProps) {
   if (!selected) {
     const written = text.trim() !== '';
     return (
@@ -78,17 +61,6 @@ export function Starter({
         onChangeText={onChangeText}
         style={[styles.input, serif('reading')]}
       />
-      <ToggleRow small label="引用として残す" value={asQuote} onValueChange={onChangeAsQuote} />
-      {asQuote ? (
-        <TextField
-          label="ページ"
-          optionalLabel
-          value={page}
-          onChangeText={onChangePage}
-          keyboardType="number-pad"
-          maxLength={PAGE_MAX_LENGTH}
-        />
-      ) : null}
     </View>
   );
 }
@@ -155,7 +127,7 @@ type FreeFieldProps = {
   onChangeText: (text: string) => void;
 };
 
-/** 書き出しなしで自由に書く欄。 */
+/** ヒントなしで自由に書く欄。 */
 export function FreeField({ value, onChangeText }: FreeFieldProps) {
   return (
     <TextInput

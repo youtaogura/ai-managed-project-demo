@@ -142,7 +142,7 @@ export function RecordsScreen({
         {heading}
         <EmptyState
           title="最初の1冊を、棚に並べよう"
-          description={"今読んでいる本でも、読み終えた本でも。\n読み終えたら、書き出しの続きを書くだけで記録になります。"}
+          description={"今読んでいる本でも、読み終えた本でも。\n読み終えたら、読後メモを書くだけで記録になります。"}
           onAction={() => openAdd()}
         />
         {sheets}

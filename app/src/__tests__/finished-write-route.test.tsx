@@ -29,7 +29,7 @@ const routes = {
   'record/[id]': () => <Text>ダミー編集画面</Text>,
 };
 
-describe('読み終えた・書き出しの続きのルート', () => {
+describe('読み終えた・読後メモを書くルート', () => {
   beforeEach(async () => {
     await AsyncStorage.clear();
     await AsyncStorage.setItem(
@@ -67,15 +67,15 @@ describe('読み終えた・書き出しの続きのルート', () => {
 
   it('読み返す画面の入口から /write/<id> へ push する', async () => {
     await renderRouter(routes, { initialUrl: '/records/r1' });
-    await waitFor(() => expect(screen.getByRole('button', { name: '書き出しの続きを書く' })).toBeTruthy());
-    await fireEvent.press(screen.getByRole('button', { name: '書き出しの続きを書く' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: '読後メモを書く' })).toBeTruthy());
+    await fireEvent.press(screen.getByRole('button', { name: '読後メモを書く' }));
     await waitFor(() => expect(screen).toHavePathname('/write/r1'));
   });
 
-  it('読み返す画面から開いた書き出しの「あとで」で読み返す画面に戻る', async () => {
+  it('読み返す画面から開いた書く画面の「あとで」で読み返す画面に戻る', async () => {
     await renderRouter(routes, { initialUrl: '/records/r1' });
-    await waitFor(() => expect(screen.getByRole('button', { name: '書き出しの続きを書く' })).toBeTruthy());
-    await fireEvent.press(screen.getByRole('button', { name: '書き出しの続きを書く' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: '読後メモを書く' })).toBeTruthy());
+    await fireEvent.press(screen.getByRole('button', { name: '読後メモを書く' }));
     await waitFor(() => expect(screen.getByLabelText('ひとことで言うと、')).toBeTruthy());
     await fireEvent.changeText(screen.getByLabelText('ひとことで言うと、'), '途中');
     await fireEvent.press(screen.getByRole('button', { name: 'あとで' }));
@@ -84,7 +84,7 @@ describe('読み終えた・書き出しの続きのルート', () => {
     expect(saved).toHaveLength(1);
   });
 
-  it('読み終えた直後から開いた書き出しの「あとで」で本棚へ', async () => {
+  it('読み終えた直後から開いた書く画面の「あとで」で本棚へ', async () => {
     await renderRouter(routes, { initialUrl: '/finished/r1' });
     await waitFor(() => expect(screen.getByRole('button', { name: '記録を書く' })).toBeTruthy());
     await fireEvent.press(screen.getByRole('button', { name: '記録を書く' }));
