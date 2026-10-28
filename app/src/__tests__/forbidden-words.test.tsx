@@ -35,6 +35,8 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 
 // 「書き出し」は読後メモ・ヒントに置き換えた。データの「書き出し・読み込み」「書き出した」「書き出して」は別の意味なので除く
 const FORBIDDEN = /評価|レーティング|未評価|写真|書影|書き出し(?![・たて])/;
+// 並び替え（設定の並び順の行とシート）だけは、項目名として「評価」を使う
+const SORT_FORBIDDEN = /レーティング|未評価|写真|書影|書き出し(?![・たて])/;
 
 type Node = { type?: string; props?: { accessibilityLabel?: unknown }; children?: unknown };
 
@@ -52,10 +54,10 @@ function collectWords(node: unknown, out: string[] = []): string[] {
   return out;
 }
 
-const expectNoForbidden = (label: string) => {
+const expectNoForbidden = (label: string, forbidden: RegExp = FORBIDDEN) => {
   const words = collectWords(screen.toJSON());
   expect(words.length).toBeGreaterThan(0);
-  expect({ label, hits: words.filter((w) => FORBIDDEN.test(w)) }).toEqual({ label, hits: [] });
+  expect({ label, hits: words.filter((w) => forbidden.test(w)) }).toEqual({ label, hits: [] });
 };
 
 const rated = [
@@ -181,8 +183,8 @@ describe('使わなくなった言葉が画面に出ない', () => {
 
   it.each(SORT_ORDERS)('並び順シート（%s を選択中）', async (order) => {
     await render(<SortSheet visible value={order} onClose={noop} onChange={noop} />);
-    expectNoForbidden(`SortSheet ${order}`);
-    expect(FORBIDDEN.test(LIST_LABELS[order])).toBe(false);
+    expectNoForbidden(`SortSheet ${order}`, SORT_FORBIDDEN);
+    expect(SORT_FORBIDDEN.test(LIST_LABELS[order])).toBe(false);
     expect(FORBIDDEN.test(SHEET_LABELS[order])).toBe(false);
   });
 });

@@ -5,7 +5,6 @@ import { AppText } from '../components/AppText';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { ScreenHeaderBar } from '../components/ScreenHeaderBar';
 import { SettingsCard } from '../components/SettingsCard';
-import { SettingsRow } from '../components/SettingsRow';
 import { colors, radius, space } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { formatVersion, getAppInfo } from '../lib/appInfo';
@@ -54,13 +53,6 @@ export function AboutScreen() {
               </AppText>
             </View>
           ))}
-        </SettingsCard>
-        <SettingsCard title="ライセンス">
-          <SettingsRow
-            label="オープンソースライセンス"
-            value="使っているライブラリ"
-            onPress={() => router.push('/licenses')}
-          />
         </SettingsCard>
         <AppText variant="micro" style={styles.tertiary}>
           {PRIVACY}

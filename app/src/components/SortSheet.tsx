@@ -6,7 +6,8 @@ import { AppText } from './AppText';
 import { BottomSheet } from './BottomSheet';
 import { ChipGroup } from './Chip';
 
-const CHIP_WIDTH = 112;
+// 2 つ並ぶ行と 1 つの行で、チップの列（右端）と幅を揃える
+const CHIP_MIN_WIDTH = 96;
 
 type SortField = { label: string; options: readonly { value: SortOrder; label: string }[] };
 
@@ -27,7 +28,7 @@ export const SORT_FIELDS: readonly SortField[] = [
     ],
   },
   {
-    label: 'どうだった？',
+    label: '評価',
     options: [
       { value: 'rating_desc', label: '高い順' },
       { value: 'rating_asc', label: '低い順' },
@@ -47,27 +48,24 @@ type SortSheetProps = {
 export function SortSheet({ visible, value, onClose, onChange }: SortSheetProps) {
   return (
     <BottomSheet visible={visible} onClose={onClose} title="並び替え" showCloseButton>
-      {SORT_FIELDS.map((field) => {
+      {SORT_FIELDS.map((field, index) => {
         const active = field.options.some((option) => option.value === value);
+        const last = index === SORT_FIELDS.length - 1;
         return (
-          <View key={field.label} style={styles.row}>
-            <AppText
-              variant="body"
-              style={[styles.label, active && styles.activeLabel]}
-            >
+          <View key={field.label} style={[styles.row, last && styles.lastRow]}>
+            <AppText variant="body" style={[styles.label, active && styles.activeLabel]}>
               {field.label}
             </AppText>
-            <View style={{ width: field.options.length * CHIP_WIDTH }}>
-              <ChipGroup
-                label={field.label}
-                options={field.options}
-                value={value}
-                onChange={(order) => {
-                  onChange(order);
-                  onClose();
-                }}
-              />
-            </View>
+            <ChipGroup
+              label={field.label}
+              options={field.options}
+              value={value}
+              minChipWidth={CHIP_MIN_WIDTH}
+              onChange={(order) => {
+                onChange(order);
+                onClose();
+              }}
+            />
           </View>
         );
       })}
@@ -80,10 +78,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: space[2],
+    gap: space[3],
+    paddingVertical: space[3],
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
   },
-  label: { color: colors.textPrimary },
+  lastRow: { borderBottomWidth: 0 },
+  label: { flexShrink: 1, color: colors.textPrimary },
   activeLabel: { fontWeight: '700' },
 });

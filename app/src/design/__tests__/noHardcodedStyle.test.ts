@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
@@ -6,7 +7,6 @@ const FILES = [
   'screens/SettingsScreen.tsx',
   'screens/DataScreen.tsx',
   'screens/AboutScreen.tsx',
-  'screens/LicensesScreen.tsx',
   'components/SettingsCard.tsx',
   'components/SettingsRow.tsx',
   'components/ExportSheet.tsx',
