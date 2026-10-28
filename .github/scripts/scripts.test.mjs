@@ -185,7 +185,7 @@ test('coverage: どのテストからも読み込まれない新規ファイル�
 test('coverage: 型定義だけのファイル（Jest のカバレッジに載らない）は未実行に数えない', () => {
   const dir = makeRepo({
     'app/src/lib/calc.ts': 'export function f() {\n  return 1;\n}\n',
-    'app/src/types/thing.ts': '/** もの */\nexport type Thing = {\n  // 名前\n  name: string;\n};\nexport interface Other { id: string }\n',
+    'app/src/lib/thing.ts': '/** もの */\nexport type Thing = {\n  // 名前\n  name: string;\n};\nexport interface Other { id: string }\n',
   });
   write(dir, { 'app/coverage/lcov.info': `SF:${path.join(dir, 'app/src/lib/calc.ts')}\nDA:1,1\nDA:2,1\nend_of_record\n` });
   const r = runScript('diff-coverage.mjs', dir);
@@ -194,11 +194,21 @@ test('coverage: 型定義だけのファイル（Jest のカバレッジに載�
 });
 
 test('coverage: 実行されるコードがあるのに読み込まれないファイルは、型と一緒でも NG', () => {
-  const dir = makeRepo({ 'app/src/types/thing.ts': 'export type Thing = { name: string };\nexport const DEFAULT = 1;\n' });
+  const dir = makeRepo({ 'app/src/lib/thing.ts': 'export type Thing = { name: string };\nexport const DEFAULT = 1;\n' });
   write(dir, { 'app/coverage/lcov.info': 'SF:/elsewhere/x.ts\nDA:1,1\nend_of_record\n' });
   const r = runScript('diff-coverage.mjs', dir);
   assert.equal(r.code, 1, r.out);
   assert.match(r.out, /thing\.ts/);
+});
+
+test('coverage: Jest で計測対象から外している src/types/ は数えない（実行されるコードがあっても）', () => {
+  const dir = makeRepo({
+    'app/src/lib/calc.ts': 'export function f() {\n  return 1;\n}\n',
+    'app/src/types/record.ts': "export const STATUSES = ['a'] as const;\nexport type Status = (typeof STATUSES)[number];\n",
+  });
+  write(dir, { 'app/coverage/lcov.info': `SF:${path.join(dir, 'app/src/lib/calc.ts')}\nDA:1,1\nDA:2,1\nend_of_record\n` });
+  const r = runScript('diff-coverage.mjs', dir);
+  assert.equal(r.code, 0, r.out);
 });
 
 test('coverage: lcov がなければ NG', () => {
