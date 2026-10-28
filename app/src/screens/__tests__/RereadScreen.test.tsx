@@ -606,3 +606,154 @@ describe('RereadScreen の読後メモを直す', () => {
     expect(screen.getByText('読後メモを直す')).toBeTruthy();
   });
 });
+
+describe('RereadScreen のひとこと・どうだった？を直す', () => {
+  const stored = async (repository: RecordRepository) => (await repository.getAll()).find((r) => r.id === 'x');
+  const opened = () => waitFor(() => expect(screen.getByText('星をなぞると 0.1 ずつ変わります')).toBeTruthy());
+  const slider = () => screen.getByLabelText('どうだった？');
+  // 何もない本では、画面の入口のボタンも同じ「この本をひとことで」なので、入力欄に絞る
+  const oneLinerInput = () => {
+    const found = screen.getAllByLabelText('この本をひとことで').find((el) => typeof el.props.onChangeText === 'function');
+    if (!found) throw new Error('入力欄がありません');
+    return found;
+  };
+  const drag = async (x: number) => {
+    await fireEvent(slider(), 'layout', { nativeEvent: { layout: { width: 100 } } });
+    await fireEvent(slider(), 'responderGrant', { nativeEvent: { locationX: x, pageX: x } });
+  };
+  const saveSheet = async () => {
+    await act(async () => {
+      await fireEvent.press(screen.getByRole('button', { name: '保存する' }));
+    });
+    await waitFor(() => expect(screen.queryByText('星をなぞると 0.1 ずつ変わります')).toBeNull());
+  };
+
+  it('ひとことを押すと、入っている値のシートが開く', async () => {
+    await show();
+    await fireEvent.press(await screen.findByRole('button', { name: 'この本をひとことで 猫の目で人間を笑う本' }));
+    await opened();
+    expect(screen.getAllByText('吾輩は猫である').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByRole('button', { name: '閉じる' })).toBeTruthy();
+    expect(oneLinerInput().props.value).toBe('猫の目で人間を笑う本');
+    expect(screen.getByText('どうだった？')).toBeTruthy();
+    expect(slider().props.accessibilityValue).toEqual({ text: '4.2' });
+    expect(screen.getAllByText('4.2')).toHaveLength(2);
+    expect(screen.getAllByText('よかった').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByRole('switch', { name: 'お気に入り' }).props.accessibilityState).toMatchObject({ checked: true });
+  });
+
+  it('星・数字・言葉・お気に入りの行を押してもシートが開く', async () => {
+    await show();
+    await fireEvent.press(await screen.findByRole('button', { name: 'どうだった？ 4.2 よかった、お気に入り' }));
+    await opened();
+    expect(oneLinerInput().props.value).toBe('猫の目で人間を笑う本');
+  });
+
+  it('直して保存すると、読み返す画面と保存した記録に反映され、ほかの項目は残る', async () => {
+    const repository = await show();
+    await fireEvent.press(await screen.findByRole('button', { name: 'この本をひとことで 猫の目で人間を笑う本' }));
+    await opened();
+    await fireEvent.changeText(oneLinerInput(), '  人間を外から見る本 ');
+    await drag(73);
+    expect(screen.getByText('3.7')).toBeTruthy();
+    expect(screen.getByText('まあまあ')).toBeTruthy();
+    await fireEvent.press(screen.getByRole('switch', { name: 'お気に入り' }));
+    await saveSheet();
+    expect(screen.getByText('「人間を外から見る本」')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'どうだった？ 3.7 まあまあ' })).toBeTruthy();
+    expect(screen.queryByText('お気に入り')).toBeNull();
+    const saved = await stored(repository);
+    expect(saved).toMatchObject({ oneLiner: '人間を外から見る本', rating: 3.7, favorite: false });
+    expect(saved?.postReadMemos).toHaveLength(2);
+    expect(saved?.memos).toHaveLength(3);
+    expect(saved?.shelfIds).toEqual(['s1', 's2']);
+  });
+
+  it('「星をなしにする」で、どうだった？を未入力に戻して保存できる', async () => {
+    const repository = await show([{ ...full, favorite: false }]);
+    await fireEvent.press(await screen.findByRole('button', { name: 'どうだった？ 4.2 よかった' }));
+    await opened();
+    await fireEvent.press(screen.getByRole('button', { name: '星をなしにする' }));
+    expect(screen.getByText('まだ選んでいません')).toBeTruthy();
+    expect(slider().props.accessibilityValue).toEqual({ text: '未選択' });
+    expect(screen.queryByRole('button', { name: '星をなしにする' })).toBeNull();
+    await saveSheet();
+    expect(screen.queryByText('4.2')).toBeNull();
+    expect((await stored(repository))?.rating).toBeNull();
+    // ひとことは残るので、ひとことから開ける
+    expect(screen.getByRole('button', { name: 'この本をひとことで 猫の目で人間を笑う本' })).toBeTruthy();
+  });
+
+  it('ひとことを空にして保存すると、ひとことはなくなり、星の行から開ける', async () => {
+    const repository = await show();
+    await fireEvent.press(await screen.findByRole('button', { name: 'この本をひとことで 猫の目で人間を笑う本' }));
+    await opened();
+    await fireEvent.changeText(oneLinerInput(), '   ');
+    await saveSheet();
+    expect(screen.queryByText('「猫の目で人間を笑う本」')).toBeNull();
+    expect((await stored(repository))?.oneLiner).toBeNull();
+    expect(screen.getByRole('button', { name: 'どうだった？ 4.2 よかった、お気に入り' })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'この本をひとことで' })).toBeNull();
+  });
+
+  it('ひとことも星もお気に入りもない本には「＋ この本をひとことで」の入口があり、そこから入れられる', async () => {
+    const repository = await show([{ ...full, oneLiner: null, rating: null, favorite: false }]);
+    await fireEvent.press(await screen.findByRole('button', { name: 'この本をひとことで' }));
+    await opened();
+    expect(oneLinerInput().props.value).toBe('');
+    expect(screen.getByText('まだ選んでいません')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '星をなしにする' })).toBeNull();
+    await fireEvent.changeText(oneLinerInput(), 'はじめてのひとこと');
+    await drag(100);
+    await fireEvent.press(screen.getByRole('switch', { name: 'お気に入り' }));
+    await saveSheet();
+    expect(screen.getByText('「はじめてのひとこと」')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'どうだった？ 5.0 最高、お気に入り' })).toBeTruthy();
+    expect(screen.queryByText('＋ この本をひとことで')).toBeNull();
+    expect(await stored(repository)).toMatchObject({ oneLiner: 'はじめてのひとこと', rating: 5, favorite: true });
+  });
+
+  it('「閉じる」で保存せずに閉じる', async () => {
+    const repository = await show();
+    await fireEvent.press(await screen.findByRole('button', { name: 'この本をひとことで 猫の目で人間を笑う本' }));
+    await opened();
+    await fireEvent.changeText(oneLinerInput(), '保存しない');
+    await fireEvent.press(screen.getByRole('button', { name: '閉じる' }));
+    await waitFor(() => expect(screen.queryByText('星をなぞると 0.1 ずつ変わります')).toBeNull());
+    expect(screen.getByText('「猫の目で人間を笑う本」')).toBeTruthy();
+    expect((await stored(repository))?.oneLiner).toBe('猫の目で人間を笑う本');
+  });
+
+  it('保存に失敗したらシートにエラーを出し、入力を残す', async () => {
+    await show([full], {}, false, () => Promise.reject(new Error('fail')));
+    await fireEvent.press(await screen.findByRole('button', { name: 'この本をひとことで 猫の目で人間を笑う本' }));
+    await opened();
+    await fireEvent.changeText(oneLinerInput(), '直した');
+    await act(async () => {
+      await fireEvent.press(screen.getByRole('button', { name: '保存する' }));
+    });
+    expect(await screen.findByText('保存できませんでした。もう一度お試しください')).toBeTruthy();
+    expect(oneLinerInput().props.value).toBe('直した');
+  });
+
+  it('読みたい本では、ひとこと・星は表示だけで押せず、入口も出さない', async () => {
+    await show([{ ...full, status: 'planned' }]);
+    expect(await screen.findByText('「猫の目で人間を笑う本」')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'この本をひとことで 猫の目で人間を笑う本' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'どうだった？ 4.2 よかった、お気に入り' })).toBeNull();
+    await fireEvent.press(screen.getByText('「猫の目で人間を笑う本」'));
+    expect(screen.queryByText('星をなぞると 0.1 ずつ変わります')).toBeNull();
+  });
+
+  it('何も入っていない読みたい本にも入口を出さない', async () => {
+    await show([{ ...full, status: 'planned', oneLiner: null, rating: null, favorite: false }]);
+    expect(await screen.findByText('読み始める')).toBeTruthy();
+    expect(screen.queryByRole('button', { name: 'この本をひとことで' })).toBeNull();
+  });
+
+  it('途中でやめた本では直せる', async () => {
+    await show([{ ...full, status: 'dropped' }]);
+    await fireEvent.press(await screen.findByRole('button', { name: 'この本をひとことで 猫の目で人間を笑う本' }));
+    await opened();
+  });
+});

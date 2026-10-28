@@ -88,6 +88,23 @@ describe('記録のルート配線', () => {
     expect(screen).toHavePathname('/write/r1');
   });
 
+  it('読み返す画面でお気に入りにして保存すると、本棚の背表紙に栞が付く', async () => {
+    await AsyncStorage.setItem(
+      RECORDS_STORAGE_KEY,
+      JSON.stringify([makeRecord({ id: 'r1', title: '吾輩は猫である', status: 'completed' })]),
+    );
+    await renderRouter(routes);
+    await fireEvent.press(await screen.findByLabelText(/^吾輩は猫である、/));
+    expect(screen.queryByTestId('spine-ribbon')).toBeNull();
+    await fireEvent.press(await screen.findByRole('button', { name: 'この本をひとことで' }));
+    await fireEvent.press(await screen.findByRole('switch', { name: 'お気に入り' }));
+    await fireEvent.press(screen.getByRole('button', { name: '保存する' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'お気に入り' })).toBeTruthy());
+    await fireEvent.press(screen.getByRole('button', { name: '戻る' }));
+    await waitFor(() => expect(screen.getByLabelText(/^吾輩は猫である、.*お気に入り$/)).toBeTruthy());
+    expect(screen.getByTestId('spine-ribbon')).toBeTruthy();
+  });
+
   it('存在しない id では本棚へ戻るボタンで一覧に戻る', async () => {
     await renderRouter(routes, { initialUrl: '/records/none' });
     await waitFor(() => expect(screen.getByText('本が見つかりません')).toBeTruthy());

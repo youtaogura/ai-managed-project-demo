@@ -103,7 +103,6 @@ const SCENES = [
     waitFor: '記録を書く',
   },
   { name: 'reread', data: () => ({ records: [makeRereadRecord()], shelves: SHELVES }), url: '/records/reread-1', waitFor: '宇宙はとても静かで、とても怖い。' },
-  // ひとことを直すシート（oneline-edit）は、実装する Issue で actions を足す
   {
     name: 'reread-empty',
     data: () => ({ records: [makeRereadEmptyRecord()], shelves: SHELVES }),
@@ -117,7 +116,13 @@ const SCENES = [
     actions: [{ text: 'いちばん心に残ったのは、宇宙は暗い森だという考え方。どこにいても見つかったら終わり。' }],
     waitFor: '読後メモを直す',
   },
-  { name: 'oneline-edit', data: () => ({ records: [makeRereadRecord()], shelves: SHELVES }), url: '/records/reread-1', waitFor: '宇宙はとても静かで、とても怖い。' },
+  {
+    name: 'oneline-edit',
+    data: () => ({ records: [makeRereadRecord()], shelves: SHELVES }),
+    url: '/records/reread-1',
+    actions: [{ text: '「宇宙はとても静かで、とても怖い。」' }],
+    waitFor: '星をなぞると 0.1 ずつ変わります',
+  },
   { name: 'review', data: () => ({ records: makeReviewRecords() }), url: '/analytics', waitFor: '振り返り' },
   { name: 'settings', data: () => ({ ...withShelf(), lastExportedAt: '2026-10-01T09:00:00.000Z' }), url: '/settings', waitFor: '設定' },
 ];

@@ -1,5 +1,5 @@
 import { makeRecord } from '../../testUtils';
-import { listPostReadMemos, removePostReadMemo, updatePostReadMemo } from '../reread';
+import { listPostReadMemos, removePostReadMemo, updateOneLine, updatePostReadMemo } from '../reread';
 
 const at = (n: number) => `2024-01-0${n}T00:00:00.000Z`;
 
@@ -55,5 +55,29 @@ describe('updatePostReadMemo / removePostReadMemo', () => {
 
   it('削除は指定した 1 件だけを除く', () => {
     expect(removePostReadMemo(record, 'p1').postReadMemos.map((m) => m.id)).toEqual(['p2']);
+  });
+});
+
+describe('updateOneLine', () => {
+  const record = makeRecord({
+    oneLiner: '前のひとこと',
+    rating: 4.2,
+    favorite: true,
+    shelfIds: ['s1'],
+    postReadMemos: [{ id: 'p1', text: '読後', createdAt: at(1) }],
+  });
+
+  it('ひとこと（前後の空白を除く）・どうだった？・お気に入りだけを差し替え、ほかは残す', () => {
+    const input = updateOneLine(record, { oneLiner: ' 新しいひとこと ', rating: 3.7, favorite: false });
+    expect(input).toMatchObject({ oneLiner: '新しいひとこと', rating: 3.7, favorite: false, shelfIds: ['s1'] });
+    expect(input.postReadMemos).toEqual(record.postReadMemos);
+  });
+
+  it('ひとことが空白だけなら null、どうだった？は null（未入力）に戻せる', () => {
+    expect(updateOneLine(record, { oneLiner: '  ', rating: null, favorite: true })).toMatchObject({
+      oneLiner: null,
+      rating: null,
+      favorite: true,
+    });
   });
 });

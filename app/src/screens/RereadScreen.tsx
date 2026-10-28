@@ -1,12 +1,13 @@
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { AppText } from '../components/AppText';
 import { BookHero } from '../components/BookHero';
 import { Button } from '../components/Button';
 import { MemoRow } from '../components/MemoRow';
 import { NoteSheet } from '../components/NoteSheet';
+import { OneLineSheet } from '../components/OneLineSheet';
 import { PostReadMemoSheet } from '../components/PostReadMemoSheet';
 import { Quote } from '../components/Quote';
 import { RatingStars } from '../components/RatingStars';
@@ -30,7 +31,7 @@ import {
   type NoteItem,
 } from '../lib/notes';
 import { getRatingWord } from '../lib/ratingWord';
-import { listPostReadMemos, removePostReadMemo, updatePostReadMemo } from '../lib/reread';
+import { listPostReadMemos, removePostReadMemo, updateOneLine, updatePostReadMemo } from '../lib/reread';
 import { formatRating, todayString } from '../lib/recordForm';
 import { shelfNames } from '../lib/shelfSelectors';
 import type { MediaRecord, NewRecordInput, PostReadMemo } from '../types/record';
@@ -73,6 +74,7 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
   const [error, setError] = useState<string | null>(null);
   const [sheet, setSheet] = useState<SheetState>(null);
   const [editingMemo, setEditingMemo] = useState<PostReadMemo | null>(null);
+  const [oneLineOpen, setOneLineOpen] = useState(false);
 
   // 書く画面から戻ったときに最新の内容を表示するため、フォーカスのたび読み込む
   useFocusEffect(
@@ -163,6 +165,15 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
   // 読みたい本（まだ読んでいない）には、読後メモの段もメモ・引用の入口も出さない
   const noteable = record.status !== 'planned';
   const editing = sheet?.mode === 'edit' ? sheet.item : null;
+  const hasRatingRow = record.rating !== null || record.favorite;
+  // ひとこと・どうだった？を直せるのは、読後メモの段を出す本だけ（読みたい本は表示だけ）
+  const editable = noteable;
+  const ratingRowLabel = [
+    record.rating !== null ? `どうだった？ ${formatRating(record.rating)} ${word ?? ''}`.trim() : null,
+    record.favorite ? 'お気に入り' : null,
+  ]
+    .filter((part) => part !== null)
+    .join('、');
   const startAction = record.status === 'planned' || record.status === 'dropped' ? START_ACTIONS[record.status] : null;
 
   return (
@@ -182,9 +193,20 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
       </View>
       <ScrollView contentContainerStyle={[styles.body, { paddingBottom: bottomInset + space[6] }]}>
         <BookHero record={record} shelves={shelves} />
-        {oneLiner ? <AppText variant="oneLine">{`「${oneLiner}」`}</AppText> : null}
-        {record.rating !== null || record.favorite ? (
-          <View style={styles.ratingRow}>
+        {oneLiner ? (
+          <Editable
+            label={`この本をひとことで ${oneLiner}`}
+            onPress={editable ? () => setOneLineOpen(true) : undefined}
+          >
+            <AppText variant="oneLine">{`「${oneLiner}」`}</AppText>
+          </Editable>
+        ) : null}
+        {hasRatingRow ? (
+          <Editable
+            label={ratingRowLabel}
+            onPress={editable ? () => setOneLineOpen(true) : undefined}
+            style={styles.ratingRow}
+          >
             {record.rating !== null ? (
               <View style={styles.rating}>
                 <RatingStars rating={record.rating} size={STARS_SIZE} showValue={false} />
@@ -205,7 +227,20 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
                 </AppText>
               </View>
             ) : null}
-          </View>
+          </Editable>
+        ) : null}
+        {editable && !oneLiner && !hasRatingRow ? (
+          // デザインにない入口。ひとことも星もお気に入りもない本だけに出す（判断ログ）
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="この本をひとことで"
+            style={styles.oneLinePrompt}
+            onPress={() => setOneLineOpen(true)}
+          >
+            <AppText variant="button" style={{ color: colors.textSecondary }}>
+              ＋ この本をひとことで
+            </AppText>
+          </Pressable>
         ) : null}
 
         {noteable ? (
@@ -340,6 +375,15 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
           onClose={() => setEditingMemo(null)}
         />
       ) : null}
+      {editable ? (
+        <OneLineSheet
+          visible={oneLineOpen}
+          bookTitle={record.title}
+          initial={{ oneLiner, rating: record.rating, favorite: record.favorite }}
+          onSubmit={(values) => save(updateOneLine(record, values))}
+          onClose={() => setOneLineOpen(false)}
+        />
+      ) : null}
       <ShelfPickSheet
         visible={shelfOpen}
         shelves={shelves}
@@ -351,6 +395,24 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
         onClose={() => setShelfOpen(false)}
       />
     </View>
+  );
+}
+
+type EditableProps = {
+  label: string;
+  /** 渡さないときは押せない（読みたい本） */
+  onPress?: () => void;
+  style?: StyleProp<ViewStyle>;
+  children: ReactNode;
+};
+
+/** 押すと直すシートが開く表示。押せないときはただの View。 */
+function Editable({ label, onPress, style, children }: EditableProps) {
+  if (!onPress) return <View style={style}>{children}</View>;
+  return (
+    <Pressable accessibilityRole="button" accessibilityLabel={label} style={style} onPress={onPress}>
+      {children}
+    </Pressable>
   );
 }
 
@@ -378,8 +440,9 @@ const styles = StyleSheet.create({
   },
   edit: { minHeight: size.touchMin, minWidth: size.touchMin, alignItems: 'center', justifyContent: 'center' },
   body: { paddingHorizontal: space[5], gap: space[3] },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  ratingRow: { minHeight: size.touchMin, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   rating: { flexDirection: 'row', alignItems: 'center', gap: space[2] },
+  oneLinePrompt: { minHeight: size.touchMin, justifyContent: 'center', alignSelf: 'flex-start' },
   pill: {
     borderWidth: 1,
     borderColor: colors.ribbon,

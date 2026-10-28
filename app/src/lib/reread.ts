@@ -36,3 +36,22 @@ export function removePostReadMemo(record: MediaRecord, id: string): NewRecordIn
 function withPostReadMemos(record: MediaRecord, postReadMemos: PostReadMemo[]): NewRecordInput {
   return { ...recordToInput(record, record.memos, record.quotes), postReadMemos };
 }
+
+/** 「この本をひとことで・どうだった？を直す」シートで直せる 3 つ */
+export type OneLineValues = {
+  oneLiner: string;
+  /** null は「まだ選んでいません」に戻す */
+  rating: number | null;
+  favorite: boolean;
+};
+
+/** ひとこと・どうだった？・お気に入りを差し替えた保存用の入力。ひとことは前後の空白を除き、空なら null。 */
+export function updateOneLine(record: MediaRecord, values: OneLineValues): NewRecordInput {
+  const oneLiner = values.oneLiner.trim();
+  return {
+    ...recordToInput(record, record.memos, record.quotes),
+    oneLiner: oneLiner === '' ? null : oneLiner,
+    rating: values.rating,
+    favorite: values.favorite,
+  };
+}
