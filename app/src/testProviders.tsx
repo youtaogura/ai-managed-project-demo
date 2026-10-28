@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 
 import { SettingsContextProvider } from './hooks/useSettings';
 import { ShelfRepositoryProvider } from './hooks/useShelfRepository';
-import { StarterSettingsContextProvider } from './hooks/useStarterSettings';
 import { NoteDraftStoreProvider } from './hooks/useNoteDraftStore';
 import { WriteDraftStoreProvider } from './hooks/useWriteDraftStore';
 import { RecordRepositoryProvider } from './hooks/useRecordRepository';
@@ -11,7 +10,6 @@ import type { WriteDraftStore } from './lib/writeDraftStore';
 import type { RecordRepository } from './lib/recordRepository';
 import type { SettingsStore } from './lib/settingsStore';
 import type { ShelfRepository } from './lib/shelfRepository';
-import type { StarterSettingsStore } from './lib/starterSettingsStore';
 import { createShelfRepository } from './lib/shelfRepository';
 import { createMemoryStorage } from './testUtils';
 
@@ -37,17 +35,12 @@ export function withShelfRepository(repository: ShelfRepository, children: React
   return <ShelfRepositoryProvider repository={repository}>{children}</ShelfRepositoryProvider>;
 }
 
-/** 書き出し設定のストアを注入する。 */
-export function withStarterSettings(store: StarterSettingsStore, children: ReactNode) {
-  return <StarterSettingsContextProvider store={store}>{children}</StarterSettingsContextProvider>;
-}
-
 /** 書きかけ（メモ・引用）の保存先を注入する。 */
 export function withNoteDraftStore(store: NoteDraftStore, children: ReactNode) {
   return <NoteDraftStoreProvider store={store}>{children}</NoteDraftStoreProvider>;
 }
 
-/** 書きかけ（書き出しの続き）の保存先を注入する。 */
+/** 書きかけ（読後メモを書く画面）の保存先を注入する。 */
 export function withWriteDraftStore(store: WriteDraftStore, children: ReactNode) {
   return <WriteDraftStoreProvider store={store}>{children}</WriteDraftStoreProvider>;
 }

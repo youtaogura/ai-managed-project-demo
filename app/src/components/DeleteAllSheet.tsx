@@ -26,7 +26,7 @@ export function DeleteAllSheet({
   return (
     <BottomSheet visible={visible} onClose={onCancel} title="すべての記録を削除しますか？">
       <AppText style={[styles.message, { color: colors.textSecondary }]}>
-        {`${count} 件の記録（メモ・引用・書き出しを含む）がすべて削除されます。元に戻せません。設定はそのまま残ります。`}
+        {`${count} 件の記録（メモ・引用・読後メモを含む）がすべて削除されます。元に戻せません。設定はそのまま残ります。`}
       </AppText>
       <View style={styles.actions}>
         <Button label="先に書き出す" onPress={onExport} disabled={busy} />

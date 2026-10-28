@@ -77,13 +77,13 @@ describe('記録のルート配線', () => {
     await waitFor(() => expect(screen.getByText('ダミー追加画面')).toBeTruthy());
   });
 
-  it('読み返す画面の「書き出しの続きを書く」で書く画面へ遷移する', async () => {
+  it('読み返す画面の「読後メモを書く」で書く画面へ遷移する', async () => {
     await AsyncStorage.setItem(
       RECORDS_STORAGE_KEY,
       JSON.stringify([makeRecord({ id: 'r1', title: '吾輩は猫である', status: 'completed' })]),
     );
     await renderRouter(routes, { initialUrl: '/records/r1' });
-    await fireEvent.press(await screen.findByRole('button', { name: '書き出しの続きを書く' }));
+    await fireEvent.press(await screen.findByRole('button', { name: '読後メモを書く' }));
     await waitFor(() => expect(screen.getByText('ダミー書く画面')).toBeTruthy());
     expect(screen).toHavePathname('/write/r1');
   });

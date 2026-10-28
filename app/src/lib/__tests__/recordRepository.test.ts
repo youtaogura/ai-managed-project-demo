@@ -1,8 +1,6 @@
 import { makeRecord } from '../../testUtils';
 import type { NewRecordInput } from '../../types/record';
 import { RECORDS_STORAGE_KEY, ValidationError, createRecordRepository } from '../recordRepository';
-import { defaultStarterSettings } from '../starterDefaults';
-import { createStarterSettingsStore } from '../starterSettingsStore';
 import type { KeyValueStorage } from '../storage';
 
 function createMemoryStorage(initial: Record<string, string> = {}) {
@@ -32,10 +30,9 @@ const input: NewRecordInput = {
   rating: null,
   source: { provider: 'manual' },
   oneLiner: null,
-  starters: [],
+  postReadMemos: [],
   quotes: [],
   memos: [],
-  freeTexts: [],
   favorite: false,
   shelfIds: [],
 };
@@ -321,17 +318,9 @@ describe('RecordRepository.importRecords', () => {
     const rich = {
       ...input,
       oneLiner: 'ひとこと',
-      starters: [
-        {
-          id: 's1',
-          starter: 'いちばん心に残ったのは、',
-          text: '嵐',
-          createdAt: 'x',
-        },
-      ],
+      postReadMemos: [{ id: 'p1', text: 'いちばん心に残ったのは、嵐', createdAt: 'x' }],
       quotes: [{ id: 'q1', text: '引用', page: '12', comment: null, createdAt: 'x' }],
       memos: [{ id: 'm1', text: 'メモ', page: null, createdAt: 'x' }],
-      freeTexts: [{ id: 'f1', text: '文章', createdAt: 'x' }],
       favorite: true,
       shelfIds: ['sh1'],
     };
@@ -353,8 +342,7 @@ describe('RecordRepository.importRecords', () => {
         shelfIds: [],
         quotes: [],
         memos: [],
-        freeTexts: [],
-        starters: [],
+        postReadMemos: [],
       });
       expect(updated).toMatchObject({
         id: added.id,
@@ -386,19 +374,6 @@ describe('RecordRepository.importRecords', () => {
     it('不正な spineColor は ValidationError', async () => {
       const repo = setup(createMemoryStorage().storage);
       await expect(repo.add({ ...input, spineColor: 'x' as never })).rejects.toThrow();
-    });
-
-    it('書き出し設定を変えても、保存済みの starter の文は変わらない', async () => {
-      const { storage } = createMemoryStorage();
-      const repo = setup(storage);
-      await repo.add(rich);
-      const settingsStore = createStarterSettingsStore(storage);
-      const settings = defaultStarterSettings();
-      await settingsStore.save({
-        ...settings,
-        items: settings.items.slice(1).map((i) => ({ ...i, text: '書き換え', enabled: false })),
-      });
-      expect((await repo.getAll())[0]?.starters[0]?.starter).toBe('いちばん心に残ったのは、');
     });
 
     it('removeShelfId は全記録から外し、ほかの本棚と件数は変わらない', async () => {

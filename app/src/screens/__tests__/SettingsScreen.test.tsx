@@ -4,10 +4,8 @@ import { createExportStore, LAST_EXPORTED_AT_KEY } from '../../lib/exportStore';
 import type { ReactNode } from 'react';
 import { createSettingsStore, type SettingsStore } from '../../lib/settingsStore';
 import { createSortOrderStore, SORT_ORDER_STORAGE_KEY } from '../../lib/sortOrderStore';
-import { defaultStarterSettings } from '../../lib/starterDefaults';
-import { createStarterSettingsStore } from '../../lib/starterSettingsStore';
 import { createShelfRepository } from '../../lib/shelfRepository';
-import { withSettings as baseWithSettings, withShelfRepository, withStarterSettings } from '../../testProviders';
+import { withSettings as baseWithSettings, withShelfRepository } from '../../testProviders';
 import { createMemoryStorage } from '../../testUtils';
 import { SettingsScreen } from '../SettingsScreen';
 
@@ -33,32 +31,19 @@ describe('SettingsScreen', () => {
     expect(screen.queryByRole('checkbox')).toBeNull();
   });
 
-  it('書き出しはステータスの初期値より上、各行はボタン', async () => {
+  it('各行はボタンで、「書き出し」の行はない', async () => {
     await render(
       withSettings(createSettingsStore(createMemoryStorage().storage), <SettingsScreen />),
     );
     await screen.findByText('設定');
     const names = screen.getAllByRole('button').map((b) => b.props.accessibilityLabel);
     expect(names).toEqual([
-      '書き出し、オン · 一度に 3 つ · 7 個から',
       'ステータスの初期値、読み終わった',
       '本棚の管理、まだありません',
       '並び順、終了日の新しい順',
       'データ、書き出し・読み込み · まだ書き出していません',
       'このアプリについて',
     ]);
-  });
-
-  it('書き出しが機能オフなら「オフ」', async () => {
-    const { storage } = createMemoryStorage();
-    await createStarterSettingsStore(storage).save({ ...defaultStarterSettings(), enabled: false });
-    await render(
-      withSettings(
-        createSettingsStore(createMemoryStorage().storage),
-        withStarterSettings(createStarterSettingsStore(storage), <SettingsScreen />),
-      ),
-    );
-    expect(await screen.findByRole('button', { name: '書き出し、オフ' })).toBeTruthy();
   });
 });
 
@@ -159,20 +144,6 @@ describe('SettingsScreen（このアプリについて）', () => {
     );
     await fireEvent.press(await screen.findByRole('button', { name: 'このアプリについて' }));
     expect(onOpenAbout).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe('SettingsScreen（書き出し）', () => {
-  it('行に要約を出し、タップで onOpenStarters を呼ぶ', async () => {
-    const onOpenStarters = jest.fn();
-    await render(
-      withSettings(
-        createSettingsStore(createMemoryStorage().storage),
-        <SettingsScreen onOpenStarters={onOpenStarters} />,
-      ),
-    );
-    await fireEvent.press(await screen.findByRole('button', { name: '書き出し、オン · 一度に 3 つ · 7 個から' }));
-    expect(onOpenStarters).toHaveBeenCalledTimes(1);
   });
 });
 

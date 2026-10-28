@@ -12,7 +12,6 @@ import { RatingStars } from '../components/RatingStars';
 import { RuledText } from '../components/RuledText';
 import { SettingsRow } from '../components/SettingsRow';
 import { ShelfPickSheet } from '../components/ShelfPickSheet';
-import { StarterText } from '../components/StarterText';
 import { regularTextStyle } from '../design/fonts';
 import { colors, radius, size, space, typography } from '../design/tokens';
 import { useBottomInset } from '../hooks/useBottomInset';
@@ -30,7 +29,7 @@ import {
   type NoteItem,
 } from '../lib/notes';
 import { getRatingWord } from '../lib/ratingWord';
-import { buildRereadEntries, hasRereadContent } from '../lib/reread';
+import { hasRereadContent, listPostReadMemos } from '../lib/reread';
 import { formatRating, todayString } from '../lib/recordForm';
 import { shelfNames } from '../lib/shelfSelectors';
 import type { MediaRecord, NewRecordInput } from '../types/record';
@@ -89,7 +88,7 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
     }, [repository, recordId]),
   );
 
-  const entries = useMemo(() => (record ? buildRereadEntries(record) : []), [record]);
+  const postReadMemos = useMemo(() => (record ? listPostReadMemos(record) : []), [record]);
   const noteItems = useMemo(
     () =>
       record
@@ -161,7 +160,7 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
   const noteable = record.status !== 'planned';
   const editing = sheet?.mode === 'edit' ? sheet.item : null;
   const empty = !hasRereadContent(record);
-  const hasBody = entries.length > 0;
+  const hasBody = postReadMemos.length > 0;
   const startAction = record.status === 'planned' || record.status === 'dropped' ? START_ACTIONS[record.status] : null;
 
   return (
@@ -211,20 +210,11 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
           <>
             <View style={styles.divider} />
             <View style={styles.entries}>
-              {entries.map((item) => {
-                if (item.kind === 'starter') {
-                  return (
-                    <RuledText key={`starter-${item.entry.id}`}>
-                      <StarterText starter={item.entry.starter} text={item.entry.text} />
-                    </RuledText>
-                  );
-                }
-                return (
-                  <RuledText key={`free-${item.entry.id}`}>
-                    <AppText variant="reading">{item.entry.text.trim()}</AppText>
-                  </RuledText>
-                );
-              })}
+              {postReadMemos.map((memo) => (
+                <RuledText key={`post-read-${memo.id}`}>
+                  <AppText variant="reading">{memo.text.trim()}</AppText>
+                </RuledText>
+              ))}
             </View>
           </>
         ) : null}
@@ -277,7 +267,7 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
             <AppText variant="body" style={{ color: colors.textSecondary }}>
               まだ何も書いていません。読み終えた直後の言葉を残しておくと、あとで人に勧めるときに助けになります
             </AppText>
-            <Button label="書き出しの続きを書く" onPress={() => onWrite?.(record.id)} />
+            <Button label="読後メモを書く" onPress={() => onWrite?.(record.id)} />
           </View>
         ) : null}
 
@@ -301,7 +291,7 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
           value={shelfNames(record, shelves).join('、') || 'まだ入れていません'}
           onPress={() => setShelfOpen(true)}
         />
-        {completed && !empty ? <SettingsRow label="書き出しの続きを書く" onPress={() => onWrite?.(record.id)} /> : null}
+        {completed && !empty ? <SettingsRow label="読後メモを書く" onPress={() => onWrite?.(record.id)} /> : null}
       </ScrollView>
 
       {noteable ? (

@@ -46,6 +46,7 @@ describe('recordsToCsv', () => {
       '終えた日',
       'どうだった？',
       'ひとこと',
+      '読後メモ',
       '登録日時',
       '更新日時',
     ]);
@@ -71,9 +72,25 @@ describe('recordsToCsv', () => {
       '',
       '4.5',
       '',
+      '',
       '2024-01-01T00:00:00.000Z',
       '2024-01-01T00:00:00.000Z',
     ]);
+  });
+
+  it('読後メモは書いた順に空行で区切って 1 つのセルにまとめ、空白だけのものは除く', () => {
+    const csv = recordsToCsv([
+      makeRecord({
+        postReadMemos: [
+          { id: 'b', text: '=あとの, "メモ"', createdAt: '2024-01-02T00:00:00.000Z' },
+          { id: 'c', text: '  ', createdAt: '2024-01-03T00:00:00.000Z' },
+          { id: 'a', text: ' いちばん心に残ったのは、海 ', createdAt: '2024-01-01T00:00:00.000Z' },
+        ],
+      }),
+    ]);
+    const rows = parseCsv(csv.slice(1));
+    const column = rows[0]?.indexOf('読後メモ') ?? -1;
+    expect(rows[1]?.[column]).toBe('いちばん心に残ったのは、海\n\n=あとの, "メモ"');
   });
 
   it('カンマ・改行・引用符を含む値が往復する', () => {

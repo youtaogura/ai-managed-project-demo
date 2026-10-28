@@ -18,12 +18,6 @@ export function Quote({ quote, onPress }: QuoteProps) {
     <View style={styles.row}>
       <View testID="quote-line" style={styles.line} />
       <View style={styles.content}>
-        {quote.starter ? (
-          // 書き出しカードから引用にしたもの: 書き出しの文を、読み返す画面の書き出しと同じ朱の太字の明朝で添える
-          <AppText testID="quote-starter" variant="starter" style={{ color: colors.ribbon }}>
-            {quote.starter}
-          </AppText>
-        ) : null}
         <AppText variant="quote">{quote.text}</AppText>
         {quote.page ? (
           <AppText variant="micro" style={{ color: colors.textSecondary }}>

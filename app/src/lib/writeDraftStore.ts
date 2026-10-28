@@ -11,30 +11,19 @@ export type WriteDraftStore = {
 
 const keyOf = (recordId: string) => `${WRITE_DRAFT_KEY_PREFIX}${recordId}`;
 
+/** 前の版の下書き（starterId・page・asQuote があった）も、余分な項目を捨てて読む。 */
 function toCard(value: unknown): WriteCard | null {
   if (typeof value !== 'object' || value === null) return null;
   const v = value as Record<string, unknown>;
   if (
     typeof v.key !== 'string' ||
     (v.kind !== 'starter' && v.kind !== 'free') ||
-    (v.starterId !== null && typeof v.starterId !== 'string') ||
     typeof v.starter !== 'string' ||
-    typeof v.text !== 'string' ||
-    typeof v.page !== 'string' ||
-    typeof v.asQuote !== 'boolean'
+    typeof v.text !== 'string'
   ) {
     return null;
   }
-  if (v.kind === 'starter' && v.starterId === null) return null;
-  return {
-    key: v.key,
-    kind: v.kind,
-    starterId: v.starterId,
-    starter: v.starter,
-    text: v.text,
-    page: v.page,
-    asQuote: v.asQuote,
-  };
+  return { key: v.key, kind: v.kind, starter: v.starter, text: v.text };
 }
 
 export function toWriteDraft(value: unknown): WriteDraft | null {

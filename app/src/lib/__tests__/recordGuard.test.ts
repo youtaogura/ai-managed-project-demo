@@ -16,14 +16,7 @@ const valid = {
   updatedAt: '2024-01-01T00:00:00.000Z',
   source: { provider: 'manual' },
   oneLiner: 'よかった',
-  starters: [
-    {
-      id: 's1',
-      starter: 'いちばん心に残ったのは、',
-      text: '嵐',
-      createdAt: '2024-01-01T00:00:00.000Z',
-    },
-  ],
+  postReadMemos: [{ id: 'p1', text: 'いちばん心に残ったのは、嵐', createdAt: '2024-01-01T00:00:00.000Z' }],
   quotes: [
     {
       id: 'q1',
@@ -41,7 +34,6 @@ const valid = {
       createdAt: '2024-01-01T00:00:00.000Z',
     },
   ],
-  freeTexts: [{ id: 'f1', text: '文章', createdAt: '2024-01-01T00:00:00.000Z' }],
   favorite: true,
   spineColor: 'spine-3',
   shelfIds: ['shelf-1'],
@@ -70,8 +62,9 @@ describe('isMediaRecord', () => {
     ['creator 数値', { ...valid, creator: 1 }],
     ['oneLiner 欠落', { ...valid, oneLiner: undefined }],
     ['oneLiner 数値', { ...valid, oneLiner: 1 }],
-    ['starters 欠落', { ...valid, starters: undefined }],
-    ['starters の要素が不正', { ...valid, starters: [{ id: 's' }] }],
+    ['postReadMemos 欠落', { ...valid, postReadMemos: undefined }],
+    ['postReadMemos の要素が不正', { ...valid, postReadMemos: [{ id: 'p' }] }],
+    ['postReadMemos の id が空', { ...valid, postReadMemos: [{ id: '', text: 't', createdAt: 'x' }] }],
     [
       'quotes の page が数値',
       {
@@ -81,7 +74,6 @@ describe('isMediaRecord', () => {
     ],
     ['memos が配列でない', { ...valid, memos: {} }],
     ['memos の要素が不正', { ...valid, memos: [{ id: 'm', text: 1, page: null, createdAt: 'x' }] }],
-    ['freeTexts の要素が不正', { ...valid, freeTexts: [null] }],
     ['favorite が文字列', { ...valid, favorite: 'true' }],
     ['spineColor 不正', { ...valid, spineColor: 'spine-11' }],
     ['shelfIds が配列でない', { ...valid, shelfIds: 'a' }],
@@ -101,25 +93,6 @@ describe('isMediaRecord', () => {
     ['日付逆転', { ...valid, startDate: '2024-02-01', endDate: '2024-01-01' }],
   ])('%s は無効', (_name, value) => {
     expect(isMediaRecord(value)).toBe(false);
-  });
-});
-
-describe('引用の starter', () => {
-  const withStarter = (starter: unknown) => ({
-    ...valid,
-    quotes: [{ id: 'q', text: 't', page: null, comment: null, starter, createdAt: 'x' }],
-  });
-
-  it.each([[undefined], [null], ['好きなのは、']])('%p を受け入れる', (starter) => {
-    expect(isMediaRecord(withStarter(starter))).toBe(true);
-  });
-
-  it('数値は拒否する', () => {
-    expect(isMediaRecord(withStarter(1))).toBe(false);
-  });
-
-  it('parseRecords で保たれる', () => {
-    expect(parseRecords([withStarter('好きなのは、')])[0].quotes[0].starter).toBe('好きなのは、');
   });
 });
 

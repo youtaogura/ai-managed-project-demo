@@ -12,7 +12,6 @@ export default function SettingsRoute() {
       reloadKey={reloadKey}
       onOpenData={() => router.push('/data')}
       onOpenAbout={() => router.push('/about')}
-      onOpenStarters={() => router.push('/starters')}
       onOpenShelves={() => router.push('/shelves')}
     />
   );

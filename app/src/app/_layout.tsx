@@ -12,7 +12,6 @@ import { FileServiceContextProvider } from '../hooks/useFileService';
 import { NoteDraftStoreProvider } from '../hooks/useNoteDraftStore';
 import { SettingsContextProvider } from '../hooks/useSettings';
 import { ShelfRepositoryProvider } from '../hooks/useShelfRepository';
-import { StarterSettingsContextProvider } from '../hooks/useStarterSettings';
 import { RecordRepositoryProvider } from '../hooks/useRecordRepository';
 import { useAppFonts } from '../hooks/useAppFonts';
 import { parsePreviewInsets } from '../lib/previewInsets';
@@ -25,7 +24,6 @@ SplashScreen.preventAutoHideAsync().catch(() => undefined);
 function Providers() {
   return (
     <SettingsContextProvider>
-      <StarterSettingsContextProvider>
         <ShelfRepositoryProvider>
           <RecordRepositoryProvider>
             <BookLookupContextProvider>
@@ -44,7 +42,6 @@ function Providers() {
             </BookLookupContextProvider>
           </RecordRepositoryProvider>
         </ShelfRepositoryProvider>
-      </StarterSettingsContextProvider>
     </SettingsContextProvider>
   );
 }

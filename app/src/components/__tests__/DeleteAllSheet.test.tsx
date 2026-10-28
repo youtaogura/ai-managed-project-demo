@@ -15,7 +15,7 @@ describe('DeleteAllSheet', () => {
     expect(screen.getByText('すべての記録を削除しますか？')).toBeTruthy();
     expect(
       screen.getByText(
-        '7 件の記録（メモ・引用・書き出しを含む）がすべて削除されます。元に戻せません。設定はそのまま残ります。',
+        '7 件の記録（メモ・引用・読後メモを含む）がすべて削除されます。元に戻せません。設定はそのまま残ります。',
       ),
     ).toBeTruthy();
   });

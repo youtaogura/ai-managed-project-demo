@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen, within } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 
@@ -37,7 +37,7 @@ const done = (id: string, extra: Partial<MediaRecord>) =>
 
 const sample = [
   done('1', { endDate: '2026-10-01', rating: 4, spineColor: 'spine-4', oneLiner: 'よい', quotes: [] }),
-  done('2', { endDate: '2026-10-03', rating: 3, spineColor: 'spine-7', starters: [{ id: 's', starter: 'もし', text: 'a', createdAt: '' }] }),
+  done('2', { endDate: '2026-10-03', rating: 3, spineColor: 'spine-7', postReadMemos: [{ id: 'p', text: 'もしa', createdAt: '' }] }),
   done('3', { endDate: null }),
 ];
 
@@ -116,25 +116,13 @@ describe('ReviewScreen', () => {
     expect(screen.queryByText('今年のお気に入り')).toBeNull();
   });
 
-  it('今年いちばん使った書き出しと回数を出す。なければ段ごと出さない', async () => {
+  it('感想は読後メモのある本の数（ひとことだけの本は数えない）。いちばん使った書き出しの段はない', async () => {
     await setup(sample);
-    expect(await screen.findByText('今年いちばん使った書き出し')).toBeTruthy();
-    expect(screen.getByText('もし')).toBeTruthy();
-    expect(screen.getByText('· 1 回')).toBeTruthy();
-    expect(screen.queryByText('ひとことで言うと、')).toBeNull();
-  });
-
-  it('ひとことだけの本では書き出しの段を出さない', async () => {
-    await setup([done('1', { endDate: '2026-10-01', oneLiner: 'よい' })]);
     await screen.findByText('どうだった？');
-    expect(screen.queryByText('今年いちばん使った書き出し')).toBeNull();
-    expect(screen.queryByText('ひとことで言うと、')).toBeNull();
-  });
-
-  it('書き出しが使われていなければ段を出さない', async () => {
-    await setup([done('1', { endDate: '2026-10-01' })]);
-    await screen.findByText('どうだった？');
-    expect(screen.queryByText('今年いちばん使った書き出し')).toBeNull();
+    const card = screen.getByText('感想').parent;
+    expect(card).toBeTruthy();
+    expect(within(card as NonNullable<typeof card>).getByText('1')).toBeTruthy();
+    expect(screen.queryByText(/書き出し/)).toBeNull();
   });
 
   it('画面のどこにも「評価」「レーティング」が出ない', async () => {

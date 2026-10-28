@@ -16,7 +16,7 @@ describe('DeleteConfirmSheet', () => {
   it('見出しと記録名入りの説明を表示する', async () => {
     await setup();
     expect(screen.getByText('この記録を削除しますか？')).toBeTruthy();
-    expect(screen.getByText('「吾輩」の記録（メモ・引用・書き出しを含む）が削除されます。元に戻せません。')).toBeTruthy();
+    expect(screen.getByText('「吾輩」の記録（メモ・引用・読後メモを含む）が削除されます。元に戻せません。')).toBeTruthy();
   });
 
   it('「削除する」で onConfirm、「キャンセル」で onCancel が呼ばれる', async () => {

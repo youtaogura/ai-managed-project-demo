@@ -1,11 +1,10 @@
 import { RECORD_STATUSES, type MediaRecord, type RecordStatus } from '../types/record';
 import {
   isArrayOf,
-  isFreeTextEntry,
   isMemoEntry,
+  isPostReadMemo,
   isQuoteEntry,
   isSpineColor,
-  isStarterEntry,
   isStringArray,
 } from './recordEntries';
 import { isRecordSource, sourceFromIsbn } from './recordSource';
@@ -32,7 +31,7 @@ function toMediaRecord(value: unknown): MediaRecord | null {
   if (typeof createdAt !== 'string' || typeof updatedAt !== 'string') return null;
   if (!(rating === null || typeof rating === 'number') || !isValidRating(rating)) return null;
   const { creator, publisher, isbn, coverUrl, photoUri, startDate, endDate } = value;
-  const { oneLiner, starters, quotes, memos, freeTexts, favorite, spineColor, shelfIds } = value;
+  const { oneLiner, postReadMemos, quotes, memos, favorite, spineColor, shelfIds } = value;
   if (
     !isNullableString(creator) ||
     !isNullableString(publisher) ||
@@ -46,10 +45,9 @@ function toMediaRecord(value: unknown): MediaRecord | null {
     return null;
   }
   if (
-    !isArrayOf(starters, isStarterEntry) ||
+    !isArrayOf(postReadMemos, isPostReadMemo) ||
     !isArrayOf(quotes, isQuoteEntry) ||
     !isArrayOf(memos, isMemoEntry) ||
-    !isArrayOf(freeTexts, isFreeTextEntry) ||
     typeof favorite !== 'boolean' ||
     !isSpineColor(spineColor) ||
     !isStringArray(shelfIds)
@@ -73,10 +71,9 @@ function toMediaRecord(value: unknown): MediaRecord | null {
     updatedAt,
     source: isRecordSource(value.source) ? value.source : sourceFromIsbn(isbn),
     oneLiner,
-    starters,
+    postReadMemos,
     quotes,
     memos,
-    freeTexts,
     favorite,
     spineColor,
     shelfIds,

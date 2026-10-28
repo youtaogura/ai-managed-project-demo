@@ -45,10 +45,9 @@ const baseInput = {
   rating: null,
   source: { provider: 'manual' as const },
   oneLiner: null,
-  starters: [],
+  postReadMemos: [],
   quotes: [],
   memos: [],
-  freeTexts: [],
   favorite: false,
   shelfIds: [],
 };

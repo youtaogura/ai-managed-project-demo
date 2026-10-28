@@ -12,8 +12,6 @@ import { useBottomInset } from '../hooks/useBottomInset';
 import { useSortOrder } from '../hooks/useSortOrder';
 import { useShelfRepository } from '../hooks/useShelfRepository';
 import { useSettings } from '../hooks/useSettings';
-import { useStarterSettings } from '../hooks/useStarterSettings';
-import { starterSummary } from '../lib/starterItems';
 import { useLastExportedAt } from '../hooks/useLastExportedAt';
 import { createExportStore, type ExportStore } from '../lib/exportStore';
 import { formatDate } from '../lib/format';
@@ -33,7 +31,6 @@ type SettingsScreenProps = {
   reloadKey?: number;
   onOpenData?: () => void;
   onOpenAbout?: () => void;
-  onOpenStarters?: () => void;
   onOpenShelves?: () => void;
 };
 
@@ -43,12 +40,10 @@ export function SettingsScreen({
   reloadKey,
   onOpenData = () => undefined,
   onOpenAbout = () => undefined,
-  onOpenStarters = () => undefined,
   onOpenShelves = () => undefined,
 }: SettingsScreenProps) {
   const { lastExportedAt } = useLastExportedAt(exportStore, reloadKey);
   const { settings, update } = useSettings();
-  const { starterSettings } = useStarterSettings();
   const shelfRepository = useShelfRepository();
   const [shelfCount, setShelfCount] = useState(0);
   useEffect(() => {
@@ -78,7 +73,6 @@ export function SettingsScreen({
           設定
         </AppText>
         <SettingsCard title="読み終えたら">
-          <SettingsRow label="書き出し" value={starterSummary(starterSettings)} onPress={onOpenStarters} />
           <SettingsRow
             label="ステータスの初期値"
             value={STATUS_DEFAULT_LABELS[settings.defaultStatus]}

@@ -5,7 +5,7 @@ import { summarizeReview } from '../review';
 const now = new Date(2026, 9, 15);
 const done = (id: string, endDate: string | null, extra: Partial<MediaRecord> = {}) =>
   makeRecord({ id, status: 'completed', endDate, ...extra });
-const starter = (starter: string, text: string) => ({ id: `s-${starter}-${text}`, starter, text, createdAt: '' });
+const memo = (text: string) => ({ id: `p-${text}`, text, createdAt: '' });
 const quote = (id: string) => ({ id, text: 'q', page: null, comment: null, createdAt: '' });
 
 describe('summarizeReview', () => {
@@ -13,7 +13,8 @@ describe('summarizeReview', () => {
     const s = summarizeReview([], now);
     expect(s.period).toBe('2025/11 – 2026/10');
     expect(s.months).toHaveLength(12);
-    expect(s).toMatchObject({ read: 0, impressions: 0, quotes: 0, favorites: [], topStarter: null });
+    expect(s).toMatchObject({ read: 0, impressions: 0, quotes: 0, favorites: [] });
+    expect(s).not.toHaveProperty('topStarter');
     expect(s.ratings.average).toBeNull();
     expect(s.ratings.word).toBeNull();
     expect(s.ratings.buckets.map((b) => b.count)).toEqual([0, 0, 0, 0]);
@@ -37,13 +38,15 @@ describe('summarizeReview', () => {
     expect(s.months[11].books.map((b) => b.id)).toEqual(['b']);
   });
 
-  it('感想は書き出しの続きがある本、引用は合計', () => {
+  it('感想は期間内に読んだ本のうち読後メモ（空白だけは除く）が 1 件以上ある本の数、引用は合計', () => {
     const s = summarizeReview(
       [
         done('a', '2026-10-01', { oneLiner: 'よかった' }),
-        done('b', '2026-10-02', { starters: [starter('x', '  '), starter('y', 'ok')], quotes: [quote('1'), quote('2')] }),
-        done('c', '2026-10-03', { oneLiner: '  ', starters: [starter('x', '')], quotes: [quote('3')] }),
-        done('d', '2024-10-03', { oneLiner: 'x', quotes: [quote('4')] }),
+        done('b', '2026-10-02', { postReadMemos: [memo('  '), memo('ok')], quotes: [quote('1'), quote('2')] }),
+        done('c', '2026-10-03', { oneLiner: '  ', postReadMemos: [memo('')], quotes: [quote('3')] }),
+        done('d', '2024-10-03', { oneLiner: 'x', postReadMemos: [memo('期間外')], quotes: [quote('4')] }),
+        done('e', '2026-09-03', { postReadMemos: [memo('読んだ')] }),
+        makeRecord({ id: 'f', status: 'in_progress', postReadMemos: [memo('途中')] }),
       ],
       now,
     );
@@ -98,31 +101,5 @@ describe('summarizeReview', () => {
     expect(s.ratings.average).toBe(avg);
     expect(s.ratings.word).toBe(word);
     expect(s.ratings.buckets.map((b) => b.count)).toEqual(counts);
-  });
-
-  it('いちばん使った書き出しは今年の本から数え、固定の書き出し（ひとこと）は数えない', () => {
-    const s = summarizeReview(
-      [
-        done('a', '2026-02-01', { oneLiner: 'x' }),
-        done('b', '2026-03-01', { oneLiner: 'y', starters: [starter('もし', 'a')] }),
-        done('c', '2026-04-01', { starters: [starter('もし', 'b'), starter('そして', '')] }),
-        done('d', '2025-12-01', { starters: [starter('そして', 'a'), starter('そして', 'b'), starter('そして', 'c')] }),
-      ],
-      now,
-    );
-    expect(s.topStarter).toEqual({ text: 'もし', count: 2 });
-  });
-
-  it('ひとことだけの年は topStarter が null', () => {
-    const s = summarizeReview([done('a', '2026-02-01', { oneLiner: 'x' })], now);
-    expect(s.topStarter).toBeNull();
-  });
-
-  it('同数なら先に現れた書き出し', () => {
-    const s = summarizeReview(
-      [done('a', '2026-02-01', { starters: [starter('もし', 'a'), starter('そして', 'a')] })],
-      now,
-    );
-    expect(s.topStarter).toEqual({ text: 'もし', count: 1 });
   });
 });

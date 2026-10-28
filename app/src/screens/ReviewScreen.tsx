@@ -43,7 +43,7 @@ export function ReviewScreen({ onAdd, onOpenRecord }: ReviewScreenProps) {
     );
   }
 
-  const { period, read, impressions, quotes, months, favorites, ratings, topStarter } = summary;
+  const { period, read, impressions, quotes, months, favorites, ratings } = summary;
   const currentMonth = months[months.length - 1].month;
 
   return (
@@ -114,17 +114,6 @@ export function ReviewScreen({ onAdd, onOpenRecord }: ReviewScreenProps) {
           <RatingBreakdown buckets={ratings.buckets} />
         </View>
 
-        {topStarter !== null ? (
-          <View style={styles.section}>
-            <AppText variant="sectionTitle">今年いちばん使った書き出し</AppText>
-            <View style={styles.starterCard}>
-              <AppText variant="starter">{topStarter.text}</AppText>
-              <AppText variant="label" style={styles.secondary}>
-                {`· ${topStarter.count} 回`}
-              </AppText>
-            </View>
-          </View>
-        ) : null}
       </ScrollView>
     </ScreenContainer>
   );
@@ -154,15 +143,4 @@ const styles = StyleSheet.create({
   section: { gap: space[3] },
   average: { flexDirection: 'row', alignItems: 'baseline', gap: space[2] },
   word: { color: colors.ribbon },
-  starterCard: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'baseline',
-    columnGap: space[2],
-    backgroundColor: colors.surface1,
-    borderRadius: radius.card,
-    borderWidth: 1,
-    borderColor: colors.line,
-    padding: space[4],
-  },
 });

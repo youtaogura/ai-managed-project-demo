@@ -1,6 +1,5 @@
 import type { MediaRecord, SpineColor } from '../types/record';
 import { aggregateMonthlyCompletions, average, formatPeriod } from './analytics';
-import { STARTER_FIXED } from './constants';
 import { getRatingWord } from './ratingWord';
 
 export type RatingBucketLabel = '最高' | 'よかった' | 'まあまあ' | 'あんまり';
@@ -17,7 +16,6 @@ export type ReviewSummary = {
     word: string | null;
     buckets: { label: RatingBucketLabel; count: number }[];
   };
-  topStarter: { text: string; count: number } | null;
 };
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}/;
@@ -71,9 +69,8 @@ export function summarizeReview(records: MediaRecord[], now: Date): ReviewSummar
       .map((r) => ({ id: r.id, spineColor: r.spineColor })),
   }));
 
-  const impressions = read.filter(
-    (r) => hasText(r.oneLiner) || r.starters.some((s) => hasText(s.text)),
-  ).length;
+  // 感想 = 読後メモを 1 件以上書いた本の数
+  const impressions = read.filter((r) => r.postReadMemos.some((m) => hasText(m.text))).length;
   const quotes = read.reduce((sum, r) => sum + r.quotes.length, 0);
 
   const inYear = (r: MediaRecord) => endDateOf(r)?.slice(0, 4) === year;
@@ -90,16 +87,6 @@ export function summarizeReview(records: MediaRecord[], now: Date): ReviewSummar
   }
   const avg = rated === 0 ? null : average(sum, rated);
 
-  const starterCounts = new Map<string, number>();
-  const bump = (text: string) => starterCounts.set(text, (starterCounts.get(text) ?? 0) + 1);
-  for (const r of records.filter(inYear)) {
-    for (const s of r.starters) if (hasText(s.text) && s.starter !== STARTER_FIXED) bump(s.starter);
-  }
-  let topStarter: ReviewSummary['topStarter'] = null;
-  for (const [text, count] of starterCounts) {
-    if (topStarter === null || count > topStarter.count) topStarter = { text, count };
-  }
-
   return {
     period: formatPeriod(slots),
     read: read.length,
@@ -112,6 +99,5 @@ export function summarizeReview(records: MediaRecord[], now: Date): ReviewSummar
       word: getRatingWord(avg),
       buckets: BUCKET_LABELS.map((label, i) => ({ label, count: counts[i] })),
     },
-    topStarter,
   };
 }
