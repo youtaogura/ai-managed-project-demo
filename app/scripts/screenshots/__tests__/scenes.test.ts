@@ -7,6 +7,8 @@ import { SHELVES_STORAGE_KEY } from '../../../src/lib/shelfRepository';
 import { parseShelves } from '../../../src/lib/shelfGuard';
 import { LAST_EXPORTED_AT_KEY, createExportStore } from '../../../src/lib/exportStore';
 import { RECORDS_STORAGE_KEY } from '../../../src/lib/recordRepository';
+import { WRITE_DRAFT_KEY_PREFIX, toWriteDraft } from '../../../src/lib/writeDraftStore';
+import { HINTS } from '../../../src/lib/hints';
 import { parseNdlResponse } from '../../../src/lib/bookSearch/ndl/parseNdlResponse';
 import { NDL_SEARCH_URL, SCENES, STORAGE_KEYS, parseSceneArgs } from '../scenes.cjs';
 import { makeNdlSearchXml } from '../seed.cjs';
@@ -62,6 +64,16 @@ describe('SCENES', () => {
     }
   });
 
+  it.each(SCENES.map((s) => [s.name, s] as const))('%s の下書きがアプリの読み込みを通る', (_name, scene) => {
+    const { writeDrafts = {}, records = [] } = scene.data();
+    const allHints = Object.values(HINTS).flat();
+    for (const [recordId, draft] of Object.entries(writeDrafts)) {
+      expect(records.map((r) => r.id)).toContain(recordId);
+      expect(toWriteDraft(JSON.parse(JSON.stringify(draft)))).toEqual(draft);
+      for (const hint of draft.hints) expect(allHints).toContain(hint);
+    }
+  });
+
   it('url は / から始まり、待つ文言がある', () => {
     for (const scene of SCENES) {
       expect(scene.url.startsWith('/')).toBe(true);
@@ -75,6 +87,7 @@ describe('STORAGE_KEYS', () => {
     expect(STORAGE_KEYS.records).toBe(RECORDS_STORAGE_KEY);
     expect(STORAGE_KEYS.shelves).toBe(SHELVES_STORAGE_KEY);
     expect(STORAGE_KEYS.lastExportedAt).toBe(LAST_EXPORTED_AT_KEY);
+    expect(STORAGE_KEYS.writeDraftPrefix).toBe(WRITE_DRAFT_KEY_PREFIX);
   });
 });
 

@@ -1,6 +1,6 @@
 import { RECORD_SOURCE_PROVIDERS, RECORD_STATUSES } from '../record';
 import * as shelfModule from '../shelf';
-import { BACKUP_FORMAT, BACKUP_VERSION, ONE_LINER_PROMPT, OLDEST_BACKUP_VERSION, SPINE_COLORS } from '../../lib/constants';
+import { BACKUP_FORMAT, BACKUP_VERSION, OLDEST_BACKUP_VERSION, SPINE_COLORS } from '../../lib/constants';
 
 describe('定数', () => {
   it('背表紙の色は spine-1〜spine-10 の 10 色', () => {
@@ -11,10 +11,6 @@ describe('定数', () => {
   it('記録の状態と出どころの種類', () => {
     expect(RECORD_STATUSES).toEqual(['planned', 'in_progress', 'dropped', 'completed']);
     expect(RECORD_SOURCE_PROVIDERS).toEqual(['manual', 'openbd', 'ndl']);
-  });
-
-  it('ひとことの欄に添える文', () => {
-    expect(ONE_LINER_PROMPT).toBe('ひとことで言うと、');
   });
 
   it('バックアップの形式とバージョン', () => {

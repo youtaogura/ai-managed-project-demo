@@ -3,57 +3,46 @@ import type { KeyValueStorage } from '../storage';
 import { createWriteDraftStore } from '../writeDraftStore';
 import type { WriteDraft } from '../writeSession';
 
-const card = {
-  key: 'k1',
-  kind: 'starter' as const,
-  starter: 'いちばん心に残ったのは、',
-  text: '続き',
+const draft: WriteDraft = {
+  oneLiner: 'ひとこと',
+  text: 'いちばん心に残ったのは、海',
+  hints: ['いちばん心に残ったのは、', '意外だったのは、', 'この本を渡したいのは、'],
+  usedHints: ['いちばん心に残ったのは、'],
 };
-const draft: WriteDraft = { oneLiner: 'ひとこと', cards: [card], selectedKey: 'k1' };
 
 describe('writeDraftStore', () => {
   it('記録 ID ごとに保存・読み込み・消去できる', async () => {
     const { storage, data } = createMemoryStorage();
     const store = createWriteDraftStore(storage);
     await store.save('r1', draft);
-    expect(data.has('writeDraft.v1.r1')).toBe(true);
+    expect(data.has('writeDraft.v2.r1')).toBe(true);
     expect(await store.load('r1')).toEqual(draft);
     expect(await store.load('r2')).toBeNull();
     await store.clear('r1');
     expect(await store.load('r1')).toBeNull();
   });
 
-  it('壊れたデータや形の違うデータは null', async () => {
+  it('壊れたデータや形の違うデータ（前の版のカードの下書きを含む）は null', async () => {
     const { storage } = createMemoryStorage({
-      'writeDraft.v1.a': '{broken',
-      'writeDraft.v1.b': JSON.stringify({ oneLiner: 1, cards: [], selectedKey: null }),
-      'writeDraft.v1.c': 'null',
-      'writeDraft.v1.d': JSON.stringify({ oneLiner: '', cards: 'x', selectedKey: null }),
-      'writeDraft.v1.e': JSON.stringify({ oneLiner: '', cards: [], selectedKey: 3 }),
+      'writeDraft.v2.a': '{broken',
+      'writeDraft.v2.b': JSON.stringify({ oneLiner: 1, text: '' }),
+      'writeDraft.v2.c': 'null',
+      'writeDraft.v2.d': JSON.stringify({ oneLiner: '', cards: [], selectedKey: null }),
     });
     const store = createWriteDraftStore(storage);
-    for (const id of ['a', 'b', 'c', 'd', 'e']) expect(await store.load(id)).toBeNull();
+    for (const id of ['a', 'b', 'c', 'd']) expect(await store.load(id)).toBeNull();
   });
 
-  it('不正なカードは捨て、選んでいたカードがなければ選択なし', async () => {
+  it('ヒントの項目がない・文字列以外が混じるときは、文字列だけを残す', async () => {
     const { storage } = createMemoryStorage({
-      'writeDraft.v1.a': JSON.stringify({
-        oneLiner: '',
-        cards: [card, null, { ...card, key: 'k2', kind: 'quote' }, { ...card, key: 5 }],
-        selectedKey: 'k2',
-      }),
+      'writeDraft.v2.a': JSON.stringify({ oneLiner: '', text: '書いた', hints: 'x', usedHints: ['a', 3, null] }),
     });
-    const loaded = await createWriteDraftStore(storage).load('a');
-    expect(loaded?.cards).toEqual([card]);
-    expect(loaded?.selectedKey).toBeNull();
-  });
-
-  it('前の版の下書き（starterId・page・asQuote 付き）も、余分な項目を捨てて読む', async () => {
-    const old = { ...card, starterId: 's1', page: '12', asQuote: true };
-    const { storage } = createMemoryStorage({
-      'writeDraft.v1.a': JSON.stringify({ oneLiner: '', cards: [old], selectedKey: 'k1' }),
+    expect(await createWriteDraftStore(storage).load('a')).toEqual({
+      oneLiner: '',
+      text: '書いた',
+      hints: [],
+      usedHints: ['a'],
     });
-    expect(await createWriteDraftStore(storage).load('a')).toEqual({ oneLiner: '', cards: [card], selectedKey: 'k1' });
   });
 
   it('ストレージが例外を投げても load は null', async () => {

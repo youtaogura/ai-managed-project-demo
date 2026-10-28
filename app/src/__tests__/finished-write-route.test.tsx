@@ -38,14 +38,14 @@ describe('読み終えた・読後メモを書くルート', () => {
     );
   });
 
-  it('「記録を書く」で /write/<id> へ、「ここまでを残す」で /records/<id> へ', async () => {
+  it('「記録を書く」で /write/<id> へ、「残す」で /records/<id> へ', async () => {
     await renderRouter(routes, { initialUrl: '/finished/r1' });
     await waitFor(() => expect(screen.getByRole('button', { name: '記録を書く' })).toBeTruthy());
     await fireEvent.press(screen.getByRole('button', { name: '記録を書く' }));
     await waitFor(() => expect(screen).toHavePathname('/write/r1'));
-    await waitFor(() => expect(screen.getByLabelText('ひとことで言うと、')).toBeTruthy());
-    await fireEvent.changeText(screen.getByLabelText('ひとことで言うと、'), 'よかった');
-    await fireEvent.press(screen.getByRole('button', { name: 'ここまでを残す' }));
+    await waitFor(() => expect(screen.getByLabelText('この本をひとことで')).toBeTruthy());
+    await fireEvent.changeText(screen.getByLabelText('この本をひとことで'), 'よかった');
+    await fireEvent.press(screen.getByRole('button', { name: '残す' }));
     await waitFor(() => expect(screen).toHavePathname('/records/r1'));
     const saved = JSON.parse((await AsyncStorage.getItem(RECORDS_STORAGE_KEY)) ?? '[]');
     expect(saved[0].oneLiner).toBe('よかった');
@@ -76,12 +76,18 @@ describe('読み終えた・読後メモを書くルート', () => {
     await renderRouter(routes, { initialUrl: '/records/r1' });
     await waitFor(() => expect(screen.getByRole('button', { name: '読後メモを書く' })).toBeTruthy());
     await fireEvent.press(screen.getByRole('button', { name: '読後メモを書く' }));
-    await waitFor(() => expect(screen.getByLabelText('ひとことで言うと、')).toBeTruthy());
-    await fireEvent.changeText(screen.getByLabelText('ひとことで言うと、'), '途中');
+    await waitFor(() => expect(screen.getByLabelText('この本をひとことで')).toBeTruthy());
+    await fireEvent.changeText(screen.getByLabelText('この本をひとことで'), '途中');
+    await fireEvent.changeText(screen.getByLabelText('読後メモ'), '書きかけ');
     await fireEvent.press(screen.getByRole('button', { name: 'あとで' }));
     await waitFor(() => expect(screen).toHavePathname('/records/r1'));
     const saved = JSON.parse((await AsyncStorage.getItem(RECORDS_STORAGE_KEY)) ?? '[]');
     expect(saved).toHaveLength(1);
+    expect(saved[0].postReadMemos).toEqual([]);
+    // もう一度開くと、下書きが戻る
+    await fireEvent.press(screen.getByRole('button', { name: '読後メモを書く' }));
+    await waitFor(() => expect(screen.getByLabelText('読後メモ').props.value).toBe('書きかけ'));
+    expect(screen.getByLabelText('この本をひとことで').props.value).toBe('途中');
   });
 
   it('読み終えた直後から開いた書く画面の「あとで」で本棚へ', async () => {

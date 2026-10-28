@@ -23,6 +23,12 @@ export function formatDateParts({ y, m, d }: DateParts): string {
   return `${String(y).padStart(4, '0')}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 }
 
+/** 'YYYY-MM-DD' → 'M/D'（先頭の 0 なし）。不正な値は null */
+export function formatMonthDay(value: string): string | null {
+  const parts = parseDateParts(value);
+  return parts ? `${parts.m}/${parts.d}` : null;
+}
+
 /** 'YYYY-MM-DD' → 'YYYY/MM/DD'。空や不正な値はそのまま返す */
 export function formatDateDisplay(value: string): string {
   const parts = parseDateParts(value);

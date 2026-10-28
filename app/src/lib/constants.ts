@@ -11,9 +11,6 @@ export const SPINE_COLORS = [
   'spine-10',
 ] as const;
 
-/** 書く画面で「この本をひとことで」（oneLiner）の欄に添える文。 */
-export const ONE_LINER_PROMPT = 'ひとことで言うと、';
-
 export const BACKUP_FORMAT = 'ai-managed-records-backup';
 /** 3: 読後メモ（postReadMemos）に置き換え、書き出しの設定をなくした。2 も読み込める。 */
 export const BACKUP_VERSION = 3;

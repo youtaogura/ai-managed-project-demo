@@ -1,7 +1,8 @@
 import type { KeyValueStorage } from './storage';
-import type { WriteCard, WriteDraft } from './writeSession';
+import type { WriteDraft } from './writeSession';
 
-export const WRITE_DRAFT_KEY_PREFIX = 'writeDraft.v1.';
+/** v1 はカードの形の下書き（#182 で 1 つの入力欄に作り直した）。形が違うので読まない。 */
+export const WRITE_DRAFT_KEY_PREFIX = 'writeDraft.v2.';
 
 export type WriteDraftStore = {
   load(recordId: string): Promise<WriteDraft | null>;
@@ -11,29 +12,14 @@ export type WriteDraftStore = {
 
 const keyOf = (recordId: string) => `${WRITE_DRAFT_KEY_PREFIX}${recordId}`;
 
-/** 前の版の下書き（starterId・page・asQuote があった）も、余分な項目を捨てて読む。 */
-function toCard(value: unknown): WriteCard | null {
-  if (typeof value !== 'object' || value === null) return null;
-  const v = value as Record<string, unknown>;
-  if (
-    typeof v.key !== 'string' ||
-    (v.kind !== 'starter' && v.kind !== 'free') ||
-    typeof v.starter !== 'string' ||
-    typeof v.text !== 'string'
-  ) {
-    return null;
-  }
-  return { key: v.key, kind: v.kind, starter: v.starter, text: v.text };
-}
+const toStrings = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 
 export function toWriteDraft(value: unknown): WriteDraft | null {
   if (typeof value !== 'object' || value === null) return null;
   const v = value as Record<string, unknown>;
-  if (typeof v.oneLiner !== 'string' || !Array.isArray(v.cards)) return null;
-  if (v.selectedKey !== null && typeof v.selectedKey !== 'string') return null;
-  const cards = v.cards.map(toCard).filter((card): card is WriteCard => card !== null);
-  const selectedKey = cards.find((card) => card.key === v.selectedKey)?.key ?? null;
-  return { oneLiner: v.oneLiner, cards, selectedKey };
+  if (typeof v.oneLiner !== 'string' || typeof v.text !== 'string') return null;
+  return { oneLiner: v.oneLiner, text: v.text, hints: toStrings(v.hints), usedHints: toStrings(v.usedHints) };
 }
 
 export function createWriteDraftStore(storage: KeyValueStorage): WriteDraftStore {
