@@ -159,7 +159,7 @@ describe('保存内容', () => {
     ]);
     expect(input.quotes).toEqual([
       record.quotes[0],
-      { id: 'id2', text: '引用', page: '12', comment: null, createdAt: 'NOW' },
+      { id: 'id2', text: '引用', page: '12', comment: null, starter: b.starter, createdAt: 'NOW' },
     ]);
     expect(input.freeTexts).toEqual([record.freeTexts[0], { id: 'id3', text: '自由', createdAt: 'NOW' }]);
     expect(input.memos).toEqual(record.memos);

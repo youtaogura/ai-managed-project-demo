@@ -104,6 +104,25 @@ describe('isMediaRecord', () => {
   });
 });
 
+describe('引用の starter', () => {
+  const withStarter = (starter: unknown) => ({
+    ...valid,
+    quotes: [{ id: 'q', text: 't', page: null, comment: null, starter, createdAt: 'x' }],
+  });
+
+  it.each([[undefined], [null], ['好きなのは、']])('%p を受け入れる', (starter) => {
+    expect(isMediaRecord(withStarter(starter))).toBe(true);
+  });
+
+  it('数値は拒否する', () => {
+    expect(isMediaRecord(withStarter(1))).toBe(false);
+  });
+
+  it('parseRecords で保たれる', () => {
+    expect(parseRecords([withStarter('好きなのは、')])[0].quotes[0].starter).toBe('好きなのは、');
+  });
+});
+
 describe('parseRecords', () => {
   it('配列でない値は空配列', () => {
     expect(parseRecords({})).toEqual([]);

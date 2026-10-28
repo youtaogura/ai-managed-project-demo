@@ -23,6 +23,8 @@ export type QuoteEntry = {
   text: string;
   page: string | null;
   comment: string | null;
+  /** 書き出しカードから引用にしたときの書き出しの文。なければ未設定か null。 */
+  starter?: string | null;
   createdAt: string;
 };
 
