@@ -15,6 +15,16 @@ const lcovFile = path.resolve(root, process.env.LCOV_FILE || 'app/coverage/lcov.
 const min = Number(process.env.DIFF_COVERAGE_MIN || policy.coverage.diffMinPercent);
 const report = createReport(`差分カバレッジ（基準 ${min}%）`);
 
+// 型定義だけのファイル（実行されるコードがない）か。Jest のカバレッジに載らないので、未実行に数えない
+export function isTypeOnlySource(source) {
+  const code = source
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/\/\/.*$/gm, '');
+  return !/^\s*(export\s+)?(default\s+)?(async\s+)?(const|let|var|function|class|enum)\b/m.test(code) &&
+    !/^\s*export\s+default\b/m.test(code) &&
+    !/^\s*export\s*\{[^}]*\}\s*from\b/m.test(code.replace(/^\s*export\s+type\s*\{[^}]*\}\s*from.*$/gm, ''));
+}
+
 // lcov を { repo 相対パス -> Map(line -> hits) } に変換
 function parseLcov(text) {
   const files = new Map();
@@ -50,6 +60,8 @@ if (!existsSync(lcovFile)) {
     if (isTestFile(file) || !/\.[jt]sx?$/.test(file)) continue;
     const hits = coverage.get(file);
     if (!hits) {
+      const abs = path.join(root, file);
+      if (existsSync(abs) && isTypeOnlySource(readFileSync(abs, 'utf8'))) continue;
       // 計測対象に含まれていない（テストから一度も読み込まれていない）新規ファイル
       if (lines.some((l) => l.text.trim())) uncovered.push(`${file}（どのテストからも読み込まれていません）`);
       coverable += lines.filter((l) => l.text.trim()).length;
