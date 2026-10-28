@@ -8,7 +8,7 @@ jest.mock('../../lib/appInfo', () => ({
   getAppInfo: jest.fn(),
 }));
 
-const info = (build: string | null) => ({ name: 'AI Managed Demo', version: '1.0.0', build });
+const info = (build: string | null) => ({ name: 'ほんのめも', version: '1.0.0', build });
 
 describe('AboutScreen', () => {
   beforeEach(() => jest.mocked(getAppInfo).mockReturnValue(info(null)));
@@ -17,7 +17,7 @@ describe('AboutScreen', () => {
   it('アプリ名とバージョンを出す', async () => {
     await render(<AboutScreen />);
     expect(screen.getByText('このアプリについて')).toBeTruthy();
-    expect(screen.getByText('AI Managed Demo')).toBeTruthy();
+    expect(screen.getByText('ほんのめも')).toBeTruthy();
     expect(screen.getByText('バージョン 1.0.0')).toBeTruthy();
   });
 
