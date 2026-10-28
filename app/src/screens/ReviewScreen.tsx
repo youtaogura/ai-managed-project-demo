@@ -8,13 +8,15 @@ import { RatingBreakdown } from '../components/RatingBreakdown';
 import { ReviewEmpty } from '../components/ReviewEmpty';
 import { ScreenContainer } from '../components/ScreenContainer';
 import { Shelf } from '../components/Shelf';
-import { colors, radius, space } from '../design/tokens';
+import { colors, radius, space, typography } from '../design/tokens';
 import { useAddSheet } from '../hooks/useAddSheet';
 import { useBottomInset } from '../hooks/useBottomInset';
 import { useRecords } from '../hooks/useRecords';
-import { formatAverage } from '../lib/analytics';
 import { summarizeReview } from '../lib/review';
 import type { MediaRecord } from '../types/record';
+
+// displayNumber は行の高さが文字の大きさと同じで、端末では数字の上が切れる。カードの数字だけ行を高くする
+const NUMBER_LINE_HEIGHT = Math.ceil(typography.displayNumber.fontSize * 1.4);
 
 type ReviewScreenProps = {
   onAdd?: () => void;
@@ -43,7 +45,7 @@ export function ReviewScreen({ onAdd, onOpenRecord }: ReviewScreenProps) {
     );
   }
 
-  const { period, read, impressions, quotes, months, favorites, ratings } = summary;
+  const { period, read, impressions, months, favorites, ratings } = summary;
   const currentMonth = months[months.length - 1].month;
 
   return (
@@ -65,28 +67,21 @@ export function ReviewScreen({ onAdd, onOpenRecord }: ReviewScreenProps) {
             <AppText variant="label" style={styles.secondary}>
               読んだ
             </AppText>
-            <AppText variant="displayNumber">{`${read} 冊`}</AppText>
+            <AppText variant="displayNumber" style={styles.number}>{`${read} 冊`}</AppText>
           </View>
           <View style={styles.card}>
             <AppText variant="label" style={styles.secondary}>
               感想
             </AppText>
-            <AppText variant="displayNumber">{String(impressions)}</AppText>
-          </View>
-          <View style={styles.card}>
-            <AppText variant="label" style={styles.secondary}>
-              引用
+            <AppText variant="displayNumber" style={styles.number}>
+              {String(impressions)}
             </AppText>
-            <AppText variant="displayNumber">{String(quotes)}</AppText>
           </View>
         </View>
 
         <View style={styles.section}>
           <AppText variant="sectionTitle">月ごとに読んだ本</AppText>
           <BookStackChart months={months} currentMonth={currentMonth} />
-          <AppText variant="micro" style={styles.secondary}>
-            1冊が1段。背表紙の色で積み上がります
-          </AppText>
         </View>
 
         {favorites.length > 0 ? (
@@ -101,16 +96,7 @@ export function ReviewScreen({ onAdd, onOpenRecord }: ReviewScreenProps) {
         ) : null}
 
         <View style={styles.section}>
-          <AppText variant="sectionTitle">どうだった？</AppText>
-          <View style={styles.average}>
-            <AppText variant="label" style={styles.secondary}>
-              平均
-            </AppText>
-            <AppText variant="displayNumber">{formatAverage(ratings.average)}</AppText>
-            {ratings.word !== null ? <AppText variant="value" style={styles.word}>
-                {ratings.word}
-              </AppText> : null}
-          </View>
+          <AppText variant="sectionTitle">評価</AppText>
           <RatingBreakdown buckets={ratings.buckets} />
         </View>
 
@@ -140,7 +126,6 @@ const styles = StyleSheet.create({
     padding: space[4],
     gap: space[2],
   },
+  number: { lineHeight: NUMBER_LINE_HEIGHT },
   section: { gap: space[3] },
-  average: { flexDirection: 'row', alignItems: 'baseline', gap: space[2] },
-  word: { color: colors.ribbon },
 });
