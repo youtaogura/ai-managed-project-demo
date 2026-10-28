@@ -15,6 +15,9 @@ const lcovFile = path.resolve(root, process.env.LCOV_FILE || 'app/coverage/lcov.
 const min = Number(process.env.DIFF_COVERAGE_MIN || policy.coverage.diffMinPercent);
 const report = createReport(`差分カバレッジ（基準 ${min}%）`);
 
+// app/jest.config.js の collectCoverageFrom の除外（'!src/types/**'、'!src/**/*.d.ts'）と合わせる
+const COVERAGE_EXCLUDED = [/^app\/src\/types\//, /\.d\.ts$/];
+
 // 型定義だけのファイル（実行されるコードがない）か。Jest のカバレッジに載らないので、未実行に数えない
 export function isTypeOnlySource(source) {
   const code = source
@@ -58,6 +61,8 @@ if (!existsSync(lcovFile)) {
 
   for (const [file, lines] of changed) {
     if (isTestFile(file) || !/\.[jt]sx?$/.test(file)) continue;
+    // Jest の collectCoverageFrom（app/jest.config.js）で計測対象から外しているものは数えない
+    if (COVERAGE_EXCLUDED.some((re) => re.test(file))) continue;
     const hits = coverage.get(file);
     if (!hits) {
       const abs = path.join(root, file);
