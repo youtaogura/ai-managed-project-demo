@@ -1,13 +1,13 @@
-import { act, fireEvent, renderRouter, screen, waitFor } from 'expo-router/testing-library';
-import { BackHandler } from 'react-native';
+import { act, fireEvent, renderRouter, screen, waitFor, within } from 'expo-router/testing-library';
+import { BackHandler, Keyboard, TextInput } from 'react-native';
 
 import { HINTS } from '../../lib/hints';
 import { createRecordRepository, RECORDS_STORAGE_KEY, type RecordRepository } from '../../lib/recordRepository';
 import { createWriteDraftStore, type WriteDraftStore } from '../../lib/writeDraftStore';
+import type { WriteDraft } from '../../lib/writeSession';
 import { withRepository, withWriteDraftStore } from '../../testProviders';
 import { createMemoryStorage, makeRecord } from '../../testUtils';
 import type { MediaRecord } from '../../types/record';
-import type { WriteCard, WriteDraft } from '../../lib/writeSession';
 import { WriteScreen } from '../WriteScreen';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
@@ -19,12 +19,16 @@ jest.setTimeout(15000);
 const SAVE_ERROR = '保存できませんでした。もう一度お試しください';
 const ALL = Object.values(HINTS).flat();
 const MIDDLE = [...HINTS.content, ...HINTS.self, ...HINTS.connection];
+const ONE_LINER = 'この本をひとことで';
+const MEMO = '読後メモ';
 
 const base = makeRecord({
   id: 'x',
   title: '吾輩は猫である',
   creator: '夏目漱石',
   status: 'completed',
+  endDate: '2025-10-20',
+  oneLiner: null,
   postReadMemos: [{ id: 'p0', text: '前の読後メモ', createdAt: '2020-01-01T00:00:00.000Z' }],
   quotes: [{ id: 'q0', text: '引用', page: null, comment: null, createdAt: '2020-01-01T00:00:00.000Z' }],
   memos: [{ id: 'm0', text: 'メモ', page: null, createdAt: '2020-01-01T00:00:00.000Z' }],
@@ -51,141 +55,196 @@ async function show(handlers: Handlers = {}, options: Options = {}) {
       options.draftStore ? options.draftStore(draftStore) : draftStore,
       withRepository(repository, <WriteScreen recordId="x" {...handlers} />),
     );
-  const view = await renderRouter({ index: Screen });
-  await waitFor(() => expect(screen.getByLabelText('ひとことで言うと、')).toBeTruthy());
-  return { repository: real, storage, drafts, draftStore, view };
+  await renderRouter({ index: Screen });
+  await waitFor(() => expect(screen.getByLabelText(ONE_LINER)).toBeTruthy());
+  return { repository: real, storage, drafts, draftStore };
 }
 
-const card = (key: string, starter: string, patch: Partial<WriteCard> = {}): WriteCard => ({
-  key,
-  kind: 'starter',
-  starter,
-  text: '',
-  ...patch,
-});
 const seed = (drafts: ReturnType<typeof createMemoryStorage>, draft: WriteDraft | Record<string, unknown>) =>
-  drafts.storage.setItem('writeDraft.v1.x', JSON.stringify(draft));
-
+  drafts.storage.setItem('writeDraft.v2.x', JSON.stringify(draft));
 const stored = async (repository: RecordRepository) => (await repository.getAll()).find((r) => r.id === 'x');
-const visibleStarters = () =>
-  ALL.filter(
-    (text) => screen.queryByRole('button', { name: text }) !== null || screen.queryByLabelText(`${text}の続き`) !== null,
-  );
-const freeInputs = () => screen.queryAllByLabelText('自由に書く').filter((n) => n.props.multiline);
-const selectedStarter = () => ALL.find((text) => screen.queryByLabelText(`${text}の続き`) !== null);
+const shownHints = () => ALL.filter((text) => screen.queryByRole('button', { name: text }) !== null);
 const press = (name: string) => fireEvent.press(screen.getByRole('button', { name }));
-const save = () => act(async () => press('ここまでを残す'));
-const writeInto = async (starter: string, text: string) => {
-  await fireEvent.press(screen.getByRole('button', { name: starter }));
-  await fireEvent.changeText(screen.getByLabelText(`${starter}の続き`), text);
-};
+const save = () => act(async () => press('残す'));
+const memoValue = () => screen.getByLabelText(MEMO).props.value as string;
+const typeMemo = (text: string) => fireEvent.changeText(screen.getByLabelText(MEMO), text);
+const firstHint = () => shownHints()[0] as string;
 
 describe('WriteScreen の表示', () => {
-  it('見出し・タイトル・作者・案内・書いた数と、ヒントのカードを 3 つ出す', async () => {
+  it('「あとで」「読了 M/D」、見出し・タイトル・作者、ひとこと・読後メモの欄、ヒント 3 つ、「残す」を出す', async () => {
     await show();
-    expect(screen.getByText('読み終えた')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'あとで' })).toBeTruthy();
+    expect(screen.getByText('読了 10/20')).toBeTruthy();
+    expect(screen.getByText('読後メモを書く')).toBeTruthy();
     expect(screen.getByText('吾輩は猫である')).toBeTruthy();
     expect(screen.getByText('夏目漱石')).toBeTruthy();
-    expect(screen.getByText('ヒントを選んで、続きを書こう')).toBeTruthy();
-    expect(screen.getByText('0 / 3')).toBeTruthy();
-    const shown = visibleStarters();
+    expect(screen.getByText('ヒント（押すと、最後に改行して入ります）')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'ほかのヒント' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: '残す' }).props.accessibilityState.disabled).toBeFalsy();
+    expect(memoValue()).toBe('');
+    const shown = shownHints();
     expect(shown).toHaveLength(3);
     expect(shown.filter((t) => HINTS.feeling.includes(t))).toHaveLength(1);
     expect(shown.filter((t) => MIDDLE.includes(t))).toHaveLength(1);
     expect(shown.filter((t) => HINTS.recommend.includes(t))).toHaveLength(1);
-    expect(screen.getAllByText('書く')).toHaveLength(3);
-    expect(selectedStarter()).toBeUndefined();
-    expect(screen.getByRole('button', { name: 'ほかのヒント' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: '自由に書く' })).toBeTruthy();
-    expect(screen.queryByText(/評価|問い|お題|書き出し/)).toBeNull();
+    expect(screen.getAllByText('＋')).toHaveLength(3);
+    expect(screen.queryByText('引用として残す')).toBeNull();
+    expect(screen.queryByText(/ここまでを残す|自由に書く|ヒントを選んで|評価|問い|お題|書き出し/)).toBeNull();
   });
 
-  it('「あんまり」の本では、合わなかったときのヒントが 1 つ入る', async () => {
-    await show({}, { records: [{ ...base, rating: 2.5 }] });
-    const shown = visibleStarters();
+  it('「どうだった？」が 2.9 以下の本では、合わなかったときのヒントが 1 つ入る', async () => {
+    await show({}, { records: [{ ...base, rating: 2.9 }] });
+    const shown = shownHints();
     expect(shown.filter((t) => HINTS.mismatch.includes(t))).toHaveLength(1);
     expect(shown.filter((t) => MIDDLE.includes(t))).toHaveLength(0);
   });
 
-  it('作者がなければ出さない。ひとことは既存の値が初期値', async () => {
-    await show({}, { records: [{ ...base, creator: null, oneLiner: 'いい本' }] });
+  it('読み終えた日・作者がなければ出さない。ひとことは既存の値が入っている', async () => {
+    await show({}, { records: [{ ...base, creator: null, endDate: null, oneLiner: 'いい本' }] });
     expect(screen.queryByText('夏目漱石')).toBeNull();
-    expect(screen.getByLabelText('ひとことで言うと、').props.value).toBe('いい本');
+    expect(screen.queryByText(/^読了/)).toBeNull();
+    expect(screen.getByLabelText(ONE_LINER).props.value).toBe('いい本');
   });
 });
 
-describe('カードの操作', () => {
-  it('選べるのは 1 枚。別のカードに移っても書いた内容は残る。「引用として残す」はない', async () => {
+describe('ヒント', () => {
+  it('入力欄が空なら、改行せずにヒントだけが入る', async () => {
     await show();
-    const [a, b] = visibleStarters() as [string, string];
-    await writeInto(a, '一つ目');
-    expect(selectedStarter()).toBe(a);
-    expect(screen.queryByText('引用として残す')).toBeNull();
-    expect(screen.queryByLabelText('ページ（任意）')).toBeNull();
-    await fireEvent.press(screen.getByRole('button', { name: b }));
-    expect(selectedStarter()).toBe(b);
-    expect(screen.getByText('一つ目').props.numberOfLines).toBe(1);
-    expect(screen.getByText('1 / 3')).toBeTruthy();
+    const hint = firstHint();
+    await press(hint);
+    expect(memoValue()).toBe(hint);
   });
 
-  it('「ほかのヒント」で書いていないカードだけ、今と別のヒントに入れ替わる', async () => {
+  it('文章があれば、最後に一段改行してから入る', async () => {
     await show();
-    const before = visibleStarters();
-    await writeInto(before[0] as string, '残す');
+    const hint = firstHint();
+    await typeMemo('猫がいた。');
+    await press(hint);
+    expect(memoValue()).toBe(`猫がいた。\n${hint}`);
+  });
+
+  it('改行で終わっているときは、改行を重ねない', async () => {
+    await show();
+    const hint = firstHint();
+    await typeMemo('猫がいた。\n');
+    await press(hint);
+    expect(memoValue()).toBe(`猫がいた。\n${hint}`);
+  });
+
+  it('入れたヒントには ✓ が付き、もう一度押しても入る', async () => {
+    await show();
+    const [a, b] = shownHints() as [string, string];
+    await press(a);
+    expect(within(screen.getByRole('button', { name: a })).getByText('✓')).toBeTruthy();
+    expect(within(screen.getByRole('button', { name: b })).getByText('＋')).toBeTruthy();
+    await press(a);
+    expect(memoValue()).toBe(`${a}\n${a}`);
+  });
+
+  it('入れたあと、入力欄にフォーカスしてカーソルを最後に置く', async () => {
+    const proto = (TextInput as unknown as { prototype: Record<string, unknown> }).prototype;
+    const setSelection = jest.fn();
+    const focus = jest.fn();
+    const original = { setSelection: proto.setSelection, focus: proto.focus };
+    proto.setSelection = setSelection;
+    proto.focus = focus;
+    try {
+      await show();
+      const hint = firstHint();
+      await typeMemo('猫');
+      await press(hint);
+      const length = `猫\n${hint}`.length;
+      expect(focus).toHaveBeenCalled();
+      expect(setSelection).toHaveBeenLastCalledWith(length, length);
+    } finally {
+      proto.setSelection = original.setSelection;
+      proto.focus = original.focus;
+    }
+  });
+
+  it('「↻ ほかのヒント」で、今出ているものと別のヒントに入れ替わる', async () => {
+    await show();
+    const before = shownHints();
     await press('ほかのヒント');
-    const after = visibleStarters();
+    const after = shownHints();
     expect(after).toHaveLength(3);
-    expect(after).toContain(before[0]);
-    expect(after.filter((t) => before.includes(t))).toEqual([before[0]]);
-    expect(screen.getByDisplayValue('残す')).toBeTruthy();
+    expect(after.filter((t) => before.includes(t))).toEqual([]);
   });
 
-  it('「自由に書く」で欄が何度でも足される', async () => {
-    await show();
-    expect(freeInputs()).toHaveLength(0);
-    await press('自由に書く');
-    await press('自由に書く');
-    expect(freeInputs()).toHaveLength(2);
+  it('キーボードを開いて読後メモを書いているあいだは、ヒントの行をキーボードの上（「残す」の代わり）に出す', async () => {
+    const listeners: { name: string; listener: () => void }[] = [];
+    const emit = (name: string) => listeners.filter((l) => l.name === name).forEach((l) => l.listener());
+    const spy = jest.spyOn(Keyboard, 'addListener').mockImplementation((name, listener) => {
+      listeners.push({ name, listener: listener as () => void });
+      return { remove: () => undefined } as ReturnType<typeof Keyboard.addListener>;
+    });
+    try {
+      await show();
+      expect(screen.getByTestId('write-hints')).toBeTruthy();
+      await fireEvent(screen.getByLabelText(MEMO), 'focus');
+      await act(async () => emit('keyboardWillShow'));
+      expect(screen.getByTestId('write-hints-docked')).toBeTruthy();
+      expect(screen.queryByTestId('write-hints')).toBeNull();
+      expect(screen.queryByRole('button', { name: '残す' })).toBeNull();
+      const hint = firstHint();
+      await press(hint);
+      expect(memoValue()).toBe(hint);
+      await act(async () => emit('keyboardWillHide'));
+      expect(screen.getByTestId('write-hints')).toBeTruthy();
+      expect(screen.getByRole('button', { name: '残す' })).toBeTruthy();
+      // ひとことの欄を書いているときは、ヒントの行を動かさない
+      await fireEvent(screen.getByLabelText(MEMO), 'blur');
+      await act(async () => emit('keyboardWillShow'));
+      expect(screen.queryByTestId('write-hints-docked')).toBeNull();
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 
 describe('保存', () => {
-  it('何も書いていないあいだは「ここまでを残す」が disabled。空白だけも空', async () => {
-    await show();
-    const button = () => screen.getByRole('button', { name: 'ここまでを残す' });
-    expect(button().props.accessibilityState.disabled).toBe(true);
-    await fireEvent.changeText(screen.getByLabelText('ひとことで言うと、'), '  ');
-    expect(button().props.accessibilityState.disabled).toBe(true);
-    await fireEvent.changeText(screen.getByLabelText('ひとことで言うと、'), 'ひとこと');
-    expect(button().props.accessibilityState.disabled).toBe(false);
-  });
-
-  it('書いたカードを読後メモとして（ヒント + 続き）既存の後ろに足し、ひとことも保存する。開き直しても保たれる', async () => {
+  it('「残す」で読後メモを 1 件だけ既存の後ろに足し、ひとことも保存する。下書きは消える', async () => {
     const onSaved = jest.fn();
-    const { repository, storage, draftStore } = await show({ onSaved });
-    const [a] = visibleStarters() as [string];
-    await fireEvent.changeText(screen.getByLabelText('ひとことで言うと、'), '  最高の猫  ');
-    await writeInto(a, '  嵐の夜  ');
-    await press('自由に書く');
-    const free = freeInputs()[0];
-    await fireEvent.changeText(free as NonNullable<typeof free>, '自由な文');
+    const { repository, draftStore } = await show({ onSaved });
+    const hint = firstHint();
+    await fireEvent.changeText(screen.getByLabelText(ONE_LINER), '  最高の猫  ');
+    await typeMemo('嵐の夜だった。');
+    await press(hint);
     await save();
     await waitFor(() => expect(onSaved).toHaveBeenCalledWith('x'));
     const saved = await stored(repository);
     expect(saved?.oneLiner).toBe('最高の猫');
-    expect(saved?.postReadMemos.map((m) => m.text)).toEqual(['前の読後メモ', `${a}嵐の夜`, '自由な文']);
+    expect(saved?.postReadMemos.map((m) => m.text)).toEqual(['前の読後メモ', `嵐の夜だった。\n${hint}`]);
     expect(saved?.quotes).toEqual(base.quotes);
     expect(saved?.memos).toEqual(base.memos);
     expect(saved).toMatchObject({ rating: 4, favorite: true, status: 'completed' });
     expect(await draftStore.load('x')).toBeNull();
-    const reopened = await stored(createRecordRepository(storage));
-    expect(reopened?.postReadMemos).toEqual(saved?.postReadMemos);
+  });
+
+  it('読後メモの欄が空白だけなら読後メモは増えず、ひとことだけ保存する', async () => {
+    const onSaved = jest.fn();
+    const { repository } = await show({ onSaved });
+    await fireEvent.changeText(screen.getByLabelText(ONE_LINER), 'ひとこと');
+    await typeMemo('  \n ');
+    await save();
+    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    const saved = await stored(repository);
+    expect(saved?.oneLiner).toBe('ひとこと');
+    expect(saved?.postReadMemos.map((m) => m.text)).toEqual(['前の読後メモ']);
+  });
+
+  it('何も変えずに「残す」を押すと、保存せずにそのまま閉じる', async () => {
+    const onSaved = jest.fn();
+    const update = jest.fn();
+    await show({ onSaved }, { wrap: (repo) => ({ ...repo, update }) });
+    await save();
+    await waitFor(() => expect(onSaved).toHaveBeenCalledWith('x'));
+    expect(update).not.toHaveBeenCalled();
   });
 
   it('ひとこと欄を空にして残すと null', async () => {
     const { repository } = await show({}, { records: [{ ...base, oneLiner: '前' }] });
-    await fireEvent.changeText(screen.getByLabelText('ひとことで言うと、'), '');
-    await writeInto(visibleStarters()[0] as string, 'x');
+    await fireEvent.changeText(screen.getByLabelText(ONE_LINER), '');
     await save();
     await waitFor(async () => expect((await stored(repository))?.oneLiner).toBeNull());
   });
@@ -193,17 +252,19 @@ describe('保存', () => {
   it('失敗したら遷移せずエラーを出し、入力は残す', async () => {
     const onSaved = jest.fn();
     await show({ onSaved }, { wrap: (repo) => ({ ...repo, update: async () => Promise.reject(new Error('x')) }) });
-    await writeInto(visibleStarters()[0] as string, '書いた');
+    await typeMemo('書いた');
     await save();
     expect(screen.getByText(SAVE_ERROR)).toBeTruthy();
     expect(onSaved).not.toHaveBeenCalled();
-    expect(screen.getByDisplayValue('書いた')).toBeTruthy();
+    expect(memoValue()).toBe('書いた');
+    await typeMemo('書き直した');
+    expect(screen.queryByText(SAVE_ERROR)).toBeNull();
   });
 
   it('記録が消えていて update が null でも遷移せずエラー', async () => {
     const onSaved = jest.fn();
     await show({ onSaved }, { wrap: (repo) => ({ ...repo, update: async () => null }) });
-    await fireEvent.changeText(screen.getByLabelText('ひとことで言うと、'), 'a');
+    await fireEvent.changeText(screen.getByLabelText(ONE_LINER), 'a');
     await save();
     expect(screen.getByText(SAVE_ERROR)).toBeTruthy();
     expect(onSaved).not.toHaveBeenCalled();
@@ -211,88 +272,37 @@ describe('保存', () => {
 });
 
 describe('「あとで」と下書き', () => {
-  it('書きかけがあれば下書きを保存して onLater', async () => {
+  it('書きかけがあれば下書き（ひとこと・本文・出ているヒント・入れたヒント）を保存して onLater。記録は変えない', async () => {
     const onLater = jest.fn();
     const { draftStore, repository } = await show({ onLater });
-    const shown = visibleStarters();
-    await fireEvent.changeText(screen.getByLabelText('ひとことで言うと、'), '下書き');
-    await writeInto(shown[1] as string, '途中');
-    await press('自由に書く');
-    await fireEvent.changeText(freeInputs()[0] as NonNullable<ReturnType<typeof freeInputs>[number]>, '自由の下書き');
+    const shown = shownHints();
+    const hint = shown[1] as string;
+    await fireEvent.changeText(screen.getByLabelText(ONE_LINER), '下書き');
+    await press(hint);
     await press('あとで');
     expect(onLater).toHaveBeenCalled();
     await waitFor(async () => expect(await draftStore.load('x')).not.toBeNull());
-    const draft = await draftStore.load('x');
-    expect(draft?.oneLiner).toBe('下書き');
-    expect(draft?.cards.filter((c) => c.kind === 'starter').map((c) => c.starter).sort()).toEqual([...shown].sort());
-    expect(draft?.cards.find((c) => c.text === '途中')?.starter).toBe(shown[1]);
-    expect(draft?.cards.find((c) => c.text === '自由の下書き')?.kind).toBe('free');
-    expect(draft?.selectedKey).toBe(draft?.cards.find((c) => c.text === '途中')?.key);
-    expect((await stored(repository))?.oneLiner).toBeNull();
-  });
-
-  it('下書きがあれば、抽選せずに顔ぶれ・内容・選択を復元する', async () => {
-    const drafts = createMemoryStorage();
-    await seed(drafts, {
-      oneLiner: '下書き',
-      cards: [
-        card('a', ALL[5] as string, { text: '途中' }),
-        card('b', ALL[1] as string),
-        card('c', ALL[3] as string),
-        { ...card('f', ''), kind: 'free', text: '自由の下書き' },
-      ],
-      selectedKey: 'a',
-    });
-    await show({}, { drafts });
-    expect(visibleStarters()).toEqual([ALL[1], ALL[3], ALL[5]]);
-    expect(screen.getByLabelText('ひとことで言うと、').props.value).toBe('下書き');
-    expect(selectedStarter()).toBe(ALL[5]);
-    expect(screen.getByDisplayValue('途中')).toBeTruthy();
-    expect(screen.getByDisplayValue('自由の下書き')).toBeTruthy();
-  });
-
-  it('前の版の下書き（引用・ページの指定つき）も開け、残すと読後メモになる', async () => {
-    const drafts = createMemoryStorage();
-    await seed(drafts, {
-      oneLiner: '',
-      cards: [
-        { key: 'a', kind: 'starter', starterId: 's6', starter: '自分で足した書き出し、', text: '続き', page: '7', asQuote: true },
-      ],
-      selectedKey: 'a',
-    });
-    const onSaved = jest.fn();
-    const { repository } = await show({ onSaved }, { drafts });
-    expect(screen.getByDisplayValue('続き')).toBeTruthy();
-    expect(screen.queryByDisplayValue('7')).toBeNull();
-    await save();
-    await waitFor(() => expect(onSaved).toHaveBeenCalled());
+    expect(await draftStore.load('x')).toEqual({ oneLiner: '下書き', text: hint, hints: shown, usedHints: [hint] });
     const saved = await stored(repository);
-    expect(saved?.postReadMemos.map((m) => m.text)).toEqual(['前の読後メモ', '自分で足した書き出し、続き']);
-    expect(saved?.quotes).toEqual(base.quotes);
+    expect(saved?.oneLiner).toBeNull();
+    expect(saved?.postReadMemos).toHaveLength(1);
   });
 
-  it('ヒントのカードがない下書き（自由に書く欄だけ）には、ヒントを足して開く', async () => {
+  it('下書きがあれば、ひとこと・本文・ヒントの顔ぶれ・✓ を戻す', async () => {
     const drafts = createMemoryStorage();
-    await seed(drafts, {
-      oneLiner: 'ひとこと残る',
-      cards: [{ ...card('f', ''), kind: 'free', text: '自由残る' }],
-      selectedKey: null,
-    });
-    await show({}, { drafts });
-    expect(visibleStarters()).toHaveLength(3);
-    expect(screen.getByDisplayValue('自由残る')).toBeTruthy();
-    expect(screen.getByLabelText('ひとことで言うと、').props.value).toBe('ひとこと残る');
+    const hints = [HINTS.feeling[2], HINTS.self[0], HINTS.recommend[0]] as string[];
+    await seed(drafts, { oneLiner: '下書き', text: '途中まで', hints, usedHints: [HINTS.recommend[0]] });
+    await show({}, { drafts, records: [{ ...base, oneLiner: '保存済み' }] });
+    expect(screen.getByLabelText(ONE_LINER).props.value).toBe('下書き');
+    expect(memoValue()).toBe('途中まで');
+    expect(shownHints().sort()).toEqual([...hints].sort());
+    expect(within(screen.getByRole('button', { name: HINTS.recommend[0] as string })).getByText('✓')).toBeTruthy();
   });
 
-  it('何も書いていなければ下書きを保存せず、保存済みなら消す', async () => {
+  it('何も変えていなければ下書きを保存せず、保存済みなら消す', async () => {
     const onLater = jest.fn();
-    const drafts = createMemoryStorage();
-    const { draftStore } = await show({ onLater }, { drafts });
-    await draftStore.save('x', {
-      oneLiner: '',
-      cards: [],
-      selectedKey: null,
-    });
+    const { draftStore } = await show({ onLater }, { records: [{ ...base, oneLiner: 'そのまま' }] });
+    await draftStore.save('x', { oneLiner: 'そのまま', text: '', hints: [], usedHints: [] });
     await press('あとで');
     expect(onLater).toHaveBeenCalled();
     await waitFor(async () => expect(await draftStore.load('x')).toBeNull());
@@ -306,7 +316,7 @@ describe('「あとで」と下書き', () => {
       return { remove: () => undefined };
     });
     const { draftStore } = await show({ onLater });
-    await fireEvent.changeText(screen.getByLabelText('ひとことで言うと、'), '戻る前');
+    await typeMemo('戻る前');
     const handler = handlers[handlers.length - 1] as Parameters<typeof BackHandler.addEventListener>[1];
     let handled: boolean | null | undefined = false;
     await act(async () => {
@@ -314,15 +324,15 @@ describe('「あとで」と下書き', () => {
     });
     expect(handled).toBe(true);
     expect(onLater).toHaveBeenCalled();
-    await waitFor(async () => expect((await draftStore.load('x'))?.oneLiner).toBe('戻る前'));
+    await waitFor(async () => expect((await draftStore.load('x'))?.text).toBe('戻る前'));
     spy.mockRestore();
   });
 
-  it('壊れた下書きや読み込み失敗でも空の状態で開く', async () => {
-    const drafts = createMemoryStorage({ 'writeDraft.v1.x': '{broken' });
+  it('壊れた下書きでも空の状態で開く', async () => {
+    const drafts = createMemoryStorage({ 'writeDraft.v2.x': '{broken' });
     await show({}, { drafts });
-    expect(visibleStarters()).toHaveLength(3);
-    expect(screen.getByLabelText('ひとことで言うと、').props.value).toBe('');
+    expect(shownHints()).toHaveLength(3);
+    expect(memoValue()).toBe('');
   });
 
   it('下書きの保存に失敗しても onLater する', async () => {
@@ -331,7 +341,7 @@ describe('「あとで」と下書き', () => {
       { onLater },
       { draftStore: (store) => ({ ...store, save: async () => Promise.reject(new Error('x')) }) },
     );
-    await fireEvent.changeText(screen.getByLabelText('ひとことで言うと、'), 'a');
+    await typeMemo('a');
     await press('あとで');
     expect(onLater).toHaveBeenCalled();
   });

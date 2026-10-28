@@ -38,6 +38,9 @@ async function shoot(browser, baseUrl, scene) {
     if (data.records) entries[STORAGE_KEYS.records] = JSON.stringify(data.records);
     if (data.shelves) entries[STORAGE_KEYS.shelves] = JSON.stringify(data.shelves);
     if (data.lastExportedAt) entries[STORAGE_KEYS.lastExportedAt] = data.lastExportedAt;
+    for (const [recordId, draft] of Object.entries(data.writeDrafts ?? {})) {
+      entries[`${STORAGE_KEYS.writeDraftPrefix}${recordId}`] = JSON.stringify(draft);
+    }
     await context.addInitScript((items) => {
       for (const [key, value] of Object.entries(items)) window.localStorage.setItem(key, value);
     }, entries);

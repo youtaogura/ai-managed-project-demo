@@ -2,6 +2,7 @@ import {
   daysInMonth,
   formatDateDisplay,
   formatDateParts,
+  formatMonthDay,
   parseDateParts,
   shiftDateParts,
 } from '../date';
@@ -52,5 +53,13 @@ describe('shiftDateParts', () => {
   it('年は範囲内に収まる', () => {
     expect(shiftDateParts({ y: 1900, m: 1, d: 1 }, 'y', -1).y).toBe(1900);
     expect(shiftDateParts({ y: 2100, m: 1, d: 1 }, 'y', 1).y).toBe(2100);
+  });
+});
+
+describe('formatMonthDay', () => {
+  it('YYYY-MM-DD を M/D にする（先頭の 0 なし）。不正な値は null', () => {
+    expect(formatMonthDay('2025-10-06')).toBe('10/6');
+    expect(formatMonthDay('2025-01-20')).toBe('1/20');
+    expect(formatMonthDay('2025-13-01')).toBeNull();
   });
 });

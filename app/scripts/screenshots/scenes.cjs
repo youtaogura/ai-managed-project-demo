@@ -15,11 +15,14 @@ const STORAGE_KEYS = {
   records: 'records.v1',
   shelves: 'shelves.v1',
   lastExportedAt: 'lastExportedAt.v1',
+  /** 読後メモを書く画面の下書き。キーは writeDraftPrefix + 記録 ID */
+  writeDraftPrefix: 'writeDraft.v2.',
 };
 
 /**
  * シーンの形:
- *  - data: { records, shelves, lastExportedAt } を返す関数（撮影時に評価する）
+ *  - data: { records, shelves, lastExportedAt, writeDrafts } を返す関数（撮影時に評価する）。
+ *    writeDrafts は { 記録 ID: 下書き }（読後メモを書く画面の書きかけ）
  *  - url: 開くパス
  *  - actions: 撮影前の操作。{ label } は accessibilityLabel、{ text } は表示文言で選んでクリックする
  *  - search: { keyword, results }。検索画面で NDL の API をこの結果に差し替え、キーワードを入れて検索する
@@ -74,7 +77,23 @@ const SCENES = [
     waitFor: '残す',
   },
   { name: 'finished', data: () => ({ records: [makeFinishedRecord()] }), url: '/finished/finished-1', waitFor: '記録を書く' },
-  { name: 'write', data: () => ({ records: [makeWriteRecord()] }), url: '/write/write-1', waitFor: 'ここまでを残す' },
+  // write.png と同じ状態（ひとことが入り、読後メモにヒントを 1 つ入れたところ）を下書きで再現する
+  {
+    name: 'write',
+    data: () => ({
+      records: [makeWriteRecord()],
+      writeDrafts: {
+        'write-1': {
+          oneLiner: '宇宙はとても静かで、とても怖い。',
+          text: 'いちばん心に残ったのは、宇宙は暗い森だという考え方。どこにいても、見つかったら終わり。\nこの本を渡したいのは、',
+          hints: ['自分のことのように感じたのは、', '意外だったのは、', 'この本を渡したいのは、'],
+          usedHints: ['この本を渡したいのは、'],
+        },
+      },
+    }),
+    url: '/write/write-1',
+    waitFor: '残す',
+  },
   {
     name: 'finished-favorite',
     data: () => ({ records: [makeFinishedRecord()] }),

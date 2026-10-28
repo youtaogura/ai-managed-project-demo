@@ -1,110 +1,59 @@
 import type { MediaRecord, NewRecordInput, PostReadMemo } from '../types/record';
-import { pickHints, pickOtherHints } from './hints';
+import { HINTS, pickHints } from './hints';
 import { recordToInput } from './notes';
 
-/** 書く画面のカード。starter はヒントの文、text はその続き（自由に書くカードは starter が空）。 */
-export type WriteCard = {
-  key: string;
-  kind: 'starter' | 'free';
-  starter: string;
-  text: string;
-};
-
+/**
+ * 読後メモを書く画面の下書き。
+ * - oneLiner: 「この本をひとことで」の欄
+ * - text: 「読後メモ」の入力欄（1 つ）
+ * - hints: 出ているヒント（3 つ）。開き直したときに同じ顔ぶれで出す
+ * - usedHints: 入れたヒント（✓ を付ける）。保存した読後メモには残さない
+ */
 export type WriteDraft = {
   oneLiner: string;
-  cards: WriteCard[];
-  selectedKey: string | null;
+  text: string;
+  hints: string[];
+  usedHints: string[];
 };
 
-type Random = () => number;
-type KeyGenerator = () => string;
-
-const defaultKey: KeyGenerator = () => `card-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 const defaultGenerateId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
 const defaultNow = () => new Date().toISOString();
 
-function hintCard(hint: string, key: string): WriteCard {
-  return { key, kind: 'starter', starter: hint, text: '' };
+/**
+ * ヒントを文章の最後に入れる。文章が空ならそのまま、空でなければ一段改行してから入れる
+ * （すでに改行で終わっていれば改行を足さない）。
+ */
+export function appendHint(text: string, hint: string): string {
+  if (text === '' || text.endsWith('\n')) return `${text}${hint}`;
+  return `${text}\n${hint}`;
 }
 
-export function createFreeCard(key: string = defaultKey()): WriteCard {
-  return { key, kind: 'free', starter: '', text: '' };
+const ALL_HINTS = new Set(Object.values(HINTS).flat());
+const HINT_COUNT = 3;
+
+/** 下書きに残っていたヒントが 3 つとも今の一覧にあればそれを、なければ選び直す。 */
+export function restoreHints(saved: readonly string[], rating: number | null, random: () => number = Math.random): string[] {
+  if (saved.length === HINT_COUNT && saved.every((hint) => ALL_HINTS.has(hint))) return [...saved];
+  return pickHints(rating, random);
 }
 
-export function isWritten(card: Pick<WriteCard, 'text'>): boolean {
-  return card.text.trim() !== '';
-}
-
-/** ヒントを 3 つ選んでカードを作る。rating は本の「どうだった？」。 */
-export function createCards(
-  rating: number | null,
-  random: Random = Math.random,
-  keyOf: KeyGenerator = defaultKey,
-): WriteCard[] {
-  return pickHints(rating, random).map((hint) => hintCard(hint, keyOf()));
-}
-
-/** 書いていないヒントのカードだけを、今出ているものと別のヒントに入れ替える。書いたカードと自由記述はそのまま残す。 */
-export function replaceUnwrittenCards(
-  cards: readonly WriteCard[],
-  rating: number | null,
-  random: Random = Math.random,
-  keyOf: KeyGenerator = defaultKey,
-): WriteCard[] {
-  const hintCards = cards.filter((card) => card.kind === 'starter');
-  const others = pickOtherHints(
-    hintCards.map((card) => card.starter),
-    rating,
-    random,
-  );
-  const kept = new Set(hintCards.filter(isWritten).map((card) => card.starter));
-  let slot = 0;
-  return cards.map((card) => {
-    if (card.kind !== 'starter') return card;
-    const hint = others[slot++];
-    if (isWritten(card) || hint === undefined || kept.has(hint)) return card;
-    kept.add(hint);
-    return hintCard(hint, keyOf());
-  });
-}
-
-/** 下書きからカードを戻す。ヒントのカードがひとつもなければ（前の版の下書きなど）新しく選んで前に足す。 */
-export function restoreCards(
-  draftCards: readonly WriteCard[],
-  rating: number | null,
-  random: Random = Math.random,
-  keyOf: KeyGenerator = defaultKey,
-): WriteCard[] {
-  if (draftCards.some((card) => card.kind === 'starter')) return [...draftCards];
-  return [...createCards(rating, random, keyOf), ...draftCards];
-}
-
-export function hasAnythingToSave(oneLiner: string, cards: readonly WriteCard[]): boolean {
-  return oneLiner.trim() !== '' || cards.some(isWritten);
-}
-
-export function isDraftBlank(draft: Pick<WriteDraft, 'oneLiner' | 'cards'>): boolean {
-  return draft.oneLiner.trim() === '' && draft.cards.every((card) => card.text === '');
+/** 開いたときから何も変えていなければ true（下書きを残さない・保存しない）。 */
+export function isUnchanged(record: Pick<MediaRecord, 'oneLiner'>, values: Pick<WriteDraft, 'oneLiner' | 'text'>): boolean {
+  return values.text.trim() === '' && values.oneLiner.trim() === (record.oneLiner ?? '').trim();
 }
 
 export type WriteOptions = { now?: () => string; generateId?: () => string };
 
-/** 書いたカードを読後メモとして足す（ヒントのカードは「ヒント + 続き」を 1 件の本文にする）。ひとことは oneLiner に入れる。 */
+/** ひとことを保存し（空なら null）、読後メモの欄が空でなければ読後メモを 1 件足す。 */
 export function buildWriteInput(
   record: MediaRecord,
-  values: { oneLiner: string; cards: readonly WriteCard[] },
+  values: Pick<WriteDraft, 'oneLiner' | 'text'>,
   options: WriteOptions = {},
 ): NewRecordInput {
   const now = options.now ?? defaultNow;
   const generateId = options.generateId ?? defaultGenerateId;
-  const added: PostReadMemo[] = values.cards.filter(isWritten).map((card) => {
-    const text = card.text.trim();
-    return {
-      id: generateId(),
-      text: card.kind === 'starter' ? `${card.starter}${text}` : text,
-      createdAt: now(),
-    };
-  });
+  const text = values.text.trim();
+  const added: PostReadMemo[] = text === '' ? [] : [{ id: generateId(), text, createdAt: now() }];
   const oneLiner = values.oneLiner.trim();
   return {
     ...recordToInput(record, record.memos, record.quotes),

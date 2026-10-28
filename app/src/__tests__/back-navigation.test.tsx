@@ -125,9 +125,9 @@ describe('戻る動きの履歴', () => {
     await fireEvent.press(await screen.findByLabelText(/^読んでる本、/));
     await press('読み終えた');
     await press('記録を書く');
-    await waitFor(() => expect(screen.getByLabelText('ひとことで言うと、')).toBeTruthy());
-    await fireEvent.changeText(screen.getByLabelText('ひとことで言うと、'), 'よかった');
-    await press('ここまでを残す');
+    await waitFor(() => expect(screen.getByLabelText('この本をひとことで')).toBeTruthy());
+    await fireEvent.changeText(screen.getByLabelText('この本をひとことで'), 'よかった');
+    await press('残す');
     await waitFor(() => expect(screen).toHavePathname('/records/r2'));
     await press('戻る');
     await waitFor(() => expect(screen).toHavePathname('/'));
@@ -138,9 +138,9 @@ describe('戻る動きの履歴', () => {
     await renderRouter(routes);
     await fireEvent.press(await screen.findByLabelText(shelfLabel));
     await press('読後メモを書く');
-    await waitFor(() => expect(screen.getByLabelText('ひとことで言うと、')).toBeTruthy());
-    await fireEvent.changeText(screen.getByLabelText('ひとことで言うと、'), 'よかった');
-    await press('ここまでを残す');
+    await waitFor(() => expect(screen.getByLabelText('この本をひとことで')).toBeTruthy());
+    await fireEvent.changeText(screen.getByLabelText('この本をひとことで'), 'よかった');
+    await press('残す');
     await waitFor(() => expect(screen).toHavePathname('/records/r1'));
     await press('戻る');
     await waitFor(() => expect(screen).toHavePathname('/'));
