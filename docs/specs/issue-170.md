@@ -87,3 +87,7 @@
   ※ 実際の NDL・openBD で「／」が姓名の区切りに使われる例が確認できた場合は、別 Issue にする。
 - **実データの確認**: 元の値は推定（Issue 本文）。実装担当は実際の応答を取得できれば、その値でテストデータを作る。取得できないときは、推定した値でテストし、PR にその旨を書く。
 - **人の区切りの推測**: 偶数個のカンマ要素を勝手に組にする規則は誤判定の恐れがあるので、補助にとどめる（設計の 2.）。
+
+## 判断ログ（差し戻し対応）
+
+- `expo install --check` が失敗（expo / expo-camera / expo-file-system / expo-router のパッチ版が SDK の期待値より古い）。本 Issue の変更とは無関係だが、これを直さないとマージできないため、新規追加ではなく既存 4 パッケージのパッチ版だけ更新した（`expo`、`expo-camera`、`expo-file-system`、`expo-router`）。`src/generated/licenses.json` は `pnpm licenses:gen` で再生成。却下案: 放置して人間に任せる（PR が止まり続ける）。
