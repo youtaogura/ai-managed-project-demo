@@ -22,10 +22,10 @@ import { useTopInset } from '../hooks/useTopInset';
 import { triggerImpactHaptic } from '../lib/haptics';
 import {
   addNote,
+  buildNoteItems,
   noteItemToDraft,
   recordToInput,
   removeNote,
-  sortMemos,
   updateNote,
   type NoteItem,
 } from '../lib/notes';
@@ -90,7 +90,16 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
   );
 
   const entries = useMemo(() => (record ? buildRereadEntries(record) : []), [record]);
-  const memos = useMemo(() => (record ? sortMemos(record.memos.filter((m) => m.text.trim() !== '')) : []), [record]);
+  const noteItems = useMemo(
+    () =>
+      record
+        ? buildNoteItems({
+            memos: record.memos.filter((m) => m.text.trim() !== ''),
+            quotes: record.quotes.filter((q) => q.text.trim() !== ''),
+          })
+        : [],
+    [record],
+  );
 
   const save = async (input: NewRecordInput | null) => {
     if (!input) throw new Error('invalid');
@@ -210,15 +219,6 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
                     </RuledText>
                   );
                 }
-                if (item.kind === 'quote') {
-                  return (
-                    <Quote
-                      key={`quote-${item.entry.id}`}
-                      quote={item.entry}
-                      onPress={() => setSheet({ mode: 'edit', item: { kind: 'quote', entry: item.entry } })}
-                    />
-                  );
-                }
                 return (
                   <RuledText key={`free-${item.entry.id}`}>
                     <AppText variant="reading">{item.entry.text.trim()}</AppText>
@@ -229,20 +229,34 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
           </>
         ) : null}
 
-        {noteable || memos.length > 0 ? (
+        {noteable || noteItems.length > 0 ? (
           <>
             <View style={styles.divider} />
-            <AppText variant="value" style={{ color: colors.textSecondary }}>
-              メモ
-            </AppText>
-            {memos.map((memo) => (
-              <MemoRow
-                key={memo.id}
-                memo={memo}
-                textColor={colors.textSecondary}
-                onPress={noteable ? () => setSheet({ mode: 'edit', item: { kind: 'memo', entry: memo } }) : undefined}
-              />
-            ))}
+            <View style={styles.sectionHead}>
+              <AppText variant="sectionTitle">メモと引用</AppText>
+              <AppText variant="label" style={{ color: colors.textSecondary }}>{`${noteItems.length} 件`}</AppText>
+            </View>
+            {noteItems.length === 0 ? (
+              <AppText variant="body" style={{ color: colors.textSecondary }}>
+                まだ何もありません。気づいたことを、ひとこと残してみませんか
+              </AppText>
+            ) : (
+              noteItems.map((item) =>
+                item.kind === 'memo' ? (
+                  <MemoRow
+                    key={`memo-${item.entry.id}`}
+                    memo={item.entry}
+                    onPress={noteable ? () => setSheet({ mode: 'edit', item }) : undefined}
+                  />
+                ) : (
+                  <Quote
+                    key={`quote-${item.entry.id}`}
+                    quote={item.entry}
+                    onPress={noteable ? () => setSheet({ mode: 'edit', item }) : undefined}
+                  />
+                ),
+              )
+            )}
             {noteable ? (
               <Pressable
                 accessibilityRole="button"
@@ -356,6 +370,7 @@ const styles = StyleSheet.create({
   },
   divider: { height: 1, backgroundColor: colors.line, marginVertical: space[3] },
   entries: { gap: space[4] },
+  sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   add: {
     minHeight: size.touchMin,
     alignItems: 'center',

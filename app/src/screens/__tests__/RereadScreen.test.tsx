@@ -125,20 +125,13 @@ describe('RereadScreen の表示', () => {
     expect(await screen.findByText('夏目漱石 · SF')).toBeTruthy();
   });
 
-  it('書き出しは同じ Text の中で続きと一続きになり、引用・自由記述と書いた順に並ぶ', async () => {
+  it('書き出しは同じ Text の中で続きと一続きになり、自由記述と書いた順に並ぶ。引用は出ない', async () => {
     await show();
     await screen.findByLabelText('読み終えて、笑ってしまった');
     expect(screen.getByText('読み終えて、')).toBeTruthy();
-    expect(screen.getByText('名前はまだ無い')).toBeTruthy();
-    expect(screen.getByText('p.12')).toBeTruthy();
-    expect(screen.getByText('ここが好き')).toBeTruthy();
-    const texts = screen.getAllByText(/名前はまだ無い|自由な感想|笑ってしまった/).map((n) => n.props.children);
-    expect(texts.flat().join('')).toContain('名前はまだ無い');
-    const order = ['名前はまだ無い', '自由な感想', '笑ってしまった'].map((t) =>
-      JSON.stringify(screen.toJSON()).indexOf(t),
-    );
-    expect(order).toEqual([...order].sort((a, b) => a - b));
+    const order = ['自由な感想', '笑ってしまった'].map((t) => JSON.stringify(screen.toJSON()).indexOf(t));
     expect(order.every((i) => i >= 0)).toBe(true);
+    expect(order).toEqual([...order].sort((x, y) => x - y));
   });
 
   it('続きが空白だけの書き出しは出さない', async () => {
@@ -147,26 +140,67 @@ describe('RereadScreen の表示', () => {
     expect(screen.queryByText('空の書き出し')).toBeNull();
   });
 
-  it('メモは「メモ」の下にページ順（ページなしは後ろ）で出る', async () => {
+  it('「メモと引用」は件数つきで、引用とメモがページ順（ページなしは後ろ）に並ぶ', async () => {
     await show();
-    await screen.findByText('メモ');
-    const memos = screen.getAllByText(/メモ$/).map((n) => n.props.children as string).filter((t) => t !== 'メモ');
-    expect(memos).toEqual(['さきのメモ', 'あとのメモ', 'ページなしメモ']);
+    await screen.findByText('メモと引用');
+    expect(screen.getByText('4 件')).toBeTruthy();
+    expect(screen.getByText('p.12')).toBeTruthy();
+    expect(screen.getByText('ここが好き')).toBeTruthy();
+    const json = JSON.stringify(screen.toJSON());
+    const order = ['さきのメモ', '名前はまだ無い', 'あとのメモ', 'ページなしメモ'].map((t) => json.indexOf(t));
+    expect(order.every((i) => i >= 0)).toBe(true);
+    expect(order).toEqual([...order].sort((x, y) => x - y));
   });
 
-  it('「メモ」見出しと本文は textSecondary で、見出しは本文より小さい', async () => {
+  it('上から、ひとこと → 感想 → メモと引用 の順', async () => {
     await show();
-    const heading = StyleSheet.flatten((await screen.findByText('メモ')).props.style);
-    const body = StyleSheet.flatten(screen.getByText('さきのメモ').props.style);
-    expect(heading.color).toBe(colors.textSecondary);
-    expect(body.color).toBe(colors.textSecondary);
-    expect(heading.fontSize).toBeLessThan(body.fontSize as number);
+    await screen.findByText('メモと引用');
+    const json = JSON.stringify(screen.toJSON());
+    const order = ['猫の目で人間を笑う本', '自由な感想', 'メモと引用', 'さきのメモ'].map((t) => json.indexOf(t));
+    expect(order.every((i) => i >= 0)).toBe(true);
+    expect(order).toEqual([...order].sort((x, y) => x - y));
   });
 
-  it('読みたい本でメモが 0 件なら見出しごと出さない', async () => {
-    await show([{ ...full, status: 'planned', memos: [] }]);
+  it('読んでる本の画面と同じ並びで出る', async () => {
+    const find = (json: string) =>
+      ['さきのメモ', '名前はまだ無い', 'あとのメモ', 'ページなしメモ'].map((t) => json.indexOf(t));
+    await show();
+    await screen.findByText('メモと引用');
+    const reread = find(JSON.stringify(screen.toJSON()));
+    expect(reread.every((i) => i >= 0)).toBe(true);
+    expect(reread).toEqual([...reread].sort((x, y) => x - y));
+    // 読んでる本の画面（ReadingScreen.test）も同じデータ・同じ並びで検証している
+  });
+
+  it('感想が空なら感想の段を出さない（線は上と下の 1 本ずつ）', async () => {
+    await show([{ ...full, starters: [], freeTexts: [] }]);
+    await screen.findByText('メモと引用');
+    expect(screen.queryByTestId('rule')).toBeNull();
+  });
+
+  it('読みたい本でメモ・引用が 0 件なら見出しごと出さない', async () => {
+    await show([{ ...full, status: 'planned', memos: [], quotes: [] }]);
     await screen.findByText('吾輩は猫である');
-    expect(screen.queryByText('メモ')).toBeNull();
+    expect(screen.queryByText('メモと引用')).toBeNull();
+  });
+
+  it('読みたい本でも引用があれば出し、押せない', async () => {
+    await show([{ ...full, status: 'planned', memos: [] }]);
+    expect(await screen.findByText('メモと引用')).toBeTruthy();
+    expect(screen.getByText('名前はまだ無い')).toBeTruthy();
+    expect(screen.queryByLabelText('メモ・引用を書く')).toBeNull();
+  });
+
+  it('0 件で追加できるときは空文言を出す', async () => {
+    await show([{ ...full, memos: [], quotes: [] }]);
+    expect(await screen.findByText('まだ何もありません。気づいたことを、ひとこと残してみませんか')).toBeTruthy();
+    expect(screen.getByText('0 件')).toBeTruthy();
+  });
+
+  it('引用・メモだけの読了本では「何も書いていません」の案内を出さない', async () => {
+    await show([{ ...full, oneLiner: null, starters: [], freeTexts: [] }]);
+    await screen.findByText('メモと引用');
+    expect(screen.queryByText('まだ何も書いていません', { exact: false })).toBeNull();
   });
 
   it('「評価」「問い」「お題」の語が出ない', async () => {
@@ -237,7 +271,7 @@ describe('RereadScreen の入口', () => {
     );
     const pill = screen.getByText('お気に入り').parent;
     expect(StyleSheet.flatten(pill?.props.style).borderColor).toBe(colors.ribbon);
-    // 書き出しの続きと自由記述に 1 本ずつ。引用にはない
+    // 書き出しの続きと自由記述に 1 本ずつ
     expect(screen.getAllByTestId('rule')).toHaveLength(2);
   });
 });

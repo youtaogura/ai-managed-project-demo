@@ -70,6 +70,25 @@ async function show(
 const stored = async (repository: RecordRepository) => (await repository.getAll()).find((r) => r.id === 'x');
 
 describe('ReadingScreen の表示', () => {
+  it('メモと引用の並びは読み返す画面と同じ（ページ昇順・ページなしは後ろ・同ページは書いた順）', async () => {
+    await show([
+      {
+        ...base,
+        memos: [
+          { id: 'm1', text: 'あとのメモ', page: '88', createdAt: '2024-01-01T00:00:00.000Z' },
+          { id: 'm2', text: 'さきのメモ', page: '5', createdAt: '2024-01-02T00:00:00.000Z' },
+          { id: 'm3', text: 'ページなしメモ', page: null, createdAt: '2024-01-01T00:00:00.000Z' },
+        ],
+        quotes: [{ id: 'q1', text: '名前はまだ無い', page: '12', comment: null, createdAt: '2024-01-01T00:00:00.000Z' }],
+      },
+    ]);
+    await screen.findByText('4 件');
+    const json = JSON.stringify(screen.toJSON());
+    const order = ['さきのメモ', '名前はまだ無い', 'あとのメモ', 'ページなしメモ'].map((t) => json.indexOf(t));
+    expect(order.every((i) => i >= 0)).toBe(true);
+    expect(order).toEqual([...order].sort((x, y) => x - y));
+  });
+
   it('背表紙・開始日・タイトル・作者 · 本棚・件数を出す', async () => {
     await show();
     await waitFor(() => expect(screen.getByText('読んでる · 10/18 から')).toBeTruthy());
