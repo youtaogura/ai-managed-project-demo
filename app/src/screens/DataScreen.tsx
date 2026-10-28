@@ -205,7 +205,6 @@ export function DataScreen({
               setExportOpen(true);
             }}
           />
-          <View style={styles.gap} />
           <SettingsRow
             label="記録を読み込む"
             value="書き出したバックアップから戻す"
@@ -269,7 +268,6 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: space[5], paddingTop: space[4], gap: space[5] },
   countBlock: { gap: space[1] },
   countLabel: { color: colors.textSecondary },
-  gap: { height: space[2] },
   note: { color: colors.textTertiary },
   deleteLink: {
     minHeight: size.touchMin,
