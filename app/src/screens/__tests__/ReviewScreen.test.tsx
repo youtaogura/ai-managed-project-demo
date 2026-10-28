@@ -53,18 +53,17 @@ describe('ReviewScreen', () => {
     jest.useRealTimers();
   });
 
-  it('見出し・期間・3 つの数字を表示する', async () => {
+  it('見出し・期間・2 つの数字を表示する（引用の数は出さない）', async () => {
     await setup(sample);
     expect(await screen.findByText('振り返り')).toBeTruthy();
     expect(screen.getByText('2025/11 – 2026/10')).toBeTruthy();
     expect(screen.getByText('読んだ')).toBeTruthy();
     expect(screen.getByText('2 冊')).toBeTruthy();
     expect(screen.getByText('感想')).toBeTruthy();
-    expect(screen.getByText('引用')).toBeTruthy();
-    expect(screen.getAllByText('0').length).toBeGreaterThan(0);
+    expect(screen.queryByText('引用')).toBeNull();
   });
 
-  it('積み上げの段の色・月の数字・今月ラベル・読み上げ・注記を出す', async () => {
+  it('積み上げの段の色・月の数字・今月ラベル・読み上げを出し、注記は出さない', async () => {
     await setup(sample);
     expect(await screen.findByText('月ごとに読んだ本')).toBeTruthy();
     expect(bgOf('1')).toBe(colors.spine4);
@@ -74,23 +73,22 @@ describe('ReviewScreen', () => {
     const color = (text: string) => StyleSheet.flatten(screen.getByText(text).props.style).color;
     expect(color('10月')).toBe(colors.textPrimary);
     expect(color('9月')).toBe(colors.textSecondary);
-    expect(screen.getByText('1冊が1段。背表紙の色で積み上がります')).toBeTruthy();
+    expect(screen.queryByText(/1冊が1段/)).toBeNull();
   });
 
-  it('どうだった？に平均・言葉・4 区分を出す', async () => {
+  it('評価に 4 区分だけを出し、平均は出さない', async () => {
     await setup(sample);
-    expect(await screen.findByText('どうだった？')).toBeTruthy();
-    expect(screen.getByText('平均')).toBeTruthy();
-    expect(screen.getByText('3.5')).toBeTruthy();
-    // 言葉（平均の横）と区分の見出しの 2 つ
-    expect(screen.getAllByText('まあまあ')).toHaveLength(2);
-    for (const l of ['最高', 'よかった', 'あんまり']) expect(screen.getByText(l)).toBeTruthy();
+    expect(await screen.findByText('評価')).toBeTruthy();
+    expect(screen.queryByText('どうだった？')).toBeNull();
+    expect(screen.queryByText('平均')).toBeNull();
+    expect(screen.queryByText('3.5')).toBeNull();
+    for (const l of ['最高', 'よかった', 'まあまあ', 'あんまり']) expect(screen.getAllByText(l)).toHaveLength(1);
   });
 
-  it('評価がなければ平均は「—」で言葉は出ない', async () => {
-    await setup([done('1', { endDate: '2026-10-01' })]);
-    expect(await screen.findByText('—')).toBeTruthy();
-    expect(screen.getAllByText('まあまあ')).toHaveLength(1);
+  it('カードの数字は行の高さを文字より大きくして、上が切れないようにする', async () => {
+    await setup(sample);
+    const style = StyleSheet.flatten((await screen.findByText('2 冊')).props.style);
+    expect(style.lineHeight).toBeGreaterThan(style.fontSize);
   });
 
   it('お気に入りがあるときだけ今年のお気に入りを出し、背表紙で詳細を開く', async () => {
@@ -112,23 +110,24 @@ describe('ReviewScreen', () => {
 
   it('お気に入りがなければ見出しごと出さない', async () => {
     await setup(sample);
-    await screen.findByText('どうだった？');
+    await screen.findByText('評価');
     expect(screen.queryByText('今年のお気に入り')).toBeNull();
   });
 
   it('感想は読後メモのある本の数（ひとことだけの本は数えない）。いちばん使った書き出しの段はない', async () => {
     await setup(sample);
-    await screen.findByText('どうだった？');
+    await screen.findByText('評価');
     const card = screen.getByText('感想').parent;
     expect(card).toBeTruthy();
     expect(within(card as NonNullable<typeof card>).getByText('1')).toBeTruthy();
     expect(screen.queryByText(/書き出し/)).toBeNull();
   });
 
-  it('画面のどこにも「評価」「レーティング」が出ない', async () => {
+  it('「評価」は段の見出しだけで、「レーティング」は出ない', async () => {
     await setup(sample);
-    await screen.findByText('どうだった？');
-    expect(screen.queryByText(/評価|レーティング/)).toBeNull();
+    await screen.findByText('評価');
+    expect(screen.getAllByText(/評価/)).toHaveLength(1);
+    expect(screen.queryByText(/レーティング/)).toBeNull();
     expect(screen.queryByLabelText(/評価|レーティング/)).toBeNull();
     expect(screen.queryByText(/終了日が未入力/)).toBeNull();
   });

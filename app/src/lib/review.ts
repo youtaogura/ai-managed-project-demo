@@ -1,6 +1,5 @@
 import type { MediaRecord, SpineColor } from '../types/record';
-import { aggregateMonthlyCompletions, average, formatPeriod } from './analytics';
-import { getRatingWord } from './ratingWord';
+import { aggregateMonthlyCompletions, formatPeriod } from './analytics';
 
 export type RatingBucketLabel = '最高' | 'よかった' | 'まあまあ' | 'あんまり';
 
@@ -8,12 +7,9 @@ export type ReviewSummary = {
   period: string;
   read: number;
   impressions: number;
-  quotes: number;
   months: { month: string; books: { id: string; spineColor: SpineColor }[] }[];
   favorites: MediaRecord[];
   ratings: {
-    average: number | null;
-    word: string | null;
     buckets: { label: RatingBucketLabel; count: number }[];
   };
 };
@@ -71,32 +67,22 @@ export function summarizeReview(records: MediaRecord[], now: Date): ReviewSummar
 
   // 感想 = 読後メモを 1 件以上書いた本の数
   const impressions = read.filter((r) => r.postReadMemos.some((m) => hasText(m.text))).length;
-  const quotes = read.reduce((sum, r) => sum + r.quotes.length, 0);
 
   const inYear = (r: MediaRecord) => endDateOf(r)?.slice(0, 4) === year;
   const favorites = records.filter((r) => r.favorite && inYear(r)).sort(compareNewestFirst);
 
   const counts = [0, 0, 0, 0];
-  let sum = 0;
-  let rated = 0;
   for (const r of read) {
-    if (r.rating === null) continue;
-    counts[bucketIndex(r.rating)] += 1;
-    sum += r.rating;
-    rated += 1;
+    if (r.rating !== null) counts[bucketIndex(r.rating)] += 1;
   }
-  const avg = rated === 0 ? null : average(sum, rated);
 
   return {
     period: formatPeriod(slots),
     read: read.length,
     impressions,
-    quotes,
     months,
     favorites,
     ratings: {
-      average: avg,
-      word: getRatingWord(avg),
       buckets: BUCKET_LABELS.map((label, i) => ({ label, count: counts[i] })),
     },
   };

@@ -35,7 +35,7 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 
 // 「書き出し」は読後メモ・ヒントに置き換えた。データの「書き出し・読み込み」「書き出した」「書き出して」は別の意味なので除く
 const FORBIDDEN = /評価|レーティング|未評価|写真|書影|書き出し(?![・たて])/;
-// 並び替え（設定の並び順の行とシート）だけは、項目名として「評価」を使う
+// 並び替え（設定の並び順の行とシート）と振り返りの段の見出しだけは、項目名として「評価」を使う
 const SORT_FORBIDDEN = /レーティング|未評価|写真|書影|書き出し(?![・たて])/;
 
 type Node = { type?: string; props?: { accessibilityLabel?: unknown }; children?: unknown };
@@ -178,7 +178,7 @@ describe('使わなくなった言葉が画面に出ない', () => {
 
   it.each(screens)('%s', async (label, build) => {
     await renderRouter({ index: build });
-    expectNoForbidden(label);
+    expectNoForbidden(label, label === '振り返り' ? SORT_FORBIDDEN : FORBIDDEN);
   });
 
   it.each(SORT_ORDERS)('並び順シート（%s を選択中）', async (order) => {

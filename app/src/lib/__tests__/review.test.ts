@@ -13,10 +13,10 @@ describe('summarizeReview', () => {
     const s = summarizeReview([], now);
     expect(s.period).toBe('2025/11 – 2026/10');
     expect(s.months).toHaveLength(12);
-    expect(s).toMatchObject({ read: 0, impressions: 0, quotes: 0, favorites: [] });
+    expect(s).toMatchObject({ read: 0, impressions: 0, favorites: [] });
+    expect(s).not.toHaveProperty('quotes');
     expect(s).not.toHaveProperty('topStarter');
-    expect(s.ratings.average).toBeNull();
-    expect(s.ratings.word).toBeNull();
+    expect(s.ratings).not.toHaveProperty('average');
     expect(s.ratings.buckets.map((b) => b.count)).toEqual([0, 0, 0, 0]);
   });
 
@@ -38,7 +38,7 @@ describe('summarizeReview', () => {
     expect(s.months[11].books.map((b) => b.id)).toEqual(['b']);
   });
 
-  it('感想は期間内に読んだ本のうち読後メモ（空白だけは除く）が 1 件以上ある本の数、引用は合計', () => {
+  it('感想は期間内に読んだ本のうち読後メモ（空白だけは除く）が 1 件以上ある本の数', () => {
     const s = summarizeReview(
       [
         done('a', '2026-10-01', { oneLiner: 'よかった' }),
@@ -51,7 +51,6 @@ describe('summarizeReview', () => {
       now,
     );
     expect(s.impressions).toBe(2);
-    expect(s.quotes).toBe(3);
   });
 
   it('積み上げは endDate → createdAt → id の古い順で、色を持つ', () => {
@@ -88,18 +87,16 @@ describe('summarizeReview', () => {
   });
 
   it.each([
-    [[5], 5, '最高', [1, 0, 0, 0]],
-    [[4], 4, 'よかった', [0, 1, 0, 0]],
-    [[3], 3, 'まあまあ', [0, 0, 1, 0]],
-    [[2.9], 2.9, 'あんまり', [0, 0, 0, 1]],
-    [[5, 4, 4, 3, 3], 3.8, 'まあまあ', [1, 2, 2, 0]],
-  ])('どうだった？ %j', (ratings, avg, word, counts) => {
+    [[5], [1, 0, 0, 0]],
+    [[4], [0, 1, 0, 0]],
+    [[3], [0, 0, 1, 0]],
+    [[2.9], [0, 0, 0, 1]],
+    [[5, 4, 4, 3, 3], [1, 2, 2, 0]],
+  ])('評価の区分 %j', (ratings, counts) => {
     const s = summarizeReview(
       [...ratings.map((r, i) => done(`r${i}`, '2026-10-01', { rating: r })), done('n', '2026-10-01')],
       now,
     );
-    expect(s.ratings.average).toBe(avg);
-    expect(s.ratings.word).toBe(word);
     expect(s.ratings.buckets.map((b) => b.count)).toEqual(counts);
   });
 });
