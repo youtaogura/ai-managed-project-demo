@@ -263,14 +263,14 @@ function bodyFontOf(t: { fontFamily: string; fontWeight: string; fontSize: numbe
   return { fontFamily: resolveFontFamily(t.fontFamily, t.fontWeight), fontSize: t.fontSize };
 }
 
-type FocusInputProps = Omit<TextInputProps, 'style'> & { style: StyleProp<TextStyle>; leading?: ReactNode;
+export type FocusInputProps = Omit<TextInputProps, 'style'> & { style: StyleProp<TextStyle>; leading?: ReactNode;
   /** true なら leading が無くても View で包み、入力欄を作り直さない */
   wrap?: boolean;
   ref?: Ref<TextInputHandle>;
 };
 
 /** フォーカス中は枠が墨色になる入力欄。leading は枠の内側の左に置く（引用の朱の線） */
-function FocusInput({ style, leading, wrap, ref, onFocus, onBlur, ...props }: FocusInputProps) {
+export function FocusInput({ style, leading, wrap, ref, onFocus, onBlur, ...props }: FocusInputProps) {
   const [focused, setFocused] = useState(false);
   const input = (
     <TextInput

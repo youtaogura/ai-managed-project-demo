@@ -1,4 +1,5 @@
-import type { MediaRecord, PostReadMemo } from '../types/record';
+import type { MediaRecord, NewRecordInput, PostReadMemo } from '../types/record';
+import { recordToInput } from './notes';
 
 /** 読後メモを書いた順（createdAt の順、同じなら保存の順）に並べる。本文が空のものは除く。 */
 export function listPostReadMemos(record: Pick<MediaRecord, 'postReadMemos'>): PostReadMemo[] {
@@ -14,12 +15,24 @@ export function listPostReadMemos(record: Pick<MediaRecord, 'postReadMemos'>): P
     .map(({ memo }) => memo);
 }
 
-/** この本をひとことで・読後メモ・引用・メモのどれもなければ false。 */
-export function hasRereadContent(record: Pick<MediaRecord, 'oneLiner' | 'postReadMemos' | 'quotes' | 'memos'>): boolean {
-  return (
-    (record.oneLiner ?? '').trim() !== '' ||
-    listPostReadMemos(record).length > 0 ||
-    record.quotes.some((q) => q.text.trim() !== '') ||
-    record.memos.some((m) => m.text.trim() !== '')
+/** 読後メモ 1 件の本文を差し替えた保存用の入力。本文が空白だけなら null（保存しない）。 */
+export function updatePostReadMemo(record: MediaRecord, id: string, text: string): NewRecordInput | null {
+  const trimmed = text.trim();
+  if (trimmed === '') return null;
+  return withPostReadMemos(
+    record,
+    record.postReadMemos.map((memo) => (memo.id === id ? { ...memo, text: trimmed } : memo)),
   );
+}
+
+/** 読後メモ 1 件を除いた保存用の入力。 */
+export function removePostReadMemo(record: MediaRecord, id: string): NewRecordInput {
+  return withPostReadMemos(
+    record,
+    record.postReadMemos.filter((memo) => memo.id !== id),
+  );
+}
+
+function withPostReadMemos(record: MediaRecord, postReadMemos: PostReadMemo[]): NewRecordInput {
+  return { ...recordToInput(record, record.memos, record.quotes), postReadMemos };
 }

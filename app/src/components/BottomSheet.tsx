@@ -17,8 +17,9 @@ import { colors, radius, size, space, typography } from '../design/tokens';
 import { AppText } from './AppText';
 import { Button } from './Button';
 
-const TITLE_SIZE = 20;
-const TITLE_LINE_HEIGHT = Math.round((TITLE_SIZE * typography.bookTitle.lineHeight) / typography.bookTitle.fontSize);
+/** シートの見出し（明朝の `book-title` を 20px に下げたもの）。見出しを中身に置くシートも同じ大きさにする */
+export const TITLE_SIZE = 20;
+export const TITLE_LINE_HEIGHT = Math.round((TITLE_SIZE * typography.bookTitle.lineHeight) / typography.bookTitle.fontSize);
 const HANDLE_WIDTH = 36;
 const HANDLE_HEIGHT = 4;
 export const SLIDE_DURATION = 250;

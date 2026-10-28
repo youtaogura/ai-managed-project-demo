@@ -144,22 +144,40 @@ function makeRereadRecord() {
     creator: '劉慈欣',
     publisher: '早川書房',
     status: 'completed',
-    startDate: '2025-10-18',
-    endDate: '2025-10-26',
-    rating: 4.5,
+    startDate: '2025-10-01',
+    endDate: '2025-10-20',
+    rating: 4.2,
     favorite: true,
     oneLiner: '宇宙はとても静かで、とても怖い。',
     postReadMemos: [
-      { id: 'p1', text: 'いちばん心に残ったのは、宇宙は暗い森だという考え方。', createdAt: entryTime },
-      { id: 'p2', text: '読み終えてしばらく、夜空を見上げられなかった。', createdAt: entryTime },
+      { id: 'p1', text: 'いちばん心に残ったのは、宇宙は暗い森だという考え方。どこにいても見つかったら終わり。', createdAt: entryTime },
+      { id: 'p2', text: 'この本を渡したいのは、SFを敬遠している人。最初の100ページを越えれば止まらない。', createdAt: entryTime },
+      { id: 'p3', text: '読み終えてしばらく、夜空を見上げられなかった。', createdAt: entryTime },
     ],
-    quotes: [
-      { id: 'q1', text: '弱小と無知は生存の障害ではない。傲慢こそが障害だ。', page: '312', comment: '刺さった', createdAt: entryTime },
-      { id: 'q2', text: '宇宙は暗い森だ。', page: '440', comment: null, createdAt: entryTime },
-    ],
+    quotes: [{ id: 'q1', text: '弱小と無知は生存の障害ではない。傲慢こそが障害だ。', page: '312', comment: null, createdAt: entryTime }],
     memos: [{ id: 'm1', text: '第2部から一気に面白くなる。', page: '120', createdAt: entryTime }],
     spineColor: 'spine-1',
     shelfIds: ['shelf-sf'],
+  });
+}
+
+/** reread-empty.png: 読後メモもひとことも書いていない、読み終えた本。 */
+function makeRereadEmptyRecord() {
+  return makeRecord({
+    id: 'reread-1',
+    title: 'ソラリス',
+    creator: 'スタニスワフ・レム',
+    status: 'completed',
+    startDate: null,
+    endDate: '2025-10-20',
+    rating: 3.5,
+    favorite: false,
+    oneLiner: null,
+    postReadMemos: [],
+    quotes: [],
+    memos: [{ id: 'm1', text: '主人公の名前の由来が気になる。', page: '88', createdAt: entryTime }],
+    spineColor: 'spine-1',
+    shelfIds: [],
   });
 }
 
@@ -208,4 +226,4 @@ function makeNdlSearchXml(items) {
   return `<?xml version="1.0" encoding="UTF-8"?><rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/"><channel><title>search</title>${body}</channel></rss>`;
 }
 
-module.exports = { makeNdlSearchXml, makeRecord, SHELVES, makeShelfRecords, makeReadingRecord, makeFinishedRecord, makeWriteRecord, makeRereadRecord, makeReviewRecords };
+module.exports = { makeNdlSearchXml, makeRecord, SHELVES, makeShelfRecords, makeReadingRecord, makeFinishedRecord, makeWriteRecord, makeRereadRecord, makeRereadEmptyRecord, makeReviewRecords };

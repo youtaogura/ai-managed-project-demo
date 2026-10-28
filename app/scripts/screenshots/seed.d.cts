@@ -8,6 +8,7 @@ export function makeReadingRecord(): MediaRecord;
 export function makeFinishedRecord(): MediaRecord;
 export function makeWriteRecord(): MediaRecord;
 export function makeRereadRecord(): MediaRecord;
+export function makeRereadEmptyRecord(): MediaRecord;
 export type NdlSearchItem = { title: string; author: string; publisher: string; year: string };
 export function makeNdlSearchXml(items: NdlSearchItem[]): string;
 export function makeReviewRecords(year?: number): MediaRecord[];

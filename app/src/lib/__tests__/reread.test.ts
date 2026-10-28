@@ -1,5 +1,5 @@
 import { makeRecord } from '../../testUtils';
-import { hasRereadContent, listPostReadMemos } from '../reread';
+import { listPostReadMemos, removePostReadMemo, updatePostReadMemo } from '../reread';
 
 const at = (n: number) => `2024-01-0${n}T00:00:00.000Z`;
 
@@ -27,24 +27,33 @@ describe('listPostReadMemos', () => {
   });
 });
 
-describe('hasRereadContent', () => {
-  it('引用が空白だけなら false', () => {
-    const quotes = [{ id: 'q', text: ' ', page: null, comment: null, createdAt: at(1) }];
-    expect(hasRereadContent(makeRecord({ quotes }))).toBe(false);
+describe('updatePostReadMemo / removePostReadMemo', () => {
+  const record = makeRecord({
+    oneLiner: 'ひとこと',
+    rating: 4,
+    postReadMemos: [
+      { id: 'p1', text: '一つめ', createdAt: at(1) },
+      { id: 'p2', text: '二つめ', createdAt: at(2) },
+    ],
+    memos: [{ id: 'm', text: 'メモ', page: null, createdAt: at(1) }],
   });
 
-  it('何も書いていなければ false（空白だけの読後メモも数えない）', () => {
-    expect(
-      hasRereadContent(makeRecord({ oneLiner: '  ', postReadMemos: [{ id: 'p', text: ' ', createdAt: at(1) }] })),
-    ).toBe(false);
+  it('指定した 1 件の本文だけを前後の空白を除いて差し替え、ほかの項目と書いた日は残す', () => {
+    const input = updatePostReadMemo(record, 'p2', '  直した  \n');
+    expect(input?.postReadMemos).toEqual([
+      { id: 'p1', text: '一つめ', createdAt: at(1) },
+      { id: 'p2', text: '直した', createdAt: at(2) },
+    ]);
+    expect(input?.oneLiner).toBe('ひとこと');
+    expect(input?.rating).toBe(4);
+    expect(input?.memos).toEqual(record.memos);
   });
 
-  it.each([
-    ['この本をひとことで', { oneLiner: 'よい' }],
-    ['読後メモ', { postReadMemos: [{ id: 'p', text: 'x', createdAt: at(1) }] }],
-    ['引用', { quotes: [{ id: 'q', text: 'x', page: null, comment: null, createdAt: at(1) }] }],
-    ['メモ', { memos: [{ id: 'm', text: 'x', page: null, createdAt: at(1) }] }],
-  ])('%s があれば true', (_name, overrides) => {
-    expect(hasRereadContent(makeRecord(overrides))).toBe(true);
+  it('空白だけなら null', () => {
+    expect(updatePostReadMemo(record, 'p1', ' \n ')).toBeNull();
+  });
+
+  it('削除は指定した 1 件だけを除く', () => {
+    expect(removePostReadMemo(record, 'p1').postReadMemos.map((m) => m.id)).toEqual(['p2']);
   });
 });
