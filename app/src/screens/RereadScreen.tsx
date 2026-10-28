@@ -7,6 +7,7 @@ import { BookHero } from '../components/BookHero';
 import { Button } from '../components/Button';
 import { MemoRow } from '../components/MemoRow';
 import { NoteSheet } from '../components/NoteSheet';
+import { PostReadMemoSheet } from '../components/PostReadMemoSheet';
 import { Quote } from '../components/Quote';
 import { RatingStars } from '../components/RatingStars';
 import { RuledText } from '../components/RuledText';
@@ -29,13 +30,15 @@ import {
   type NoteItem,
 } from '../lib/notes';
 import { getRatingWord } from '../lib/ratingWord';
-import { hasRereadContent, listPostReadMemos } from '../lib/reread';
+import { listPostReadMemos, removePostReadMemo, updatePostReadMemo } from '../lib/reread';
 import { formatRating, todayString } from '../lib/recordForm';
 import { shelfNames } from '../lib/shelfSelectors';
-import type { MediaRecord, NewRecordInput } from '../types/record';
+import type { MediaRecord, NewRecordInput, PostReadMemo } from '../types/record';
 
 const STARS_SIZE = 18;
 const ERROR_START = '保存できませんでした。もう一度お試しください';
+const POST_READ_GUIDE =
+  '読み終えた直後の言葉を残しておくと、あとで人に勧めるときに助けになります。気になった文を選んで、続きを書くだけで大丈夫。';
 
 const START_ACTIONS = {
   planned: {
@@ -69,6 +72,7 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sheet, setSheet] = useState<SheetState>(null);
+  const [editingMemo, setEditingMemo] = useState<PostReadMemo | null>(null);
 
   // 書く画面から戻ったときに最新の内容を表示するため、フォーカスのたび読み込む
   useFocusEffect(
@@ -156,11 +160,9 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
 
   const oneLiner = record.oneLiner?.trim() ?? '';
   const word = getRatingWord(record.rating);
-  const completed = record.status === 'completed';
+  // 読みたい本（まだ読んでいない）には、読後メモの段もメモ・引用の入口も出さない
   const noteable = record.status !== 'planned';
   const editing = sheet?.mode === 'edit' ? sheet.item : null;
-  const empty = !hasRereadContent(record);
-  const hasBody = postReadMemos.length > 0;
   const startAction = record.status === 'planned' || record.status === 'dropped' ? START_ACTIONS[record.status] : null;
 
   return (
@@ -206,16 +208,43 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
           </View>
         ) : null}
 
-        {hasBody ? (
+        {noteable ? (
           <>
             <View style={styles.divider} />
-            <View style={styles.entries}>
-              {postReadMemos.map((memo) => (
-                <RuledText key={`post-read-${memo.id}`}>
-                  <AppText variant="reading">{memo.text.trim()}</AppText>
-                </RuledText>
-              ))}
+            <View style={styles.sectionHead}>
+              <AppText variant="sectionTitle">読後メモ</AppText>
+              <AppText variant="label" style={{ color: colors.textSecondary }}>{`${postReadMemos.length} 件`}</AppText>
             </View>
+            {postReadMemos.length === 0 ? (
+              <AppText variant="body" style={{ color: colors.textSecondary }}>
+                {POST_READ_GUIDE}
+              </AppText>
+            ) : (
+              <View style={styles.entries}>
+                {postReadMemos.map((memo) => (
+                  <Pressable
+                    key={`post-read-${memo.id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={`読後メモ ${memo.text.trim()}`}
+                    onPress={() => setEditingMemo(memo)}
+                  >
+                    <RuledText>
+                      <AppText variant="reading">{memo.text.trim()}</AppText>
+                    </RuledText>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="読後メモを書く"
+              style={styles.add}
+              onPress={() => onWrite?.(record.id)}
+            >
+              <AppText variant="button" style={{ color: colors.textSecondary }}>
+                ＋ 読後メモを書く
+              </AppText>
+            </Pressable>
           </>
         ) : null}
 
@@ -262,15 +291,6 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
           </>
         ) : null}
 
-        {empty && completed ? (
-          <View style={styles.guide}>
-            <AppText variant="body" style={{ color: colors.textSecondary }}>
-              まだ何も書いていません。読み終えた直後の言葉を残しておくと、あとで人に勧めるときに助けになります
-            </AppText>
-            <Button label="読後メモを書く" onPress={() => onWrite?.(record.id)} />
-          </View>
-        ) : null}
-
         {startAction ? (
           <View style={styles.guide}>
             <AppText variant="body" style={{ color: colors.textSecondary }}>
@@ -291,7 +311,6 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
           value={shelfNames(record, shelves).join('、') || 'まだ入れていません'}
           onPress={() => setShelfOpen(true)}
         />
-        {completed && !empty ? <SettingsRow label="読後メモを書く" onPress={() => onWrite?.(record.id)} /> : null}
       </ScrollView>
 
       {noteable ? (
@@ -309,6 +328,16 @@ export function RereadScreen({ recordId, onEdit, onWrite, onStart, onBack }: Rer
           }
           onDelete={editing ? () => save(removeNote(record, { kind: editing.kind, id: editing.entry.id })) : undefined}
           onClose={() => setSheet(null)}
+        />
+      ) : null}
+      {noteable ? (
+        <PostReadMemoSheet
+          visible={editingMemo !== null}
+          bookTitle={record.title}
+          text={editingMemo?.text.trim() ?? ''}
+          onSubmit={(text) => save(editingMemo ? updatePostReadMemo(record, editingMemo.id, text) : null)}
+          onDelete={() => save(editingMemo ? removePostReadMemo(record, editingMemo.id) : null)}
+          onClose={() => setEditingMemo(null)}
         />
       ) : null}
       <ShelfPickSheet

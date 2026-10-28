@@ -4,6 +4,7 @@ const {
   makeFinishedRecord,
   makeReadingRecord,
   makeRecord,
+  makeRereadEmptyRecord,
   makeRereadRecord,
   makeReviewRecords,
   makeShelfRecords,
@@ -102,18 +103,20 @@ const SCENES = [
     waitFor: '記録を書く',
   },
   { name: 'reread', data: () => ({ records: [makeRereadRecord()], shelves: SHELVES }), url: '/records/reread-1', waitFor: '宇宙はとても静かで、とても怖い。' },
-  // 読後メモの改善（docs/design-system/screens の reread-empty / memo-edit / oneline-edit）。
-  // 読後メモを直すシート・ひとことを直すシートは、実装する Issue で actions を足す
+  // ひとことを直すシート（oneline-edit）は、実装する Issue で actions を足す
   {
     name: 'reread-empty',
-    data: () => ({
-      records: [{ ...makeRereadRecord(), oneLiner: null, postReadMemos: [], rating: 3.5, favorite: false }],
-      shelves: SHELVES,
-    }),
+    data: () => ({ records: [makeRereadEmptyRecord()], shelves: SHELVES }),
     url: '/records/reread-1',
-    waitFor: '三体',
+    waitFor: '読後メモを書く',
   },
-  { name: 'memo-edit', data: () => ({ records: [makeRereadRecord()], shelves: SHELVES }), url: '/records/reread-1', waitFor: '宇宙はとても静かで、とても怖い。' },
+  {
+    name: 'memo-edit',
+    data: () => ({ records: [makeRereadRecord()], shelves: SHELVES }),
+    url: '/records/reread-1',
+    actions: [{ text: 'いちばん心に残ったのは、宇宙は暗い森だという考え方。どこにいても見つかったら終わり。' }],
+    waitFor: '読後メモを直す',
+  },
   { name: 'oneline-edit', data: () => ({ records: [makeRereadRecord()], shelves: SHELVES }), url: '/records/reread-1', waitFor: '宇宙はとても静かで、とても怖い。' },
   { name: 'review', data: () => ({ records: makeReviewRecords() }), url: '/analytics', waitFor: '振り返り' },
   { name: 'settings', data: () => ({ ...withShelf(), lastExportedAt: '2026-10-01T09:00:00.000Z' }), url: '/settings', waitFor: '設定' },
