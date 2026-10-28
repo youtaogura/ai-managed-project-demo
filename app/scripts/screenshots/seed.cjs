@@ -152,7 +152,10 @@ function makeRereadRecord() {
     favorite: true,
     oneLiner: '宇宙はとても静かで、とても怖い。',
     starters: [{ id: 's1', starter: 'いちばん心に残ったのは、', text: '宇宙は暗い森だという考え方。', createdAt: entryTime }],
-    quotes: [{ id: 'q1', text: '弱小と無知は生存の障害ではない。傲慢こそが障害だ。', page: '312', comment: '刺さった', createdAt: entryTime }],
+    quotes: [
+      { id: 'q1', text: '弱小と無知は生存の障害ではない。傲慢こそが障害だ。', page: '312', comment: '刺さった', createdAt: entryTime },
+      { id: 'q2', text: '宇宙は暗い森だ。', page: '440', comment: null, starter: '読み終えて、見方が変わったのは、', createdAt: entryTime },
+    ],
     memos: [{ id: 'm1', text: '第2部から一気に面白くなる。', page: '120', createdAt: entryTime }],
     freeTexts: [{ id: 'f1', text: '読み終えてしばらく、夜空を見上げられなかった。', createdAt: entryTime }],
     spineColor: 'spine-1',
