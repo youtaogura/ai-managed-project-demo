@@ -141,7 +141,14 @@ export function buildWriteInput(
     if (card.kind === 'free') {
       freeTexts.push({ id: generateId(), text, createdAt: now() });
     } else if (card.asQuote) {
-      quotes.push({ id: generateId(), text, page: normalizePage(card.page), comment: null, createdAt: now() });
+      quotes.push({
+        id: generateId(),
+        text,
+        page: normalizePage(card.page),
+        comment: null,
+        starter: card.starter,
+        createdAt: now(),
+      });
     } else {
       starters.push({ id: generateId(), starter: card.starter, text, createdAt: now() });
     }

@@ -30,6 +30,7 @@ export function isQuoteEntry(value: unknown): value is QuoteEntry {
     typeof value.text === 'string' &&
     isNullableString(value.page) &&
     isNullableString(value.comment) &&
+    (value.starter === undefined || isNullableString(value.starter)) &&
     typeof value.createdAt === 'string'
   );
 }

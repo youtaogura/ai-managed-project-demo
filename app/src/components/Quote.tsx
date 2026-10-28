@@ -18,6 +18,11 @@ export function Quote({ quote, onPress }: QuoteProps) {
     <View style={styles.row}>
       <View testID="quote-line" style={styles.line} />
       <View style={styles.content}>
+        {quote.starter ? (
+          <AppText variant="micro" style={{ color: colors.textSecondary }}>
+            {quote.starter}
+          </AppText>
+        ) : null}
         <AppText variant="quote">{quote.text}</AppText>
         {quote.page ? (
           <AppText variant="micro" style={{ color: colors.textSecondary }}>

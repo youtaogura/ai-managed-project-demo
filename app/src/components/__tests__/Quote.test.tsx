@@ -19,6 +19,16 @@ describe('Quote', () => {
     expect(screen.queryByText('好き')).toBeNull();
   });
 
+  it('書き出しがあれば本文の上に出す', async () => {
+    await render(<Quote quote={{ ...quote, starter: '好きなのは、' }} />);
+    expect(screen.getByText('好きなのは、')).toBeTruthy();
+  });
+
+  it('書き出しがなければ出さない', async () => {
+    await render(<Quote quote={{ ...quote, starter: null }} />);
+    expect(screen.queryByText('好きなのは、')).toBeNull();
+  });
+
   it('タップすると onPress が呼ばれる', async () => {
     const onPress = jest.fn();
     await render(<Quote quote={quote} onPress={onPress} />);

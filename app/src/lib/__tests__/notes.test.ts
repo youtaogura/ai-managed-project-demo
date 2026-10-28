@@ -97,6 +97,16 @@ describe('addNote / updateNote / removeNote', () => {
     expect(q?.quotes[0]).toMatchObject({ id: 'b', page: null, comment: 'c' });
   });
 
+  it('引用を直しても書き出しが残り、メモに変えると捨てる', () => {
+    const withStarter = makeRecord({ title: 'T', shelfIds: ['s'], quotes: [{ ...quote('b', '2'), starter: '好きなのは、' }] });
+    const kept = updateNote(withStarter, { kind: 'quote', id: 'b' }, { kind: 'quote', page: '2', text: '直した', comment: '' });
+    expect(kept?.quotes[0].starter).toBe('好きなのは、');
+    const memo = updateNote(withStarter, { kind: 'quote', id: 'b' }, { kind: 'memo', page: '2', text: 'x', comment: '' });
+    expect(memo?.memos[0]).not.toHaveProperty('starter');
+    const back = updateNote(memo ? { ...withStarter, memos: memo.memos, quotes: memo.quotes } : withStarter, { kind: 'memo', id: 'b' }, { kind: 'quote', page: '2', text: 'x', comment: '' });
+    expect(back?.quotes[0].starter).toBeUndefined();
+  });
+
   it('種類を切り替えると元を消して id と createdAt を引き継ぐ', () => {
     const input = updateNote(record, { kind: 'memo', id: 'a' }, { kind: 'quote', page: '1', text: 'x', comment: 'c' });
     expect(input?.memos).toEqual([]);
